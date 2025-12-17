@@ -31,7 +31,6 @@ export class MCPClientError extends Error {
  * AgentCore Gateway MCP クライアント (HTTP ベース)
  */
 export class AgentCoreMCPClient {
-  private isConnected = false;
   private readonly endpointUrl: string;
 
   constructor() {
@@ -39,73 +38,6 @@ export class AgentCoreMCPClient {
     logger.debug("AgentCore MCP クライアントを初期化", {
       endpoint: this.endpointUrl,
     });
-  }
-
-  /**
-   * MCP サーバーに接続
-   */
-  async connect(): Promise<void> {
-    if (this.isConnected) {
-      logger.debug("既に接続済みです");
-      return;
-    }
-
-    try {
-      logger.info("AgentCore Gateway に接続中...");
-
-      // Cognito 認証をテスト
-      await cognitoAuth.authenticate();
-
-      // 接続テスト
-      await this.testConnection();
-
-      this.isConnected = true;
-      logger.info("AgentCore Gateway に接続しました");
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "不明なエラー";
-      logger.error("AgentCore Gateway への接続に失敗:", errorMessage);
-
-      throw new MCPClientError(
-        `AgentCore Gateway への接続に失敗: ${errorMessage}`,
-        error instanceof Error ? error : undefined
-      );
-    }
-  }
-
-  /**
-   * 接続をテスト
-   */
-  private async testConnection(): Promise<void> {
-    const authHeader = await cognitoAuth.getAuthorizationHeader();
-
-    const response = await fetch(this.endpointUrl, {
-      method: "POST",
-      headers: {
-        Authorization: authHeader,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        jsonrpc: "2.0",
-        id: 1,
-        method: "tools/list",
-        params: {},
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(
-        `Connection test failed: ${response.status} ${response.statusText}`
-      );
-    }
-  }
-
-  /**
-   * 接続を切断
-   */
-  async disconnect(): Promise<void> {
-    this.isConnected = false;
-    logger.info("AgentCore Gateway から切断しました");
   }
 
   /**
@@ -118,8 +50,6 @@ export class AgentCoreMCPClient {
       inputSchema: unknown;
     }>
   > {
-    await this.ensureConnected();
-
     try {
       logger.debug("ツール一覧を取得中...");
 
@@ -172,8 +102,6 @@ export class AgentCoreMCPClient {
     toolName: string,
     arguments_: Record<string, unknown>
   ): Promise<MCPToolResult> {
-    await this.ensureConnected();
-
     try {
       logger.info("ツールを呼び出し中:", { toolName, arguments: arguments_ });
 
@@ -238,22 +166,6 @@ export class AgentCoreMCPClient {
         error instanceof Error ? error : undefined
       );
     }
-  }
-
-  /**
-   * 接続状態を確認し、必要に応じて再接続
-   */
-  private async ensureConnected(): Promise<void> {
-    if (!this.isConnected) {
-      await this.connect();
-    }
-  }
-
-  /**
-   * 接続状態を取得
-   */
-  get connected(): boolean {
-    return this.isConnected;
   }
 }
 

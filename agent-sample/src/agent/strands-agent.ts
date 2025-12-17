@@ -37,10 +37,8 @@ export class StrandsAgent {
     try {
       logger.info("Strands Agent を初期化中...");
 
-      // MCP クライアント接続
-      if (!mcpClient.connected) {
-        await mcpClient.connect();
-      }
+      // MCP クライアントはステートレス設計のため、事前接続は不要
+      // 各リクエスト時に必要な認証ヘッダーが自動取得される
 
       this.isInitialized = true;
       logger.info("✅ Strands Agent の初期化が完了しました");
@@ -60,64 +58,11 @@ export class StrandsAgent {
 
     try {
       logger.info("Agent にクエリを送信:", query);
-
-      // シンプルなクエリマッチング + AI Agent の組み合わせ
-      if (query.toLowerCase().includes("ping") || query.includes("接続確認")) {
-        const mcpResult = await this.callMCPTool("echo-tool___ping", {});
-        const aiResponse = await this.agent.invoke(
-          `次のシステム情報について日本語で分かりやすく説明してください: ${mcpResult}`
-        );
-        return typeof aiResponse === "string"
-          ? aiResponse
-          : JSON.stringify(aiResponse);
-      } else if (
-        query.toLowerCase().includes("echo") ||
-        query.includes("エコー")
-      ) {
-        const messageMatch = query.match(/[「"](.*?)[」"]/);
-        const message = messageMatch
-          ? messageMatch[1]
-          : "Hello from AgentCore Gateway!";
-
-        const mcpResult = await this.callMCPTool("echo-tool___echo", {
-          message,
-        });
-        const aiResponse = await this.agent.invoke(
-          `次のエコー結果について説明してください: ${mcpResult}`
-        );
-        return typeof aiResponse === "string"
-          ? aiResponse
-          : JSON.stringify(aiResponse);
-      } else {
-        // 通常の AI Agent として動作
-        const aiResponse = await this.agent.invoke(query);
-        return typeof aiResponse === "string"
-          ? aiResponse
-          : JSON.stringify(aiResponse);
-      }
+      const response = await this.agent.invoke(query);
+      return typeof response === "string" ? response : JSON.stringify(response);
     } catch (error) {
       logger.error("❌ Agent invoke エラー:", error);
       return `エラーが発生しました: ${error}`;
-    }
-  }
-
-  /**
-   * MCP ツールを直接呼び出し
-   */
-  private async callMCPTool(
-    toolName: string,
-    args: Record<string, unknown>
-  ): Promise<string> {
-    try {
-      const result = await mcpClient.callTool(toolName, args);
-
-      if (result.isError) {
-        return `ツールエラー: ${result.content.map((c) => c.text).join(", ")}`;
-      }
-
-      return result.content[0]?.text || JSON.stringify(result);
-    } catch (error) {
-      return `MCP ツール呼び出しエラー: ${error}`;
     }
   }
 
