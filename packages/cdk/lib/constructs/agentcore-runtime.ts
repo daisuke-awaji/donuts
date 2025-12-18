@@ -10,6 +10,7 @@ import { RuntimeAuthorizerConfiguration } from "@aws-cdk/aws-bedrock-agentcore-a
 import { Construct } from "constructs";
 import * as path from "path";
 import { CognitoAuth } from "./cognito-auth.js";
+import { AgentCoreGateway } from "./agentcore-gateway.js";
 
 export interface AgentCoreRuntimeProps {
   /**
@@ -45,6 +46,12 @@ export interface AgentCoreRuntimeProps {
    * 外部で作成されたCognitoAuthを使用
    */
   readonly cognitoAuth?: CognitoAuth;
+
+  /**
+   * AgentCore Gateway (JWT伝播用)
+   * Gateway エンドポイントを環境変数として Runtime に設定
+   */
+  readonly gateway?: AgentCoreGateway;
 }
 
 /**
@@ -95,6 +102,19 @@ export class AgentCoreRuntime extends Construct {
       );
     }
 
+    // 環境変数を設定
+    const environmentVariables: Record<string, string> = {
+      BEDROCK_MODEL_ID: "global.anthropic.claude-sonnet-4-5-20250929-v1:0",
+      BEDROCK_REGION: props.region || "us-east-1",
+      LOG_LEVEL: "info",
+    };
+
+    // Gateway エンドポイントを設定（JWT伝播用）
+    if (props.gateway) {
+      environmentVariables.AGENTCORE_GATEWAY_ENDPOINT =
+        props.gateway.gatewayEndpoint;
+    }
+
     // AgentCore Runtime を作成
     this.runtime = new agentcore.Runtime(this, "Runtime", {
       runtimeName: props.runtimeName,
@@ -102,6 +122,11 @@ export class AgentCoreRuntime extends Construct {
       description:
         props.description || `Strands Agent Runtime: ${props.runtimeName}`,
       authorizerConfiguration: authorizerConfiguration,
+      environmentVariables: environmentVariables,
+      // JWT認証のためのAuthorizationヘッダー転送を有効化
+      requestHeaderConfiguration: {
+        allowlistedHeaders: ["Authorization"],
+      },
     });
 
     // IAM ポリシーを追加

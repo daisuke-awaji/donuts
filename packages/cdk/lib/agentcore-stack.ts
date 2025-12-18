@@ -143,6 +143,7 @@ export class AgentCoreStack extends cdk.Stack {
       region: this.region,
       authType: props?.runtimeAuthType || "jwt",
       cognitoAuth: this.cognitoAuth,
+      gateway: this.gateway, // JWT伝播用のGatewayエンドポイント設定
     });
 
     // 4. CloudFormation 追加出力（認証関連）

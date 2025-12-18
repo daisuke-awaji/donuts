@@ -68,6 +68,11 @@ export class AgentCoreGateway extends Construct {
    */
   public readonly gatewayId: string;
 
+  /**
+   * Gateway のエンドポイント URL
+   */
+  public readonly gatewayEndpoint: string;
+
   constructor(scope: Construct, id: string, props: AgentCoreGatewayProps) {
     super(scope, id);
 
@@ -127,6 +132,7 @@ export class AgentCoreGateway extends Construct {
 
     this.gatewayArn = this.gateway.gatewayArn;
     this.gatewayId = this.gateway.gatewayId;
+    this.gatewayEndpoint = this.gateway.gatewayUrl || "";
   }
 
   /**

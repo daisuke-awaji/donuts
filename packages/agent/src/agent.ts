@@ -6,7 +6,6 @@
 import { Agent, BedrockModel, tool } from "@strands-agents/sdk";
 import { z } from "zod";
 import { config, logger } from "./config/index.js";
-import { cognitoAuth } from "./auth/cognito.js";
 import { mcpClient, MCPToolResult } from "./mcp/client.js";
 import { weatherTool } from "./tools/weather.js";
 
@@ -124,12 +123,7 @@ export async function createAgent(): Promise<Agent> {
   logger.info("Strands Agent を初期化中...");
 
   try {
-    // 1. Cognito認証
-    logger.debug("Cognito認証を実行中...");
-    await cognitoAuth.authenticate();
-    logger.info("✅ Cognito認証完了");
-
-    // 2. AgentCore Gateway からツール一覧を取得
+    // 1. AgentCore Gateway からツール一覧を取得
     logger.debug("AgentCore Gateway からツール一覧を取得中...");
     const mcpTools = await mcpClient.listTools();
     logger.info(`✅ ${mcpTools.length}個のツールを取得しました`);

@@ -2,7 +2,7 @@
 // import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/http.js";
 // import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { config, logger } from "../config/index.js";
-import { cognitoAuth } from "../auth/cognito.js";
+import { getCurrentAuthHeader } from "../context/request-context.js";
 
 /**
  * MCP ツール呼び出しの結果
@@ -41,6 +41,28 @@ export class AgentCoreMCPClient {
   }
 
   /**
+   * Authorization ヘッダーを取得（JWT 伝播のみ）
+   */
+  private getAuthorizationHeader(required = true): string | null {
+    // リクエストコンテキストから Inbound JWT を取得
+    const contextAuthHeader = getCurrentAuthHeader();
+    if (contextAuthHeader) {
+      logger.debug("リクエストコンテキストから JWT を使用");
+      return contextAuthHeader;
+    }
+
+    // JWT が見つからない場合の処理
+    if (required) {
+      throw new MCPClientError(
+        "JWT認証情報が見つかりません。リクエストに Authorization ヘッダーが必要です。"
+      );
+    }
+
+    logger.debug("JWT認証情報が見つかりませんが、必須ではないため継続");
+    return null;
+  }
+
+  /**
    * 利用可能なツール一覧を取得
    */
   async listTools(): Promise<
@@ -53,13 +75,19 @@ export class AgentCoreMCPClient {
     try {
       logger.debug("ツール一覧を取得中...");
 
-      const authHeader = await cognitoAuth.getAuthorizationHeader();
+      // Agent 初期化時はJWT不要（認証なしでツール一覧を取得）
+      const authHeader = this.getAuthorizationHeader(false);
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+
+      if (authHeader) {
+        headers.Authorization = authHeader;
+      }
+
       const response = await fetch(this.endpointUrl, {
         method: "POST",
-        headers: {
-          Authorization: authHeader,
-          "Content-Type": "application/json",
-        },
+        headers,
         body: JSON.stringify({
           jsonrpc: "2.0",
           id: 1,
@@ -105,13 +133,19 @@ export class AgentCoreMCPClient {
     try {
       logger.info("ツールを呼び出し中:", { toolName, arguments: arguments_ });
 
-      const authHeader = await cognitoAuth.getAuthorizationHeader();
+      // ツール呼び出し時はJWT認証必須
+      const authHeader = this.getAuthorizationHeader(true);
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+
+      if (authHeader) {
+        headers.Authorization = authHeader;
+      }
+
       const response = await fetch(this.endpointUrl, {
         method: "POST",
-        headers: {
-          Authorization: authHeader,
-          "Content-Type": "application/json",
-        },
+        headers,
         body: JSON.stringify({
           jsonrpc: "2.0",
           id: Date.now(),

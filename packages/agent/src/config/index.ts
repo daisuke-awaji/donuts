@@ -15,12 +15,6 @@ const envSchema = z.object({
   // AgentCore Gateway Configuration
   AGENTCORE_GATEWAY_ENDPOINT: z.string().url(),
 
-  // Cognito Configuration
-  COGNITO_USER_POOL_ID: z.string(),
-  COGNITO_CLIENT_ID: z.string(),
-  COGNITO_USERNAME: z.string(),
-  COGNITO_PASSWORD: z.string(),
-
   // Bedrock Configuration
   BEDROCK_MODEL_ID: z
     .string()
@@ -92,11 +86,6 @@ export const logger = {
 export function validateConfig(): void {
   logger.info("設定値検証開始");
 
-  const safeConfig = {
-    ...config,
-    COGNITO_PASSWORD: "[REDACTED]",
-  };
-
-  logger.debug("設定値:", safeConfig);
+  logger.debug("設定値:", config);
   logger.info("設定値検証完了");
 }
