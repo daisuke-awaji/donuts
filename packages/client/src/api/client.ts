@@ -115,8 +115,13 @@ export class AgentCoreClient {
       : `${this.config.endpoint}/invocations`;
 
     try {
+      // 環境に応じて Content-Type を設定
+      const contentType = isAgentCoreRuntime
+        ? "application/json"
+        : "application/octet-stream";
+
       const headers: Record<string, string> = {
-        "Content-Type": "application/json",
+        "Content-Type": contentType,
       };
 
       // AgentCore Runtime の場合は追加のヘッダーが必要
@@ -130,7 +135,7 @@ export class AgentCoreClient {
       }
 
       // JWT認証が必要な場合
-      if (useAuth && this.config.profile === "agentcore") {
+      if (useAuth && this.config.isAwsRuntime) {
         const authResult = await getCachedJwtToken(this.config.cognito);
         headers["Authorization"] = `Bearer ${authResult.accessToken}`;
       }

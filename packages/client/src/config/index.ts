@@ -23,51 +23,71 @@ export interface CognitoConfig {
 
 export interface ClientConfig {
   endpoint: string;
-  profile: "local" | "agentcore";
+  isAwsRuntime: boolean;
   cognito: CognitoConfig;
 }
 
 /**
  * デフォルト設定
  */
-const DEFAULT_CONFIG: ClientConfig = {
-  endpoint: "http://localhost:8080",
-  profile: "local",
-  cognito: {
-    userPoolId: "us-east-1_OZ6KUvSn3",
-    clientId: "19duob1sqr877jesho69aildbn",
-    username: "testuser",
-    password: "TestPassword123!",
-    region: "us-east-1",
-  },
+const DEFAULT_COGNITO_CONFIG: CognitoConfig = {
+  userPoolId: "us-east-1_OZ6KUvSn3",
+  clientId: "19duob1sqr877jesho69aildbn",
+  username: "testuser",
+  password: "TestPassword123!",
+  region: "us-east-1",
 };
+
+/**
+ * エンドポイントを決定する優先順位:
+ * 1. AGENTCORE_RUNTIME_ARN が設定されている場合 -> AWS AgentCore Runtime
+ * 2. AGENTCORE_ENDPOINT が設定されている場合 -> カスタムエンドポイント
+ * 3. どちらも設定されていない場合 -> デフォルト (localhost:8080)
+ */
+function determineEndpoint(): string {
+  // 優先順位1: Runtime ARN が指定されている場合（AWS AgentCore Runtime）
+  if (process.env.AGENTCORE_RUNTIME_ARN) {
+    return buildAgentCoreEndpoint(
+      process.env.AGENTCORE_RUNTIME_ARN,
+      process.env.AGENTCORE_REGION || "us-east-1"
+    );
+  }
+
+  // 優先順位2: カスタムエンドポイント
+  if (process.env.AGENTCORE_ENDPOINT) {
+    return process.env.AGENTCORE_ENDPOINT;
+  }
+
+  // 優先順位3: デフォルト（localhost）
+  return "http://localhost:8080";
+}
+
+/**
+ * AWS Runtime かどうかを判定
+ */
+function isAwsRuntime(endpoint: string): boolean {
+  return (
+    endpoint.includes("bedrock-agentcore") && endpoint.includes("/invocations")
+  );
+}
 
 /**
  * 環境変数から設定を読み込み
  */
 export function loadConfig(): ClientConfig {
-  // Runtime ARN または Runtime Endpoint が設定されている場合は自動的に agentcore プロファイルを使用
-  const hasRuntimeConfig = !!(
-    process.env.AGENTCORE_RUNTIME_ARN || process.env.AGENTCORE_RUNTIME_ENDPOINT
-  );
-  const defaultProfile = hasRuntimeConfig
-    ? "agentcore"
-    : DEFAULT_CONFIG.profile;
-
-  const profile =
-    (process.env.AGENTCORE_PROFILE as "local" | "agentcore") || defaultProfile;
+  const endpoint = determineEndpoint();
 
   return {
-    endpoint: getEndpointForProfile(profile),
-    profile: profile,
+    endpoint,
+    isAwsRuntime: isAwsRuntime(endpoint),
     cognito: {
       userPoolId:
-        process.env.COGNITO_USER_POOL_ID || DEFAULT_CONFIG.cognito.userPoolId,
+        process.env.COGNITO_USER_POOL_ID || DEFAULT_COGNITO_CONFIG.userPoolId,
       clientId:
-        process.env.COGNITO_CLIENT_ID || DEFAULT_CONFIG.cognito.clientId,
-      username: process.env.COGNITO_USERNAME || DEFAULT_CONFIG.cognito.username,
-      password: process.env.COGNITO_PASSWORD || DEFAULT_CONFIG.cognito.password,
-      region: process.env.COGNITO_REGION || DEFAULT_CONFIG.cognito.region,
+        process.env.COGNITO_CLIENT_ID || DEFAULT_COGNITO_CONFIG.clientId,
+      username: process.env.COGNITO_USERNAME || DEFAULT_COGNITO_CONFIG.username,
+      password: process.env.COGNITO_PASSWORD || DEFAULT_COGNITO_CONFIG.password,
+      region: process.env.COGNITO_REGION || DEFAULT_COGNITO_CONFIG.region,
     },
   };
 }
@@ -85,34 +105,6 @@ export function buildAgentCoreEndpoint(
 }
 
 /**
- * プロファイル別のエンドポイントを取得
- */
-export function getEndpointForProfile(profile: string): string {
-  // 優先順位1: 完全なエンドポイント URL が指定されている場合
-  if (process.env.AGENTCORE_RUNTIME_ENDPOINT) {
-    return process.env.AGENTCORE_RUNTIME_ENDPOINT;
-  }
-
-  // 優先順位2: Runtime ARN が指定されている場合（プロファイルに関係なく AgentCore を使用）
-  if (process.env.AGENTCORE_RUNTIME_ARN) {
-    return buildAgentCoreEndpoint(
-      process.env.AGENTCORE_RUNTIME_ARN,
-      process.env.AGENTCORE_REGION || "us-east-1"
-    );
-  }
-
-  // 優先順位3: プロファイルに基づくデフォルト設定
-  switch (profile) {
-    case "local":
-      return "http://localhost:8080";
-    case "agentcore":
-      return "https://bedrock-agentcore.us-east-1.amazonaws.com/runtimes/YOUR_RUNTIME_ARN/invocations";
-    default:
-      return "http://localhost:8080";
-  }
-}
-
-/**
  * 設定値の検証
  */
 export function validateConfig(config: ClientConfig): string[] {
@@ -122,13 +114,7 @@ export function validateConfig(config: ClientConfig): string[] {
     errors.push("エンドポイントが設定されていません");
   }
 
-  if (!["local", "agentcore"].includes(config.profile)) {
-    errors.push(
-      'プロファイルは "local" または "agentcore" である必要があります'
-    );
-  }
-
-  if (config.profile === "agentcore") {
+  if (config.isAwsRuntime) {
     if (!config.cognito.userPoolId) {
       errors.push("Cognito User Pool ID が設定されていません");
     }
@@ -154,7 +140,7 @@ export function formatConfigForDisplay(
 ): Record<string, any> {
   return {
     endpoint: config.endpoint,
-    profile: config.profile,
+    runtime: config.isAwsRuntime ? "AWS AgentCore Runtime" : "ローカル環境",
     cognito: {
       userPoolId: config.cognito.userPoolId,
       clientId: config.cognito.clientId,

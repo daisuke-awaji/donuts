@@ -34,7 +34,13 @@ export async function pingCommand(
 
   console.log(chalk.cyan("🏥 AgentCore ヘルスチェック"));
   console.log(chalk.gray(`エンドポイント: ${config.endpoint}`));
-  console.log(chalk.gray(`プロファイル: ${config.profile}`));
+  console.log(
+    chalk.gray(
+      `ランタイム: ${
+        config.isAwsRuntime ? "AWS AgentCore Runtime" : "ローカル環境"
+      }`
+    )
+  );
   console.log("");
 
   const spinner = ora("接続中...").start();
@@ -98,7 +104,7 @@ export async function pingCommand(
     console.log(chalk.gray("   2. サーバーが起動しているか確認してください"));
     console.log(chalk.gray("   3. ネットワーク接続を確認してください"));
 
-    if (config.profile === "agentcore") {
+    if (config.isAwsRuntime) {
       console.log(chalk.gray("   4. Cognito認証情報を確認してください"));
     }
 

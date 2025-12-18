@@ -42,21 +42,22 @@ cp .env.example .env
 主な設定項目:
 
 ```env
-# エンドポイント設定
+# ====================================
+# 🏠 ローカル環境（デフォルト）
+# ====================================
+# ローカルの Agent サーバーに接続する場合
 AGENTCORE_ENDPOINT=http://localhost:8080
 
-# プロファイル (local | agentcore)
-AGENTCORE_PROFILE=local
+# ====================================
+# ☁️ AWS AgentCore Runtime
+# ====================================
+# Runtime ARN を指定すると自動的に AWS AgentCore Runtime に接続
+AGENTCORE_RUNTIME_ARN=arn:aws:bedrock-agentcore:us-east-1:ACCOUNT_ID:runtime/YOUR_RUNTIME_ID
+AGENTCORE_REGION=us-east-1
 
-# AgentCore Runtime 設定 (agentcore プロファイル時)
-# 方法1: 完全な URL を指定
-# AGENTCORE_RUNTIME_ENDPOINT=https://bedrock-agentcore.us-east-1.amazonaws.com/runtimes/YOUR_RUNTIME_ARN/invocations
-
-# 方法2: Runtime ARN を指定（URL エンコード自動実行）
-# AGENTCORE_RUNTIME_ARN=arn:aws:bedrock:us-east-1:123456789012:agent-runtime/YOUR_RUNTIME_ID
-# AGENTCORE_REGION=us-east-1
-
-# Cognito 認証 (agentcore プロファイル時のみ)
+# ====================================
+# 🔐 Cognito 認証設定（AWS 接続時に必要）
+# ====================================
 COGNITO_USER_POOL_ID=us-east-1_OZ6KUvSn3
 COGNITO_CLIENT_ID=19duob1sqr877jesho69aildbn
 COGNITO_USERNAME=testuser
@@ -64,14 +65,22 @@ COGNITO_PASSWORD=TestPassword123!
 COGNITO_REGION=us-east-1
 ```
 
-### プロファイル
+### 接続先の自動判定
 
-- **`local`**: ローカル環境 (docker compose)
-  - エンドポイント: `http://localhost:8080`
+設定の優先順位：
+
+1. **`AGENTCORE_RUNTIME_ARN`** が設定されている → AWS AgentCore Runtime に接続
+2. **`AGENTCORE_ENDPOINT`** が設定されている → カスタムエンドポイント（ローカル開発など）
+3. **両方とも未設定** → デフォルト（`http://localhost:8080`）に接続
+
+### ランタイム
+
+- **ローカル環境**: docker compose や開発サーバー
   - 認証: 不要
-- **`agentcore`**: AWS AgentCore Runtime
-  - エンドポイント: Bedrock AgentCore URL
+  - 設定: `AGENTCORE_ENDPOINT` のみ
+- **AWS AgentCore Runtime**: Amazon Bedrock AgentCore
   - 認証: Cognito JWT 必須
+  - 設定: `AGENTCORE_RUNTIME_ARN` + Cognito 設定
 
 ## 使用方法
 

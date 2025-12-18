@@ -35,7 +35,9 @@ export async function invokeCommand(
         },
         metadata: {
           endpoint: config.endpoint,
-          profile: config.profile,
+          runtime: config.isAwsRuntime
+            ? "AWS AgentCore Runtime"
+            : "ローカル環境",
           useAuth,
           timestamp: new Date().toISOString(),
         },
@@ -58,7 +60,13 @@ export async function invokeCommand(
   // 対話的UI
   console.log(chalk.cyan("🤖 AgentCore 呼び出し"));
   console.log(chalk.gray(`エンドポイント: ${config.endpoint}`));
-  console.log(chalk.gray(`プロファイル: ${config.profile}`));
+  console.log(
+    chalk.gray(
+      `ランタイム: ${
+        config.isAwsRuntime ? "AWS AgentCore Runtime" : "ローカル環境"
+      }`
+    )
+  );
   console.log(chalk.gray(`認証: ${useAuth ? "有効" : "無効"}`));
   console.log("");
 
@@ -153,7 +161,7 @@ export async function invokeCommand(
     console.log(chalk.gray("   2. サーバーが起動しているか確認してください"));
     console.log(chalk.gray("   3. ネットワーク接続を確認してください"));
 
-    if (useAuth && config.profile === "agentcore") {
+    if (useAuth && config.isAwsRuntime) {
       console.log(chalk.gray("   4. Cognito認証情報を確認してください"));
       console.log(
         chalk.gray("   5. --no-auth オプションで認証なしを試してください")

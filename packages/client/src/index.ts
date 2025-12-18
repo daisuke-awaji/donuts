@@ -26,7 +26,6 @@ program
 
 // グローバルオプション
 program
-  .option("--profile <profile>", "設定プロファイル (local|agentcore)")
   .option("--endpoint <url>", "エンドポイントURL")
   .option("--json", "JSON形式で出力");
 
@@ -41,11 +40,12 @@ program
       const config = loadConfig();
 
       // オプションで設定を上書き
-      if (globalOptions.profile) {
-        config.profile = globalOptions.profile as "local" | "agentcore";
-      }
       if (globalOptions.endpoint) {
         config.endpoint = globalOptions.endpoint;
+        // エンドポイントが変更されたら Runtime 判定を再実行
+        config.isAwsRuntime =
+          config.endpoint.includes("bedrock-agentcore") &&
+          config.endpoint.includes("/invocations");
       }
 
       await pingCommand(config, {
@@ -75,11 +75,12 @@ program
       const config = loadConfig();
 
       // オプションで設定を上書き
-      if (globalOptions.profile) {
-        config.profile = globalOptions.profile as "local" | "agentcore";
-      }
       if (globalOptions.endpoint) {
         config.endpoint = globalOptions.endpoint;
+        // エンドポイントが変更されたら Runtime 判定を再実行
+        config.isAwsRuntime =
+          config.endpoint.includes("bedrock-agentcore") &&
+          config.endpoint.includes("/invocations");
       }
 
       await invokeCommand(prompt, config, {
@@ -108,11 +109,12 @@ program
       const config = loadConfig();
 
       // オプションで設定を上書き
-      if (globalOptions.profile) {
-        config.profile = globalOptions.profile as "local" | "agentcore";
-      }
       if (globalOptions.endpoint) {
         config.endpoint = globalOptions.endpoint;
+        // エンドポイントが変更されたら Runtime 判定を再実行
+        config.isAwsRuntime =
+          config.endpoint.includes("bedrock-agentcore") &&
+          config.endpoint.includes("/invocations");
       }
 
       await interactiveMode(config);
@@ -138,7 +140,6 @@ program
 
       await configCommand({
         json: options.json || globalOptions.json,
-        profile: globalOptions.profile,
         endpoint: globalOptions.endpoint,
         validate: options.validate,
       });
@@ -162,11 +163,12 @@ program
       const config = loadConfig();
 
       // オプションで設定を上書き
-      if (globalOptions.profile) {
-        config.profile = globalOptions.profile as "local" | "agentcore";
-      }
       if (globalOptions.endpoint) {
         config.endpoint = globalOptions.endpoint;
+        // エンドポイントが変更されたら Runtime 判定を再実行
+        config.isAwsRuntime =
+          config.endpoint.includes("bedrock-agentcore") &&
+          config.endpoint.includes("/invocations");
       }
 
       await tokenInfoCommand(config);
@@ -180,10 +182,11 @@ program
     }
   });
 
-// Profiles コマンド
+// Runtimes コマンド（旧 Profiles）
 program
-  .command("profiles")
-  .description("利用可能なプロファイル一覧")
+  .command("runtimes")
+  .alias("profiles") // 後方互換性
+  .description("利用可能なランタイム一覧")
   .action(() => {
     try {
       listProfilesCommand();
@@ -210,12 +213,17 @@ program.action(() => {
   console.log("  interactive       インタラクティブモード");
   console.log("  config            設定の表示・管理");
   console.log("  token             JWT トークン情報");
-  console.log("  profiles          プロファイル一覧");
+  console.log("  runtimes          ランタイム一覧");
   console.log("");
   console.log("例:");
   console.log('  agentcore-client invoke "Hello, what is 1+1?"');
-  console.log("  agentcore-client ping --profile local");
+  console.log("  agentcore-client ping --endpoint http://localhost:3000");
   console.log("  agentcore-client config --validate");
+  console.log("");
+  console.log("環境変数での設定:");
+  console.log("  AGENTCORE_ENDPOINT       ローカルエンドポイント");
+  console.log("  AGENTCORE_RUNTIME_ARN    AWS Runtime ARN");
+  console.log("  AGENTCORE_REGION         AWS リージョン");
   console.log("");
   console.log("詳細なヘルプ:");
   console.log("  agentcore-client --help");
