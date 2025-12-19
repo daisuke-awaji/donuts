@@ -1,6 +1,6 @@
-import { Construct } from "constructs";
-import * as cognito from "aws-cdk-lib/aws-cognito";
-import * as cdk from "aws-cdk-lib";
+import { Construct } from 'constructs';
+import * as cognito from 'aws-cdk-lib/aws-cognito';
+import * as cdk from 'aws-cdk-lib';
 
 export interface CognitoAuthProps {
   /**
@@ -81,7 +81,7 @@ export class CognitoAuth extends Construct {
     super(scope, id);
 
     // User Pool 作成
-    this.userPool = new cognito.UserPool(this, "UserPool", {
+    this.userPool = new cognito.UserPool(this, 'UserPool', {
       userPoolName: props.userPoolName,
 
       // パスワードポリシー
@@ -123,13 +123,13 @@ export class CognitoAuth extends Construct {
     });
 
     // App Client 作成
-    this.userPoolClient = this.userPool.addClient("AppClient", {
+    this.userPoolClient = this.userPool.addClient('AppClient', {
       userPoolClientName: props.appClientName || `${props.userPoolName}-client`,
 
       // 認証フロー設定
       authFlows: {
         userPassword: true, // USER_PASSWORD_AUTH (必須)
-        userSrp: false, // SRP無効
+        userSrp: true, // SRP認証を有効化
         adminUserPassword: true, // ADMIN_USER_PASSWORD_AUTH
         custom: false, // CUSTOM_AUTH無効
       },
@@ -156,21 +156,21 @@ export class CognitoAuth extends Construct {
     this.discoveryUrl = `https://cognito-idp.${region}.amazonaws.com/${this.userPoolId}/.well-known/openid-configuration`;
 
     // CloudFormation Outputs
-    new cdk.CfnOutput(this, "UserPoolId", {
+    new cdk.CfnOutput(this, 'UserPoolId', {
       value: this.userPoolId,
-      description: "Cognito User Pool ID",
+      description: 'Cognito User Pool ID',
       exportName: `${cdk.Stack.of(this).stackName}-UserPoolId`,
     });
 
-    new cdk.CfnOutput(this, "UserPoolClientId", {
+    new cdk.CfnOutput(this, 'UserPoolClientId', {
       value: this.clientId,
-      description: "Cognito User Pool App Client ID",
+      description: 'Cognito User Pool App Client ID',
       exportName: `${cdk.Stack.of(this).stackName}-UserPoolClientId`,
     });
 
-    new cdk.CfnOutput(this, "DiscoveryUrl", {
+    new cdk.CfnOutput(this, 'DiscoveryUrl', {
       value: this.discoveryUrl,
-      description: "OIDC Discovery URL for JWT authentication",
+      description: 'OIDC Discovery URL for JWT authentication',
       exportName: `${cdk.Stack.of(this).stackName}-DiscoveryUrl`,
     });
   }
@@ -178,19 +178,15 @@ export class CognitoAuth extends Construct {
   /**
    * 管理者によるユーザー作成のヘルパーメソッド
    */
-  public addUser(
-    id: string,
-    username: string,
-    password: string
-  ): cognito.CfnUserPoolUser {
+  public addUser(id: string, username: string, password: string): cognito.CfnUserPoolUser {
     return new cognito.CfnUserPoolUser(this, id, {
       userPoolId: this.userPoolId,
       username: username,
-      messageAction: "SUPPRESS", // ウェルカムメール無効
+      messageAction: 'SUPPRESS', // ウェルカムメール無効
       userAttributes: [
         {
-          name: "email_verified",
-          value: "true",
+          name: 'email_verified',
+          value: 'true',
         },
       ],
     });
