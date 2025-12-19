@@ -9,6 +9,120 @@ import { createAgent } from './agent.js';
 import { getContextMetadata } from './context/request-context.js';
 import { requestContextMiddleware } from './middleware/request-context.js';
 
+/**
+ * Strands Agents ストリーミングイベントを安全にシリアライズ
+ * 循環参照を含むオブジェクトから必要なプロパティのみを抽出
+ */
+function serializeStreamEvent(event: any): object {
+  const baseEvent = { type: event.type };
+
+  switch (event.type) {
+    // テキスト生成イベント
+    case 'modelContentBlockDeltaEvent':
+      return {
+        ...baseEvent,
+        delta: event.delta,
+      };
+
+    case 'modelContentBlockStartEvent':
+      return {
+        ...baseEvent,
+        start: event.start,
+      };
+
+    case 'modelContentBlockStopEvent':
+      return {
+        ...baseEvent,
+        stop: event.stop,
+      };
+
+    // メッセージライフサイクルイベント
+    case 'modelMessageStartEvent':
+      return {
+        ...baseEvent,
+        message: event.message
+          ? {
+              role: event.message.role,
+              content: event.message.content,
+            }
+          : undefined,
+      };
+
+    case 'modelMessageStopEvent':
+      return {
+        ...baseEvent,
+        message: event.message
+          ? {
+              role: event.message.role,
+              content: event.message.content,
+            }
+          : undefined,
+      };
+
+    case 'messageAddedEvent':
+      return {
+        ...baseEvent,
+        message: event.message
+          ? {
+              role: event.message.role,
+              content: event.message.content,
+            }
+          : undefined,
+      };
+
+    // メタデータ・結果イベント
+    case 'modelMetadataEvent':
+      return {
+        ...baseEvent,
+        metadata: event.metadata,
+      };
+
+    case 'agentResult':
+      return {
+        ...baseEvent,
+        result: event.result,
+      };
+
+    // テキストブロックイベント
+    case 'textBlock':
+      return {
+        ...baseEvent,
+        text: event.text,
+      };
+
+    // ストリームフックイベント（頻繁に発生するため軽量化）
+    case 'modelStreamEventHook':
+      return {
+        ...baseEvent,
+        // フック情報は基本的に不要なので type のみ
+      };
+
+    // 既存のライフサイクルイベント
+    case 'beforeInvocationEvent':
+    case 'afterInvocationEvent':
+    case 'beforeToolsEvent':
+    case 'afterToolsEvent':
+    case 'beforeModelCallEvent':
+      return baseEvent;
+
+    case 'afterModelCallEvent':
+      return {
+        ...baseEvent,
+        stopReason: event.stopReason,
+        stopData: event.stopData
+          ? {
+              message: event.stopData.message,
+            }
+          : undefined,
+      };
+
+    default:
+      // 真に未知のイベントタイプの場合のみ警告を表示
+      console.warn(`新しい未知のストリーミングイベント: ${event.type}`);
+      return baseEvent;
+  }
+}
+
 const PORT = process.env.PORT || 8080;
 const app = express();
 
@@ -116,8 +230,8 @@ app.get('/ping', (req: Request, res: Response) => {
 });
 
 /**
- * Agent 呼び出しエンドポイント
- * ユーザーからのクエリを受け取り、Agent に処理させて結果を返す
+ * Agent 呼び出しエンドポイント（ストリーミング対応）
+ * ユーザーからのクエリを受け取り、Agent のストリーミングレスポンスを NDJSON 形式で返す
  */
 app.post('/invocations', async (req: Request, res: Response) => {
   try {
@@ -148,6 +262,12 @@ app.post('/invocations', async (req: Request, res: Response) => {
     console.log(`📝 Received prompt (${contextMeta.requestId}): ${prompt}`);
     console.log(`🔗 Session ID: ${sessionId}`);
 
+    // ストリーミングレスポンス用のヘッダー設定
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no'); // nginx のバッファリング無効
+
     // セッション履歴を取得
     const sessionHistory = sessionId ? getOrCreateSessionHistory(sessionId) : null;
 
@@ -163,47 +283,70 @@ app.post('/invocations', async (req: Request, res: Response) => {
       addMessageToSession(sessionId, userMessage);
     }
 
-    // Agent でプロンプトを処理（会話履歴を含む）
-    let result;
-    if (sessionHistory && sessionHistory.messages.length > 1) {
-      // 既存の会話履歴がある場合：全ての履歴を含めて処理
-      // 最後のユーザーメッセージ（現在のプロンプト）以外の履歴を取得
-      const conversationHistory = sessionHistory.messages.slice(0, -1);
-      console.log(conversationHistory);
+    // Agent をストリーミングで呼び出し
+    let finalMessage: Message | undefined;
 
-      // Agentに会話履歴付きで呼び出し（Strands SDKの仕様に合わせて調整が必要）
-      // 現在はプロンプトのみで呼び出し、後で会話履歴対応を実装
-      result = await agent.invoke(prompt);
-    } else {
-      // 新しいセッションまたは初回メッセージの場合
-      result = await agent.invoke(prompt);
+    try {
+      console.log(`🔄 Agent ストリーミング開始 (${contextMeta.requestId})`);
+
+      // ストリーミングイベントを NDJSON として送信
+      for await (const event of agent.stream(prompt)) {
+        // 循環参照を回避してイベントをシリアライズ
+        const safeEvent = serializeStreamEvent(event);
+        res.write(`${JSON.stringify(safeEvent)}\n`);
+
+        // 最終メッセージを記録（セッション履歴用）
+        if (event.type === 'afterModelCallEvent' && event.stopData?.message) {
+          finalMessage = event.stopData.message;
+        }
+      }
+
+      console.log(`✅ Agent ストリーミング完了 (${contextMeta.requestId})`);
+
+      // 完了メタデータを送信
+      const completionEvent = {
+        type: 'serverCompletionEvent',
+        metadata: {
+          requestId: contextMeta.requestId,
+          duration: contextMeta.duration,
+          sessionId: sessionId || 'none',
+          conversationLength: sessionHistory?.messages.length || 1,
+        },
+      };
+      res.write(`${JSON.stringify(completionEvent)}\n`);
+
+      // Assistant の応答をセッション履歴に追加
+      if (sessionHistory && finalMessage) {
+        addMessageToSession(sessionId, finalMessage);
+      }
+
+      res.end();
+    } catch (streamError) {
+      console.error(`❌ Agent ストリーミングエラー (${contextMeta.requestId}):`, streamError);
+
+      // エラーイベントを送信
+      const errorEvent = {
+        type: 'serverErrorEvent',
+        error: {
+          message: streamError instanceof Error ? streamError.message : 'Unknown streaming error',
+          requestId: contextMeta.requestId,
+        },
+      };
+      res.write(`${JSON.stringify(errorEvent)}\n`);
+      res.end();
     }
-
-    // Assistant の応答をセッション履歴に追加
-    if (sessionHistory && result.lastMessage) {
-      addMessageToSession(sessionId, result.lastMessage);
-    }
-
-    // 結果を JSON で返す
-    return res.json({
-      response: result,
-      metadata: {
-        requestId: contextMeta.requestId,
-        duration: contextMeta.duration,
-        sessionId: sessionId || 'none',
-        conversationLength: sessionHistory?.messages.length || 1,
-      },
-    });
   } catch (error) {
     const contextMeta = getContextMetadata();
     console.error(`❌ Error processing request (${contextMeta.requestId}):`, error);
 
-    // エラーレスポンスを返す
-    return res.status(500).json({
-      error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error',
-      requestId: contextMeta.requestId,
-    });
+    // 初期エラーの場合は JSON レスポンス
+    if (!res.headersSent) {
+      return res.status(500).json({
+        error: 'Internal server error',
+        message: error instanceof Error ? error.message : 'Unknown error',
+        requestId: contextMeta.requestId,
+      });
+    }
   }
 });
 

@@ -8,6 +8,67 @@ import { randomUUID } from 'crypto';
 import type { ClientConfig } from '../config/index.js';
 import { getCachedJwtToken } from '../auth/cognito.js';
 
+// Strands Agents SDK ストリーミングイベント型定義
+export interface AgentStreamEvent {
+  type: string;
+  [key: string]: any;
+}
+
+// テキストデルタイベント
+export interface ModelContentBlockDeltaEvent extends AgentStreamEvent {
+  type: 'modelContentBlockDeltaEvent';
+  delta: {
+    type: 'textDelta';
+    text: string;
+  };
+}
+
+// ツール使用開始イベント
+export interface ModelContentBlockStartEvent extends AgentStreamEvent {
+  type: 'modelContentBlockStartEvent';
+  start: {
+    type: 'toolUseStart';
+    name: string;
+    toolUseId: string;
+  };
+}
+
+// モデル呼び出し完了イベント
+export interface AfterModelCallEvent extends AgentStreamEvent {
+  type: 'afterModelCallEvent';
+  stopData?: {
+    message: {
+      type: string;
+      role: string;
+      content: Array<{
+        type: string;
+        text?: string;
+        toolUse?: any;
+      }>;
+    };
+  };
+}
+
+// サーバー完了イベント
+export interface ServerCompletionEvent extends AgentStreamEvent {
+  type: 'serverCompletionEvent';
+  metadata: {
+    requestId: string;
+    duration: number;
+    sessionId: string;
+    conversationLength: number;
+  };
+}
+
+// サーバーエラーイベント
+export interface ServerErrorEvent extends AgentStreamEvent {
+  type: 'serverErrorEvent';
+  error: {
+    message: string;
+    requestId: string;
+  };
+}
+
 export interface PingResponse {
   status: string;
   time_of_last_update: number;
@@ -101,9 +162,9 @@ export class AgentCoreClient {
   }
 
   /**
-   * Agent 呼び出し
+   * Agent ストリーミング呼び出し (AsyncGenerator)
    */
-  async invoke(prompt: string, sessionId?: string): Promise<InvokeResponse> {
+  async *invokeStream(prompt: string, sessionId?: string): AsyncGenerator<AgentStreamEvent> {
     // AgentCore Runtime の場合は /invocations が既に含まれているため追加しない
     const isAgentCoreRuntime =
       this.config.endpoint.includes('bedrock-agentcore') &&
@@ -111,14 +172,12 @@ export class AgentCoreClient {
     const url = isAgentCoreRuntime ? this.config.endpoint : `${this.config.endpoint}/invocations`;
 
     try {
-      // 両環境で統一: JSON 形式を使用
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
       };
 
       // AgentCore Runtime の場合は追加のヘッダーが必要
       if (isAgentCoreRuntime) {
-        // セッション ID: 引数で渡された場合はそれを使用、なければ新規生成（UUID で 33 文字以上を保証）
         const actualSessionId = sessionId || `session-${randomUUID()}`;
         headers['X-Amzn-Trace-Id'] = `client-trace-${Date.now()}`;
         headers['X-Amzn-Bedrock-AgentCore-Runtime-Session-Id'] = actualSessionId;
@@ -128,7 +187,6 @@ export class AgentCoreClient {
       const authResult = await getCachedJwtToken(this.config.cognito);
       headers['Authorization'] = `Bearer ${authResult.accessToken}`;
 
-      // 両環境で統一: JSON 形式を使用
       const body = JSON.stringify({ prompt });
 
       const response = await fetch(url, {
@@ -140,7 +198,6 @@ export class AgentCoreClient {
       if (!response.ok) {
         let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
 
-        // レスポンスボディからエラー詳細を取得
         try {
           const errorBody = await response.text();
           if (errorBody) {
@@ -154,7 +211,123 @@ export class AgentCoreClient {
         throw new Error(errorMessage);
       }
 
-      return (await response.json()) as InvokeResponse;
+      // ストリーミングレスポンスを処理
+      if (!response.body) {
+        throw new Error('レスポンスボディが存在しません');
+      }
+
+      // イベントキュー とコントロール用の Promise を準備
+      const eventQueue: AgentStreamEvent[] = [];
+      let streamEnded = false;
+      let streamError: Error | null = null;
+
+      // Node.js の ReadableStream を処理
+      let buffer = '';
+
+      const processStream = () => {
+        response.body!.on('data', (chunk: Buffer) => {
+          // バッファに新しいチャンクを追加
+          buffer += chunk.toString('utf-8');
+
+          // 改行で分割してNDJSONを処理
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || ''; // 最後の不完全な行を保持
+
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (trimmed) {
+              try {
+                const event: AgentStreamEvent = JSON.parse(trimmed);
+                eventQueue.push(event);
+              } catch (parseError) {
+                console.warn('NDJSON パースエラー:', parseError, 'ライン:', trimmed);
+              }
+            }
+          }
+        });
+
+        response.body!.on('end', () => {
+          // 残りのバッファを処理
+          if (buffer.trim()) {
+            try {
+              const event: AgentStreamEvent = JSON.parse(buffer.trim());
+              eventQueue.push(event);
+            } catch (parseError) {
+              console.warn('最終バッファ パースエラー:', parseError, 'バッファ:', buffer);
+            }
+          }
+          streamEnded = true;
+        });
+
+        response.body!.on('error', (error) => {
+          streamError = error;
+          streamEnded = true;
+        });
+      };
+
+      // ストリーム処理開始
+      processStream();
+
+      // AsyncGenerator でイベントを返す
+      while (!streamEnded || eventQueue.length > 0) {
+        // エラーが発生した場合は例外を投げる
+        if (streamError) {
+          throw streamError;
+        }
+
+        // キューにイベントがある場合は返す
+        if (eventQueue.length > 0) {
+          yield eventQueue.shift()!;
+        } else if (!streamEnded) {
+          // キューが空でストリームが続いている場合は少し待つ
+          await new Promise((resolve) => setTimeout(resolve, 10));
+        }
+      }
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(`Agent ストリーミング呼び出しエラー: ${error.message}`);
+      }
+      throw new Error('不明なエラーが発生しました');
+    }
+  }
+
+  /**
+   * Agent 呼び出し (ストリーミングベース、互換性のため)
+   */
+  async invoke(prompt: string, sessionId?: string): Promise<InvokeResponse> {
+    try {
+      let lastMessage: any = undefined;
+      let stopReason = '';
+      let metadata: any = {};
+
+      // ストリーミングで処理し、最終結果を組み立て
+      for await (const event of this.invokeStream(prompt, sessionId)) {
+        // 最終メッセージを記録
+        if (event.type === 'afterModelCallEvent' && event.stopData?.message) {
+          lastMessage = event.stopData.message;
+          stopReason = event.stopReason || 'completed';
+        }
+
+        // サーバー完了イベントからメタデータを取得
+        if (event.type === 'serverCompletionEvent') {
+          metadata = event.metadata;
+        }
+
+        // エラーイベントの場合は例外を投げる
+        if (event.type === 'serverErrorEvent') {
+          throw new Error(event.error.message);
+        }
+      }
+
+      // 従来のレスポンス形式で返す
+      return {
+        response: {
+          type: 'invocation',
+          stopReason,
+          lastMessage,
+        },
+        metadata,
+      };
     } catch (error) {
       if (error instanceof Error) {
         throw new Error(`Agent 呼び出しエラー: ${error.message}`);

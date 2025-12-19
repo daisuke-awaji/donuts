@@ -5,7 +5,12 @@
 
 import chalk from 'chalk';
 import ora from 'ora';
-import { createClient } from '../api/client.js';
+import {
+  createClient,
+  type AgentStreamEvent,
+  type ModelContentBlockDeltaEvent,
+  type ModelContentBlockStartEvent,
+} from '../api/client.js';
 import type { ClientConfig } from '../config/index.js';
 
 /**
@@ -65,44 +70,87 @@ export async function invokeCommand(
   console.log(chalk.white(`"${prompt}"`));
   console.log('');
 
-  const spinner = ora('Agent が考えています...').start();
+  let spinner = ora('Agent が初期化中...').start();
+  let currentToolName = '';
+  let metadata: any = {};
 
   try {
-    const response = await client.invoke(prompt);
-    spinner.succeed(chalk.green('Agent が応答しました'));
-
     console.log('');
     console.log(chalk.bold('💬 Agent の応答:'));
     console.log(chalk.white('─'.repeat(60)));
 
-    // レスポンスの内容を表示
-    if (
-      response.response.lastMessage?.content &&
-      response.response.lastMessage.content.length > 0
-    ) {
-      response.response.lastMessage.content.forEach((content: MessageContent, index: number) => {
-        if (content.text) {
-          console.log(chalk.white(content.text));
-          if (index < response.response.lastMessage!.content.length - 1) {
-            console.log('');
+    // ストリーミングレスポンスをリアルタイム処理
+    for await (const event of client.invokeStream(prompt)) {
+      // Agent ループ開始
+      if (event.type === 'beforeInvocationEvent') {
+        spinner.text = 'Agent が考えています...';
+      }
+
+      // テキスト生成
+      if (event.type === 'modelContentBlockDeltaEvent') {
+        const deltaEvent = event as ModelContentBlockDeltaEvent;
+        if (deltaEvent.delta.type === 'textDelta') {
+          // 初回テキストの場合はスピナーを停止
+          if (spinner.isSpinning) {
+            spinner.stop();
           }
+          process.stdout.write(chalk.white(deltaEvent.delta.text));
         }
-      });
-    } else {
-      console.log(chalk.yellow('（応答が空でした）'));
+      }
+
+      // ツール使用開始
+      if (event.type === 'modelContentBlockStartEvent') {
+        const startEvent = event as ModelContentBlockStartEvent;
+        if (startEvent.start.type === 'toolUseStart') {
+          currentToolName = startEvent.start.name;
+          if (spinner.isSpinning) {
+            spinner.stop();
+          }
+          console.log(''); // 改行
+          console.log(chalk.blue(`🔧 ツール実行中: ${currentToolName}`));
+        }
+      }
+
+      // ツール実行前
+      if (event.type === 'beforeToolsEvent') {
+        spinner = ora(`ツール "${currentToolName}" を実行中...`).start();
+      }
+
+      // ツール実行後
+      if (event.type === 'afterToolsEvent') {
+        if (spinner.isSpinning) {
+          spinner.succeed(chalk.green(`ツール "${currentToolName}" 実行完了`));
+        }
+      }
+
+      // サーバー完了イベント
+      if (event.type === 'serverCompletionEvent') {
+        metadata = event.metadata;
+        if (spinner.isSpinning) {
+          spinner.succeed(chalk.green('Agent が応答しました'));
+        }
+      }
+
+      // エラーイベント
+      if (event.type === 'serverErrorEvent') {
+        if (spinner.isSpinning) {
+          spinner.fail(chalk.red('Agent でエラーが発生しました'));
+        }
+        throw new Error(event.error.message);
+      }
     }
 
+    console.log(''); // 改行
     console.log(chalk.white('─'.repeat(60)));
 
     // メタデータ情報
     console.log('');
     console.log(chalk.bold('📊 実行情報:'));
+    console.log(`${chalk.blue('🆔')} リクエストID: ${chalk.gray(metadata.requestId || 'N/A')}`);
     console.log(
-      `${chalk.blue('🆔')} リクエストID: ${chalk.gray(response.metadata?.requestId || 'N/A')}`
+      `${chalk.blue('🕒')} 実行時間: ${chalk.gray(metadata.duration ? `${metadata.duration}ms` : 'N/A')}`
     );
-    console.log(
-      `${chalk.blue('🛑')} 停止理由: ${chalk.gray(response.response.stopReason || 'N/A')}`
-    );
+    console.log(`${chalk.blue('💬')} 会話数: ${chalk.gray(metadata.conversationLength || 'N/A')}`);
   } catch (error) {
     spinner.fail(chalk.red('Agent 呼び出しに失敗しました'));
 
@@ -166,18 +214,68 @@ export async function interactiveMode(config: ClientConfig): Promise<void> {
     rl.pause();
 
     try {
-      const spinner = ora('Agent が考えています...').start();
-      // 固定セッションIDを使用して呼び出し
-      const result = await client.invoke(trimmed, sessionId);
-      spinner.succeed(chalk.green('応答完了'));
+      let spinner = ora('Agent が初期化中...').start();
+      let currentToolName = '';
 
-      console.log('');
-      if (result.response.lastMessage?.content && result.response.lastMessage.content.length > 0) {
-        result.response.lastMessage.content.forEach((content: MessageContent) => {
-          if (content.text) {
-            console.log(chalk.white(content.text));
+      // ストリーミングレスポンスをリアルタイム処理
+      for await (const event of client.invokeStream(trimmed, sessionId)) {
+        // Agent ループ開始
+        if (event.type === 'beforeInvocationEvent') {
+          spinner.text = 'Agent が考えています...';
+        }
+
+        // テキスト生成
+        if (event.type === 'modelContentBlockDeltaEvent') {
+          const deltaEvent = event as ModelContentBlockDeltaEvent;
+          if (deltaEvent.delta.type === 'textDelta') {
+            // 初回テキストの場合はスピナーを停止
+            if (spinner.isSpinning) {
+              spinner.stop();
+              console.log(''); // 改行
+            }
+            process.stdout.write(chalk.white(deltaEvent.delta.text));
           }
-        });
+        }
+
+        // ツール使用開始
+        if (event.type === 'modelContentBlockStartEvent') {
+          const startEvent = event as ModelContentBlockStartEvent;
+          if (startEvent.start.type === 'toolUseStart') {
+            currentToolName = startEvent.start.name;
+            if (spinner.isSpinning) {
+              spinner.stop();
+            }
+            console.log(''); // 改行
+            console.log(chalk.blue(`🔧 ツール実行中: ${currentToolName}`));
+          }
+        }
+
+        // ツール実行前
+        if (event.type === 'beforeToolsEvent') {
+          spinner = ora(`ツール "${currentToolName}" を実行中...`).start();
+        }
+
+        // ツール実行後
+        if (event.type === 'afterToolsEvent') {
+          if (spinner.isSpinning) {
+            spinner.succeed(chalk.green(`ツール "${currentToolName}" 実行完了`));
+          }
+        }
+
+        // サーバー完了イベント
+        if (event.type === 'serverCompletionEvent') {
+          if (spinner.isSpinning) {
+            spinner.succeed(chalk.green('応答完了'));
+          }
+        }
+
+        // エラーイベント
+        if (event.type === 'serverErrorEvent') {
+          if (spinner.isSpinning) {
+            spinner.fail(chalk.red('Agent でエラーが発生しました'));
+          }
+          throw new Error(event.error.message);
+        }
       }
       console.log('');
     } catch (error) {
