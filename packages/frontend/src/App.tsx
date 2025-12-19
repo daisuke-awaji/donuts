@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { useAuthStore } from './stores/authStore';
 import { LoginForm } from './features/auth/LoginForm';
 import { ChatContainer } from './components/ChatContainer';

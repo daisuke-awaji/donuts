@@ -1,5 +1,5 @@
 import React from 'react';
-import { MessageSquare, Trash2, LogOut, User } from 'lucide-react';
+import { MessageSquare, Trash2, LogOut } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
 import { useChatStore } from '../stores/chatStore';
 import { MessageList } from './MessageList';

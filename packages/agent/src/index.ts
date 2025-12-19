@@ -4,6 +4,7 @@
  */
 
 import express, { Request, Response, NextFunction } from 'express';
+import cors from 'cors';
 import { Agent, Message } from '@strands-agents/sdk';
 import { createAgent } from './agent.js';
 import { getContextMetadata } from './context/request-context.js';
@@ -126,6 +127,49 @@ function serializeStreamEvent(event: unknown): object {
 
 const PORT = process.env.PORT || 8080;
 const app = express();
+
+// CORS 設定
+const corsOptions = {
+  // 許可するオリジン（環境変数から設定、デフォルトは全て許可）
+  origin: (
+    origin: string | undefined,
+    callback: (err: Error | null, allowed?: boolean) => void
+  ) => {
+    const allowedOrigins = process.env.CORS_ALLOWED_ORIGINS?.split(',') || ['*'];
+
+    // ローカル開発時は localhost を許可
+    const developmentOrigins = [
+      'http://localhost:5173', // Vite dev server
+      'http://127.0.0.1:5173',
+      'http://localhost:3000',
+      'http://127.0.0.1:3000',
+    ];
+
+    // オリジンがない場合（Postmanなどのツールからのリクエスト）は許可
+    if (!origin) {
+      return callback(null, true);
+    }
+
+    // 設定されたオリジンまたは開発用オリジンの場合は許可
+    if (
+      allowedOrigins.includes('*') ||
+      allowedOrigins.includes(origin) ||
+      developmentOrigins.includes(origin)
+    ) {
+      callback(null, true);
+    } else {
+      console.warn(`🚫 CORS blocked origin: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Amzn-Bedrock-AgentCore-Runtime-Session-Id'],
+  credentials: true,
+  maxAge: 86400, // preflight キャッシュ 24時間
+};
+
+// CORS ミドルウェアを適用
+app.use(cors(corsOptions));
 
 // Agent インスタンス（遅延初期化）
 let agent: Agent | null = null;
