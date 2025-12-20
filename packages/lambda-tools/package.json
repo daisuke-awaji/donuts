@@ -4,11 +4,11 @@
   "description": "AgentCore Gateway Lambda Tools Collection",
   "scripts": {
     "build": "npm run build:echo-tool",
-    "build:echo-tool": "cd tools/echo-tool && npm run build",
+    "build:echo-tool": "cd tools/echo-tool && npm install && npm run build",
     "clean": "npm run clean:echo-tool",
     "clean:echo-tool": "cd tools/echo-tool && npm run clean",
     "test": "npm run test:echo-tool",
-    "test:echo-tool": "cd tools/echo-tool && npm run test"
+    "test:echo-tool": "cd tools/echo-tool && npm install && npm run test"
   },
   "keywords": [
     "lambda",
