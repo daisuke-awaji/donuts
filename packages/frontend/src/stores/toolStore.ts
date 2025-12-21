@@ -18,6 +18,7 @@ export interface ToolStoreState {
   isLoading: boolean;
   error: string | null;
   lastFetchTime: string | null;
+  nextCursor: string | null; // ページネーション用
 
   // 検索機能
   searchQuery: string;
@@ -31,6 +32,7 @@ export interface ToolStoreState {
 
   // アクション
   loadTools: (user: User) => Promise<void>;
+  loadMoreTools: (user: User) => Promise<void>; // 追加ページ読み込み
   searchToolsWithQuery: (user: User, query: string) => Promise<void>;
   clearSearch: () => void;
   setSearchQuery: (query: string) => void;
@@ -49,6 +51,7 @@ export const useToolStore = create<ToolStoreState>()(
       isLoading: false,
       error: null,
       lastFetchTime: null,
+      nextCursor: null, // 追加
 
       searchQuery: '',
       searchResults: [],
@@ -59,7 +62,7 @@ export const useToolStore = create<ToolStoreState>()(
       gatewayStatus: 'unknown',
 
       /**
-       * ツール一覧を読み込み
+       * ツール一覧を読み込み（最初のページ）
        */
       loadTools: async (user: User) => {
         const currentState = get();
@@ -74,15 +77,17 @@ export const useToolStore = create<ToolStoreState>()(
           isLoading: true,
           error: null,
           gatewayStatus: 'unknown',
+          nextCursor: null, // リセット
         });
 
         try {
           console.log('🔧 ツール一覧読み込み開始');
 
-          const tools = await fetchTools(user);
+          const result = await fetchTools(user);
 
           set({
-            tools,
+            tools: result.tools,
+            nextCursor: result.nextCursor || null,
             isLoading: false,
             error: null,
             lastFetchTime: new Date().toISOString(),
@@ -90,7 +95,10 @@ export const useToolStore = create<ToolStoreState>()(
             gatewayStatus: 'healthy',
           });
 
-          console.log(`✅ ツール一覧読み込み完了: ${tools.length}件`);
+          console.log(
+            `✅ ツール一覧読み込み完了: ${result.tools.length}件`,
+            result.nextCursor ? { nextCursor: 'あり' } : { nextCursor: 'なし' }
+          );
         } catch (error) {
           const errorMessage =
             error instanceof Error ? error.message : 'ツール一覧の読み込みに失敗しました';
@@ -99,9 +107,60 @@ export const useToolStore = create<ToolStoreState>()(
 
           set({
             tools: [],
+            nextCursor: null,
             isLoading: false,
             error: errorMessage,
             lastFetchTime: null,
+            gatewayHealthy: false,
+            gatewayStatus: 'unhealthy',
+          });
+        }
+      },
+
+      /**
+       * 追加ページを読み込み
+       */
+      loadMoreTools: async (user: User) => {
+        const currentState = get();
+
+        if (currentState.isLoading || !currentState.nextCursor) {
+          console.log('🔧 追加読み込み不可: 読み込み中またはnextCursorなし');
+          return;
+        }
+
+        set({
+          isLoading: true,
+          error: null,
+        });
+
+        try {
+          console.log('🔧 追加ツール読み込み開始', { cursor: currentState.nextCursor });
+
+          const result = await fetchTools(user, currentState.nextCursor);
+
+          set({
+            tools: [...currentState.tools, ...result.tools], // 既存のツールに追加
+            nextCursor: result.nextCursor || null,
+            isLoading: false,
+            error: null,
+            lastFetchTime: new Date().toISOString(),
+            gatewayHealthy: true,
+            gatewayStatus: 'healthy',
+          });
+
+          console.log(
+            `✅ 追加ツール読み込み完了: +${result.tools.length}件 (合計: ${currentState.tools.length + result.tools.length}件)`,
+            result.nextCursor ? { nextCursor: 'あり' } : { nextCursor: 'なし' }
+          );
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : '追加ツールの読み込みに失敗しました';
+
+          console.error('💥 追加ツール読み込みエラー:', error);
+
+          set({
+            isLoading: false,
+            error: errorMessage,
             gatewayHealthy: false,
             gatewayStatus: 'unhealthy',
           });

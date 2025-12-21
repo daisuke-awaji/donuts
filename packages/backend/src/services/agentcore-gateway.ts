@@ -145,20 +145,36 @@ export class AgentCoreGatewayService {
   }
 
   /**
-   * 利用可能なツール一覧を取得
+   * 利用可能なツール一覧を取得（ページネーション対応）
    * @param authToken JWT認証トークン（オプショナル）
-   * @returns ツール一覧
+   * @param cursor ページネーション用のカーソル（オプショナル）
+   * @returns ツール一覧とnextCursor
    */
-  async listTools(authToken?: string): Promise<MCPTool[]> {
+  async listTools(
+    authToken?: string,
+    cursor?: string
+  ): Promise<{
+    tools: MCPTool[];
+    nextCursor?: string;
+  }> {
     try {
-      console.log('📋 Gateway からツール一覧を取得中...');
+      console.log('📋 Gateway からツール一覧を取得中...', cursor ? { cursor } : {});
 
-      const result = await this.sendMCPRequest<ToolsListResult>('tools/list', undefined, authToken);
+      const params = cursor ? { cursor } : {};
+      const result = await this.sendMCPRequest<ToolsListResult>('tools/list', params, authToken);
 
       const tools = result.tools || [];
-      console.log(`✅ ツール一覧取得完了: ${tools.length}件`);
+      const nextCursor = result.nextCursor;
 
-      return tools;
+      console.log(
+        `✅ ツール一覧取得完了: ${tools.length}件`,
+        nextCursor ? { nextCursor: 'あり' } : { nextCursor: 'なし' }
+      );
+
+      return {
+        tools,
+        nextCursor,
+      };
     } catch (error) {
       console.error('💥 ツール一覧取得エラー:', error);
       throw new Error(

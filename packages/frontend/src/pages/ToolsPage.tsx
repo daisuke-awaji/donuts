@@ -132,11 +132,13 @@ export function ToolsPage() {
     tools,
     isLoading,
     error,
+    nextCursor,
     searchQuery,
     searchResults,
     isSearching,
     searchError,
     loadTools,
+    loadMoreTools,
     searchToolsWithQuery,
     clearSearch,
     setSearchQuery,
@@ -181,6 +183,13 @@ export function ToolsPage() {
     if (user) {
       clearError();
       loadTools(user);
+    }
+  };
+
+  // 次のページを読み込み
+  const handleLoadMore = async () => {
+    if (user) {
+      await loadMoreTools(user);
     }
   };
 
@@ -347,6 +356,51 @@ export function ToolsPage() {
                 {displayTools.map((tool, index) => (
                   <ToolItem key={`${tool.name}-${index}`} tool={tool} />
                 ))}
+              </div>
+            )}
+
+            {/* ページネーション（検索時は非表示） */}
+            {!searchQuery && nextCursor && displayTools.length > 0 && (
+              <div className="flex justify-center mt-8 pt-6 border-t border-gray-100">
+                <button
+                  onClick={handleLoadMore}
+                  disabled={isLoading}
+                  className="flex items-center gap-2 px-6 py-3 bg-gray-500 text-white text-sm font-medium rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      読み込み中...
+                    </>
+                  ) : (
+                    <>
+                      次のページを読み込む
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 9l-7 7-7-7"
+                        />
+                      </svg>
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
+
+            {/* ページネーション情報 */}
+            {!searchQuery && displayTools.length > 0 && (
+              <div className="mt-4 text-center">
+                <p className="text-xs text-gray-500">
+                  {displayTools.length}件表示
+                  {nextCursor ? ' / 続きあり' : ' / 全件表示完了'}
+                </p>
               </div>
             )}
           </div>

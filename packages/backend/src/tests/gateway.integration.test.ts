@@ -71,23 +71,29 @@ describe('AgentCore Gateway 統合テスト', () => {
       console.log('📋 ツール一覧取得テスト開始 (認証あり)');
 
       // 認証ありでツール一覧を取得
-      const tools = await gatewayService.listTools(authToken);
+      const result = await gatewayService.listTools(authToken);
 
       // アサーション
-      expect(tools).toBeDefined();
-      expect(Array.isArray(tools)).toBe(true);
-      expect(tools.length).toBeGreaterThan(0);
+      expect(result).toBeDefined();
+      expect(result.tools).toBeDefined();
+      expect(Array.isArray(result.tools)).toBe(true);
+      expect(result.tools.length).toBeGreaterThan(0);
 
       // 各ツールが必要なプロパティを持っているか確認
-      tools.forEach((tool) => {
+      result.tools.forEach((tool) => {
         expect(tool.name).toBeDefined();
         expect(typeof tool.name).toBe('string');
         expect(tool.inputSchema).toBeDefined();
         expect(typeof tool.inputSchema).toBe('object');
       });
 
-      console.log(`✅ ツール一覧取得成功: ${tools.length}件のツールを取得`);
-      console.log('🔧 取得したツール名:', tools.map((t) => t.name).slice(0, 5));
+      console.log(`✅ ツール一覧取得成功: ${result.tools.length}件のツールを取得`);
+      console.log('🔧 取得したツール名:', result.tools.map((t) => t.name).slice(0, 5));
+      if (result.nextCursor) {
+        console.log('📄 次のページあり: nextCursor が存在します');
+      } else {
+        console.log('📄 全件取得完了: nextCursor はありません');
+      }
     }, 30000);
 
     it('listTools() - 認証なしではエラーになる', async () => {

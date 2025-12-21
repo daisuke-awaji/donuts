@@ -31,20 +31,27 @@ router.get('/', jwtAuthMiddleware, async (req: AuthenticatedRequest, res: Respon
       username: auth.username,
     });
 
-    // Gateway からツール一覧を取得（認証必須）
-    const tools = await gatewayService.listTools(idToken);
+    // cursorクエリパラメータを取得
+    const cursor = req.query.cursor as string | undefined;
+
+    // Gateway からツール一覧を取得（認証必須、ページネーション対応）
+    const result = await gatewayService.listTools(idToken, cursor);
 
     const response = {
-      tools,
+      tools: result.tools,
+      nextCursor: result.nextCursor,
       metadata: {
         requestId: auth.requestId,
         timestamp: new Date().toISOString(),
         actorId: auth.userId,
-        count: tools.length,
+        count: result.tools.length,
       },
     };
 
-    console.log(`✅ ツール一覧取得完了 (${auth.requestId}): ${tools.length}件`);
+    console.log(
+      `✅ ツール一覧取得完了 (${auth.requestId}): ${result.tools.length}件`,
+      result.nextCursor ? { nextCursor: 'あり' } : { nextCursor: 'なし' }
+    );
 
     res.status(200).json(response);
   } catch (error) {

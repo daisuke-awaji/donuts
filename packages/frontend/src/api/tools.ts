@@ -23,6 +23,7 @@ export interface MCPTool {
  */
 interface ToolsResponse {
   tools: MCPTool[];
+  nextCursor?: string; // ページネーション用
   metadata: {
     requestId: string;
     timestamp: string;
@@ -73,18 +74,30 @@ function createAuthHeaders(user: User): Record<string, string> {
 }
 
 /**
- * ツール一覧を取得
+ * ツール一覧を取得（ページネーション対応）
  * @param user Cognito ユーザー情報
- * @returns ツール一覧
+ * @param cursor ページネーション用のカーソル（オプショナル）
+ * @returns ツール一覧とnextCursor
  */
-export async function fetchTools(user: User): Promise<MCPTool[]> {
+export async function fetchTools(
+  user: User,
+  cursor?: string
+): Promise<{
+  tools: MCPTool[];
+  nextCursor?: string;
+}> {
   try {
     const baseUrl = getBackendBaseUrl();
     const headers = createAuthHeaders(user);
 
-    console.log('🔧 ツール一覧取得開始...');
+    // cursorパラメータがある場合はクエリに追加
+    const url = cursor
+      ? `${baseUrl}/tools?cursor=${encodeURIComponent(cursor)}`
+      : `${baseUrl}/tools`;
 
-    const response = await fetch(`${baseUrl}/tools`, {
+    console.log('🔧 ツール一覧取得開始...', cursor ? { cursor } : {});
+
+    const response = await fetch(url, {
       method: 'GET',
       headers,
     });
@@ -99,9 +112,15 @@ export async function fetchTools(user: User): Promise<MCPTool[]> {
     }
 
     const data: ToolsResponse = await response.json();
-    console.log(`✅ ツール一覧取得完了: ${data.tools.length}件`);
+    console.log(
+      `✅ ツール一覧取得完了: ${data.tools.length}件`,
+      data.nextCursor ? { nextCursor: 'あり' } : { nextCursor: 'なし' }
+    );
 
-    return data.tools;
+    return {
+      tools: data.tools,
+      nextCursor: data.nextCursor,
+    };
   } catch (error) {
     console.error('💥 ツール一覧取得エラー:', error);
     throw error;
