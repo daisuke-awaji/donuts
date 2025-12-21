@@ -39,7 +39,7 @@ function App() {
   if (isAuthenticated) {
     return (
       <BrowserRouter>
-        <div className="h-screen flex bg-gray-100">
+        <div className="h-screen flex">
           <Routes>
             <Route path="/" element={<Navigate to="/chat" replace />} />
             <Route path="/chat" element={<ChatPage />} />
