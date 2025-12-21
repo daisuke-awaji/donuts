@@ -23,6 +23,11 @@ export interface FrontendProps {
   runtimeEndpoint: string;
 
   /**
+   * Backend API URL (API Gateway + Lambda)
+   */
+  backendApiUrl?: string;
+
+  /**
    * AWS Region
    */
   awsRegion: string;
@@ -88,6 +93,7 @@ export class Frontend extends Construct {
         VITE_COGNITO_CLIENT_ID: props.userPoolClientId,
         VITE_AWS_REGION: props.awsRegion,
         VITE_AGENT_ENDPOINT: props.runtimeEndpoint,
+        VITE_BACKEND_URL: props.backendApiUrl || '', // Backend API URL を追加
       },
       outputSourceDirectory: 'dist',
       destinationBucket: this.s3Bucket,

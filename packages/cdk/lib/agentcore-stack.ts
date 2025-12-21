@@ -4,6 +4,7 @@ import { AgentCoreGateway } from './constructs/agentcore-gateway';
 import { AgentCoreLambdaTarget } from './constructs/agentcore-lambda-target';
 import { AgentCoreMemory } from './constructs/agentcore-memory';
 import { AgentCoreRuntime } from './constructs/agentcore-runtime';
+import { BackendApi } from './constructs/backend-api';
 import { CognitoAuth } from './constructs/cognito-auth';
 import { Frontend } from './constructs/frontend';
 
@@ -84,6 +85,11 @@ export class AgentCoreStack extends cdk.Stack {
    * 作成された AgentCore Runtime
    */
   public readonly agentRuntime: AgentCoreRuntime;
+
+  /**
+   * 作成された Backend API
+   */
+  public readonly backendApi: BackendApi;
 
   /**
    * 作成された Frontend
@@ -200,12 +206,24 @@ export class AgentCoreStack extends cdk.Stack {
     // Runtime に Memory アクセス権限を付与
     this.memory.grantAgentCoreAccess(this.agentRuntime.runtime);
 
-    // 5. Frontend の作成
+    // 5. Backend API の作成（Lambda Web Adapter）
+    this.backendApi = new BackendApi(this, 'BackendApi', {
+      apiName: `${gatewayName}-backend-api`,
+      cognitoAuth: this.cognitoAuth,
+      agentcoreGatewayEndpoint: `https://${this.gateway.gatewayId}.gateway.bedrock-agentcore.${this.region}.amazonaws.com/mcp`,
+      agentcoreMemoryId: this.memory.memoryId,
+      corsAllowedOrigins: ['*'], // 開発用、本番では具体的なオリジンを設定
+      timeout: 30, // API Gateway の制限
+      memorySize: 1024, // Express アプリに十分なメモリ
+    });
+
+    // 6. Frontend の作成
     this.frontend = new Frontend(this, 'Frontend', {
       userPoolId: this.cognitoAuth.userPoolId,
       userPoolClientId: this.cognitoAuth.clientId,
       runtimeEndpoint: `https://bedrock-agentcore.${this.region}.amazonaws.com/runtimes/${this.agentRuntime.runtimeArn}/invocations?qualifier=DEFAULT`,
       awsRegion: this.region,
+      backendApiUrl: this.backendApi.apiUrl, // Backend API URL を追加
     });
 
     // 5. CloudFormation 追加出力（認証関連）
@@ -284,10 +302,35 @@ export class AgentCoreStack extends cdk.Stack {
       description: 'AgentCore Memory 設定サマリー',
     });
 
+    // Backend API 関連の出力
+    new cdk.CfnOutput(this, 'BackendApiUrl', {
+      value: this.backendApi.apiUrl,
+      description: 'Backend API Endpoint URL',
+      exportName: `${id}-BackendApiUrl`,
+    });
+
+    new cdk.CfnOutput(this, 'BackendApiFunctionName', {
+      value: this.backendApi.lambdaFunction.functionName,
+      description: 'Backend API Lambda Function Name',
+      exportName: `${id}-BackendApiFunctionName`,
+    });
+
+    new cdk.CfnOutput(this, 'BackendApiFunctionArn', {
+      value: this.backendApi.lambdaFunction.functionArn,
+      description: 'Backend API Lambda Function ARN',
+      exportName: `${id}-BackendApiFunctionArn`,
+    });
+
+    new cdk.CfnOutput(this, 'BackendApiConfiguration', {
+      value: `Backend API: ${this.backendApi.apiUrl} (Lambda Web Adapter + Express.js)`,
+      description: 'Backend API 設定サマリー',
+    });
+
     // タグの追加
     cdk.Tags.of(this).add('Project', 'AgentCore');
     cdk.Tags.of(this).add('Component', 'Gateway');
     cdk.Tags.of(this).add('Memory', 'Enabled');
+    cdk.Tags.of(this).add('BackendApi', 'Enabled');
   }
 
   /**

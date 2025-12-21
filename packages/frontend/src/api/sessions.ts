@@ -56,7 +56,10 @@ interface SessionEventsResponse {
  */
 function getBackendBaseUrl(): string {
   // 環境変数から取得、未設定の場合はデフォルト値を使用
-  return import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
+  const baseUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
+
+  // 末尾のスラッシュを除去してダブルスラッシュ問題を防ぐ
+  return baseUrl.replace(/\/$/, '');
 }
 
 /**
