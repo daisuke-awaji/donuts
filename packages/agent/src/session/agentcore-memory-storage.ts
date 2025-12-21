@@ -6,6 +6,7 @@ import {
   CreateEventCommand,
   ListEventsCommand,
   DeleteEventCommand,
+  type PayloadType,
 } from '@aws-sdk/client-bedrock-agentcore';
 import type { Message } from '@strands-agents/sdk';
 import type { SessionConfig, SessionStorage } from './types.js';
@@ -14,7 +15,7 @@ import {
   agentCorePayloadToMessage,
   extractEventId,
   getCurrentTimestamp,
-  type ConversationalPayload,
+  type AgentCorePayload,
 } from './converters.js';
 
 /**
@@ -66,10 +67,10 @@ export class AgentCoreMemoryStorage implements SessionStorage {
       for (const event of sortedEvents) {
         if (event.payload && event.payload.length > 0) {
           for (const payloadItem of event.payload) {
-            // conversational payload の場合のみ処理
-            if ('conversational' in payloadItem) {
-              const conversationalPayload = payloadItem as ConversationalPayload;
-              const message = agentCorePayloadToMessage(conversationalPayload);
+            // conversational または blob payload の場合を処理
+            if ('conversational' in payloadItem || 'blob' in payloadItem) {
+              const agentCorePayload = payloadItem as AgentCorePayload;
+              const message = agentCorePayloadToMessage(agentCorePayload);
               messages.push(message);
             }
           }
@@ -180,7 +181,7 @@ export class AgentCoreMemoryStorage implements SessionStorage {
       actorId: config.actorId,
       sessionId: config.sessionId,
       eventTimestamp: getCurrentTimestamp(),
-      payload: [payload],
+      payload: [payload as PayloadType], // AWS SDK の PayloadType との型互換性のため
     });
 
     const response = await this.client.send(command);

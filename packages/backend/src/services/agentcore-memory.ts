@@ -101,6 +101,13 @@ export class AgentCoreMemoryService {
       console.log(`[AgentCoreMemoryService] ${sessions.length} 件のセッションを取得しました`);
       return sessions;
     } catch (error) {
+      // 新規ユーザーでActorが存在しない場合は空配列を返す
+      if (error instanceof Error && error.name === 'ResourceNotFoundException') {
+        console.log(
+          `[AgentCoreMemoryService] 新規ユーザーのため空のセッション一覧を返却: actorId=${actorId}`
+        );
+        return [];
+      }
       console.error('[AgentCoreMemoryService] セッション一覧取得エラー:', error);
       throw error;
     }

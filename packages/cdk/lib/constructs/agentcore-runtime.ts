@@ -58,6 +58,14 @@ export interface AgentCoreRuntimeProps {
    * Frontend の CloudFront URL など
    */
   readonly corsAllowedOrigins?: string;
+
+  /**
+   * AgentCore Memory の設定（オプション）
+   */
+  readonly memory?: {
+    readonly memoryId: string;
+    readonly enabled?: boolean;
+  };
 }
 
 /**
@@ -121,6 +129,12 @@ export class AgentCoreRuntime extends Construct {
     // CORS 許可オリジンを設定
     if (props.corsAllowedOrigins) {
       environmentVariables.CORS_ALLOWED_ORIGINS = props.corsAllowedOrigins;
+    }
+
+    // AgentCore Memory の設定
+    if (props.memory) {
+      environmentVariables.AGENTCORE_MEMORY_ID = props.memory.memoryId;
+      environmentVariables.USE_AGENTCORE_MEMORY = props.memory.enabled !== false ? 'true' : 'false';
     }
 
     // AgentCore Runtime を作成

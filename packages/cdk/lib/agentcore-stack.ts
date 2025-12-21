@@ -2,6 +2,7 @@ import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import { AgentCoreGateway } from './constructs/agentcore-gateway';
 import { AgentCoreLambdaTarget } from './constructs/agentcore-lambda-target';
+import { AgentCoreMemory } from './constructs/agentcore-memory';
 import { AgentCoreRuntime } from './constructs/agentcore-runtime';
 import { CognitoAuth } from './constructs/cognito-auth';
 import { Frontend } from './constructs/frontend';
@@ -38,6 +39,24 @@ export interface AgentCoreStackProps extends cdk.StackProps {
     readonly allowedAudience?: string[];
     readonly allowedClients?: string[];
   };
+
+  /**
+   * Memory の名前 (オプション)
+   * デフォルト: '{gatewayName}-memory'
+   */
+  readonly memoryName?: string;
+
+  /**
+   * Memory で組み込み戦略を使用するかどうか (オプション)
+   * デフォルト: true (Summarization, Semantic, UserPreference)
+   */
+  readonly useBuiltInMemoryStrategies?: boolean;
+
+  /**
+   * Memory の有効期限（日数） (オプション)
+   * デフォルト: 90日
+   */
+  readonly memoryExpirationDays?: number;
 }
 
 /**
@@ -70,6 +89,11 @@ export class AgentCoreStack extends cdk.Stack {
    * 作成された Frontend
    */
   public readonly frontend: Frontend;
+
+  /**
+   * 作成された AgentCore Memory
+   */
+  public readonly memory: AgentCoreMemory;
 
   constructor(scope: Construct, id: string, props?: AgentCoreStackProps) {
     super(scope, id, props);
@@ -141,7 +165,24 @@ export class AgentCoreStack extends cdk.Stack {
       exportName: `${id}-EchoToolLambdaName`,
     });
 
-    // 3. AgentCore Runtime の作成（開発用に一時的にワイルドカード設定）
+    // 3. AgentCore Memory の作成
+    const memoryName = props?.memoryName || `${gatewayName.replace(/-/g, '_')}_memory`;
+    const useBuiltInStrategies = props?.useBuiltInMemoryStrategies ?? true;
+    const expirationDays = props?.memoryExpirationDays || 90;
+
+    this.memory = new AgentCoreMemory(this, 'AgentCoreMemory', {
+      memoryName: memoryName,
+      description: `AgentCore Memory for ${gatewayName} - 会話履歴の永続化とコンテキスト管理`,
+      expirationDuration: cdk.Duration.days(expirationDays),
+      useBuiltInStrategies: useBuiltInStrategies,
+      tags: {
+        Project: 'AgentCore',
+        Component: 'Memory',
+        Gateway: gatewayName,
+      },
+    });
+
+    // 4. AgentCore Runtime の作成（開発用に一時的にワイルドカード設定）
     this.agentRuntime = new AgentCoreRuntime(this, 'AgentCoreRuntime', {
       runtimeName: 'StrandsAgentsTS',
       description: 'TypeScript版Strands Agent Runtime',
@@ -150,9 +191,16 @@ export class AgentCoreStack extends cdk.Stack {
       cognitoAuth: this.cognitoAuth,
       gateway: this.gateway, // JWT伝播用のGatewayエンドポイント設定
       corsAllowedOrigins: '*', // 開発用に全オリジン許可（本番では具体的なURLを設定）
+      memory: {
+        memoryId: this.memory.memoryId,
+        enabled: true,
+      },
     });
 
-    // 4. Frontend の作成
+    // Runtime に Memory アクセス権限を付与
+    this.memory.grantAgentCoreAccess(this.agentRuntime.runtime);
+
+    // 5. Frontend の作成
     this.frontend = new Frontend(this, 'Frontend', {
       userPoolId: this.cognitoAuth.userPoolId,
       userPoolClientId: this.cognitoAuth.clientId,
@@ -212,9 +260,34 @@ export class AgentCoreStack extends cdk.Stack {
       exportName: `${id}-AgentRuntimeId`,
     });
 
+    // Memory 関連の出力
+    new cdk.CfnOutput(this, 'MemoryId', {
+      value: this.memory.memoryId,
+      description: 'AgentCore Memory ID',
+      exportName: `${id}-MemoryId`,
+    });
+
+    new cdk.CfnOutput(this, 'MemoryArn', {
+      value: this.memory.memoryArn,
+      description: 'AgentCore Memory ARN',
+      exportName: `${id}-MemoryArn`,
+    });
+
+    new cdk.CfnOutput(this, 'MemoryName', {
+      value: this.memory.memoryName,
+      description: 'AgentCore Memory Name',
+      exportName: `${id}-MemoryName`,
+    });
+
+    new cdk.CfnOutput(this, 'MemoryConfiguration', {
+      value: `Memory: ${this.memory.memoryName} (${this.memory.memoryId}) - 会話履歴永続化機能有効`,
+      description: 'AgentCore Memory 設定サマリー',
+    });
+
     // タグの追加
     cdk.Tags.of(this).add('Project', 'AgentCore');
     cdk.Tags.of(this).add('Component', 'Gateway');
+    cdk.Tags.of(this).add('Memory', 'Enabled');
   }
 
   /**

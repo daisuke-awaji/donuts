@@ -63,6 +63,7 @@ export function SessionSidebar() {
     sessions,
     isLoadingSessions,
     sessionsError,
+    hasLoadedOnce,
     activeSessionId,
     loadSessions,
     selectSession,
@@ -72,11 +73,11 @@ export function SessionSidebar() {
 
   // 初回読み込み
   useEffect(() => {
-    if (user && sessions.length === 0 && !isLoadingSessions) {
+    if (user && !hasLoadedOnce && !isLoadingSessions) {
       console.log('🔄 初回セッション読み込み開始');
       loadSessions(user);
     }
-  }, [user, sessions.length, isLoadingSessions, loadSessions]);
+  }, [user, hasLoadedOnce, isLoadingSessions, loadSessions]);
 
   // URL のセッションID と現在のアクティブセッションを同期
   useEffect(() => {

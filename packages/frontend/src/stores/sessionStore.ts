@@ -20,6 +20,7 @@ interface SessionState {
   sessions: SessionSummary[];
   isLoadingSessions: boolean;
   sessionsError: string | null;
+  hasLoadedOnce: boolean; // 初回読み込み完了フラグ
 
   activeSessionId: string | null;
   sessionEvents: ConversationMessage[];
@@ -52,6 +53,7 @@ export const useSessionStore = create<SessionStore>()(
       sessions: [],
       isLoadingSessions: false,
       sessionsError: null,
+      hasLoadedOnce: false, // 初回読み込み完了フラグ
 
       activeSessionId: null,
       sessionEvents: [],
@@ -70,6 +72,7 @@ export const useSessionStore = create<SessionStore>()(
             sessions,
             isLoadingSessions: false,
             sessionsError: null,
+            hasLoadedOnce: true, // 初回読み込み完了フラグを設定
           });
 
           console.log(`✅ セッション一覧読み込み完了: ${sessions.length}件`);
@@ -82,6 +85,7 @@ export const useSessionStore = create<SessionStore>()(
             sessions: [],
             isLoadingSessions: false,
             sessionsError: errorMessage,
+            hasLoadedOnce: true, // エラーでも初回読み込み完了とマーク
           });
         }
       },
