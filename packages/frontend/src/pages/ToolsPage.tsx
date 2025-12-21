@@ -57,7 +57,7 @@ function ToolItem({ tool }: ToolItemProps) {
               <div key={paramName} className="bg-gray-50 px-3 py-2 rounded text-xs">
                 <div className="flex items-center gap-2">
                   <span className="font-mono text-blue-600">{paramName}</span>
-                  <span className="text-gray-500">({(info.type as string) || 'unknown'})</span>
+                  <span className="text-gray-500">({String(info.type) || 'unknown'})</span>
                   {required.includes(paramName) && (
                     <span className="text-red-500 text-xs">*required</span>
                   )}
