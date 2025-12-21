@@ -35,26 +35,6 @@ interface ToolResultData {
 type ToolData = ToolUseData | ToolResultData;
 
 /**
- * ToolUseBlock の型定義（Strands SDK の型構造に基づく）
- */
-interface ToolUseBlock {
-  type: 'toolUseBlock';
-  name: string;
-  toolUseId: string;
-  input: JSONValue;
-}
-
-/**
- * ToolResultBlock の型定義（Strands SDK の型構造に基づく）
- */
-interface ToolResultBlock {
-  type: 'toolResultBlock';
-  toolUseId: string;
-  content: JSONValue;
-  isError: boolean;
-}
-
-/**
  * AgentCore Memory のConversational Payload型定義
  */
 export interface ConversationalPayload {
@@ -68,10 +48,30 @@ export interface ConversationalPayload {
  * AgentCore Memory のBlob Payload型定義
  */
 export interface BlobPayload {
-  blob: {
-    messageType: 'tool';
-    role: string;
-  } & ToolData;
+  blob: Uint8Array;
+}
+
+/**
+ * blob データの内容型定義（新形式）
+ */
+interface BlobData {
+  messageType: 'content';
+  role: string;
+  content: ContentBlock[];
+}
+
+/**
+ * 旧形式のblob データの内容型定義（後方互換性）
+ */
+interface LegacyBlobData {
+  messageType: 'tool';
+  role: string;
+  toolType: 'toolUse' | 'toolResult';
+  name?: string;
+  toolUseId: string;
+  input?: JSONValue;
+  content?: JSONValue;
+  isError?: boolean;
 }
 
 /**
@@ -85,39 +85,45 @@ export type AgentCorePayload = ConversationalPayload | BlobPayload;
  * @returns AgentCore Payload (ConversationalPayload or BlobPayload)
  */
 export function messageToAgentCorePayload(message: Message): AgentCorePayload {
-  // content 配列からテキストを抽出
-  const textContent = extractTextFromMessage(message);
-
-  // テキストコンテンツがある場合は conversational payload
-  if (textContent.length > 0) {
+  // content 配列が空または存在しない場合
+  if (!message.content || message.content.length === 0) {
     const agentCoreRole = message.role === 'user' ? 'USER' : 'ASSISTANT';
     return {
       conversational: {
-        content: { text: textContent },
+        content: { text: ' ' }, // 最小限の1文字
         role: agentCoreRole,
       },
     };
   }
 
-  // テキストコンテンツがない場合、toolUse/toolResult を blob payload として保存
-  const toolData = extractToolDataFromMessage(message);
-  if (toolData) {
-    return {
-      blob: {
-        messageType: 'tool',
-        role: message.role,
-        ...toolData,
-      },
-    };
+  // content 配列にテキスト以外（toolUse/toolResult）が含まれるかチェック
+  const hasNonTextContent = message.content.some((block) => block.type !== 'textBlock');
+
+  // テキストのみのシンプルなメッセージの場合は conversational payload
+  if (!hasNonTextContent && message.content.length === 1) {
+    const textBlock = message.content[0];
+    if (textBlock.type === 'textBlock' && 'text' in textBlock) {
+      const agentCoreRole = message.role === 'user' ? 'USER' : 'ASSISTANT';
+      return {
+        conversational: {
+          content: { text: textBlock.text },
+          role: agentCoreRole,
+        },
+      };
+    }
   }
 
-  // どちらでもない場合（通常起こらない）、空のテキストで conversational payload
-  const agentCoreRole = message.role === 'user' ? 'USER' : 'ASSISTANT';
+  // 複雑なメッセージ（toolUse/toolResult含む、または複数のコンテンツブロック）は blob payload
+  const blobData: BlobData = {
+    messageType: 'content',
+    role: message.role,
+    content: message.content,
+  };
+
+  // JSON文字列にシリアライズしてからUint8Arrayにエンコード
+  const encoder = new TextEncoder();
   return {
-    conversational: {
-      content: { text: ' ' }, // 最小限の1文字
-      role: agentCoreRole,
-    },
+    blob: encoder.encode(JSON.stringify(blobData)),
   };
 }
 
@@ -138,13 +144,92 @@ export function agentCorePayloadToMessage(payload: AgentCorePayload): Message {
   }
 
   // blob payload の場合
-  if ('blob' in payload && payload.blob.messageType === 'tool') {
-    const strandsRole = payload.blob.role as Role;
-    const content = createContentBlockFromToolData(payload.blob);
-    return new Message({
-      role: strandsRole,
-      content: [content],
+  if ('blob' in payload && payload.blob) {
+    console.log('Blob payload received:', {
+      type: typeof payload.blob,
+      constructor: payload.blob?.constructor?.name,
+      isUint8Array: payload.blob instanceof Uint8Array,
+      isBuffer: Buffer.isBuffer && Buffer.isBuffer(payload.blob),
+      keys: typeof payload.blob === 'object' ? Object.keys(payload.blob) : [],
+      sample:
+        typeof payload.blob === 'object' && !(payload.blob instanceof Uint8Array)
+          ? JSON.stringify(payload.blob).slice(0, 200)
+          : 'binary_data',
     });
+
+    try {
+      let blobData: BlobData | null = null;
+
+      // 1. Uint8Array の場合（新形式）
+      if (payload.blob instanceof Uint8Array) {
+        console.log('Processing as Uint8Array');
+        const decoder = new TextDecoder();
+        const blobString = decoder.decode(payload.blob);
+        blobData = JSON.parse(blobString);
+      }
+      // 2. Buffer の場合
+      else if (typeof Buffer !== 'undefined' && Buffer.isBuffer && Buffer.isBuffer(payload.blob)) {
+        console.log('Processing as Buffer');
+        const blobString = (payload.blob as Buffer).toString('utf8');
+        blobData = JSON.parse(blobString);
+      }
+      // 3. 直接オブジェクトの場合（古い形式 - 後方互換性）
+      else if (typeof payload.blob === 'object' && payload.blob !== null) {
+        console.log('Processing as direct object (backward compatibility)');
+        const blobObj = payload.blob as Record<string, unknown>;
+
+        // 古い形式のチェック
+        if (blobObj.messageType === 'tool') {
+          blobData = blobObj as unknown as BlobData;
+        }
+      }
+      // 4. 文字列の場合（base64 エンコードされた可能性）
+      else if (typeof payload.blob === 'string') {
+        console.log('Processing as string');
+        try {
+          // base64 デコードを試行
+          const decodedString = Buffer.from(payload.blob, 'base64').toString('utf8');
+          blobData = JSON.parse(decodedString);
+        } catch {
+          // base64 でない場合は直接 JSON パース
+          blobData = JSON.parse(payload.blob);
+        }
+      }
+
+      // blobData が取得できた場合の処理
+      if (blobData && (blobData.messageType === 'content' || blobData.messageType === 'tool')) {
+        console.log('Successfully parsed blob data:', {
+          messageType: blobData.messageType,
+          role: blobData.role,
+        });
+
+        const strandsRole = blobData.role as Role;
+
+        // 新形式: content配列全体を保存
+        if (blobData.messageType === 'content') {
+          return new Message({
+            role: strandsRole,
+            content: blobData.content,
+          });
+        }
+
+        // 旧形式: 後方互換性のため単一toolUse/toolResultを処理
+        if (blobData.messageType === 'tool') {
+          const legacyBlobData = blobData as unknown as LegacyBlobData;
+          const content = createContentBlockFromToolData(legacyBlobData);
+          return new Message({
+            role: strandsRole,
+            content: [content],
+          });
+        }
+      } else {
+        console.warn('Blob data does not have expected structure:', blobData);
+      }
+    } catch (error) {
+      console.error('Failed to parse blob data:', error);
+      console.error('Raw blob payload:', payload.blob);
+      // パースエラーの場合はフォールバックに進む
+    }
   }
 
   // フォールバック: 不明なペイロードの場合
@@ -153,26 +238,6 @@ export function agentCorePayloadToMessage(payload: AgentCorePayload): Message {
     role: 'assistant',
     content: [new TextBlock('')],
   });
-}
-
-/**
- * Strands Message からテキスト内容を抽出
- * @param message Strands Message
- * @returns テキスト内容
- */
-function extractTextFromMessage(message: Message): string {
-  if (!message.content || message.content.length === 0) {
-    return '';
-  }
-
-  // 最初のテキスト要素を探す
-  for (const contentBlock of message.content) {
-    if (contentBlock.type === 'textBlock' && 'text' in contentBlock) {
-      return contentBlock.text;
-    }
-  }
-
-  return '';
 }
 
 /**
@@ -185,48 +250,11 @@ export function extractEventId(event: { eventId?: string }): string {
 }
 
 /**
- * Strands Message からツールデータを抽出
- * @param message Strands Message
- * @returns ツールデータ または null
- */
-function extractToolDataFromMessage(message: Message): ToolData | null {
-  if (!message.content || message.content.length === 0) {
-    return null;
-  }
-
-  for (const contentBlock of message.content) {
-    // toolUseBlock の場合
-    if (contentBlock.type === 'toolUseBlock' && 'name' in contentBlock) {
-      const toolUseBlock = contentBlock as unknown as ToolUseBlock;
-      return {
-        toolType: 'toolUse',
-        name: toolUseBlock.name,
-        toolUseId: toolUseBlock.toolUseId,
-        input: toolUseBlock.input,
-      };
-    }
-
-    // toolResultBlock の場合
-    if (contentBlock.type === 'toolResultBlock' && 'toolUseId' in contentBlock) {
-      const toolResultBlock = contentBlock as unknown as ToolResultBlock;
-      return {
-        toolType: 'toolResult',
-        toolUseId: toolResultBlock.toolUseId,
-        content: toolResultBlock.content,
-        isError: toolResultBlock.isError || false,
-      };
-    }
-  }
-
-  return null;
-}
-
-/**
  * ツールデータから Strands ContentBlock を作成
- * @param toolData ツールデータ
+ * @param toolData ツールデータ（ToolData または LegacyBlobData）
  * @returns ContentBlock
  */
-function createContentBlockFromToolData(toolData: ToolData): ContentBlock {
+function createContentBlockFromToolData(toolData: ToolData | LegacyBlobData): ContentBlock {
   if (toolData.toolType === 'toolUse') {
     // ToolUseBlock を作成（Strands SDK の正確な型に基づく）
     return {
