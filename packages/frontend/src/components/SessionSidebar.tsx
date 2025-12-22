@@ -68,6 +68,7 @@ export function SessionSidebar() {
     activeSessionId,
     loadSessions,
     selectSession,
+    setActiveSessionId,
     clearActiveSession,
   } = useSessionStore();
   const { isSidebarOpen, isMobileView, toggleSidebar } = useUIStore();
@@ -87,13 +88,29 @@ export function SessionSidebar() {
   // URL のセッションID と現在のアクティブセッションを同期
   useEffect(() => {
     if (sessionId && sessionId !== activeSessionId && user) {
-      console.log(`🔄 URL からセッション選択: ${sessionId}`);
-      selectSession(user, sessionId);
+      // 既存のセッション一覧に含まれる場合のみ履歴を取得
+      const existingSession = sessions.find((s) => s.sessionId === sessionId);
+      if (existingSession) {
+        console.log(`🔄 URL からセッション選択（既存）: ${sessionId}`);
+        selectSession(user, sessionId);
+      } else {
+        // 新規作成されたセッションの場合、activeSessionIdのみ更新（events API呼び出しを回避）
+        console.log(`🆕 新規セッション検出（履歴取得スキップ）: ${sessionId}`);
+        setActiveSessionId(sessionId);
+      }
     } else if (!sessionId && activeSessionId) {
       console.log('🗑️ URL からセッションIDが削除されたのでクリア');
       clearActiveSession();
     }
-  }, [sessionId, activeSessionId, user, selectSession, clearActiveSession]);
+  }, [
+    sessionId,
+    activeSessionId,
+    sessions,
+    user,
+    selectSession,
+    setActiveSessionId,
+    clearActiveSession,
+  ]);
 
   // 新規チャット開始
   const handleNewChat = () => {

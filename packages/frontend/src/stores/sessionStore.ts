@@ -34,6 +34,7 @@ interface SessionState {
 interface SessionActions {
   loadSessions: (user: User) => Promise<void>;
   selectSession: (user: User, sessionId: string) => Promise<void>;
+  setActiveSessionId: (sessionId: string) => void;
   clearActiveSession: () => void;
   setSessionsError: (error: string | null) => void;
   setEventsError: (error: string | null) => void;
@@ -119,6 +120,16 @@ export const useSessionStore = create<SessionStore>()(
             eventsError: errorMessage,
           });
         }
+      },
+
+      setActiveSessionId: (sessionId: string) => {
+        set({
+          activeSessionId: sessionId,
+          sessionEvents: [], // 新規セッションなので会話履歴は空
+          eventsError: null,
+          isLoadingEvents: false,
+        });
+        console.log(`🆕 新規セッションをアクティブに設定: ${sessionId}`);
       },
 
       clearActiveSession: () => {
