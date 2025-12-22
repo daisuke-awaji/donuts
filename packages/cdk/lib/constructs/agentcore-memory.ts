@@ -37,7 +37,7 @@ export interface AgentCoreMemoryProps {
 
   /**
    * Memory 実行用のIAMロール (オプション)
-   * 指定しない場合は自動生成（カスタム戦略を使用する場合のみ必要）
+   * 指定しない場合は CloudWatch Logs 権限を含むロールを自動生成
    */
   readonly executionRole?: iam.IRole;
 
@@ -52,6 +52,13 @@ export interface AgentCoreMemoryProps {
    * デフォルト: false
    */
   readonly useBuiltInStrategies?: boolean;
+
+  /**
+   * executionRole を自動作成するかどうか
+   * true の場合、CloudWatch Logs 権限を含む IAM ロールを自動生成
+   * デフォルト: true
+   */
+  readonly createExecutionRole?: boolean;
 }
 
 /**
@@ -87,6 +94,7 @@ export class AgentCoreMemory extends Construct {
 
     // デフォルト値の設定
     const expirationDuration = props.expirationDuration || cdk.Duration.days(90);
+    const createExecutionRole = props.createExecutionRole ?? true;
     let memoryStrategies = props.memoryStrategies;
 
     // 組み込み戦略を使用する場合
@@ -98,6 +106,12 @@ export class AgentCoreMemory extends Construct {
       ];
     }
 
+    // executionRole の決定
+    let executionRole = props.executionRole;
+    if (!executionRole && createExecutionRole) {
+      executionRole = this.createExecutionRole(props.memoryName);
+    }
+
     // Memory の作成
     this.memory = new agentcore.Memory(this, 'Memory', {
       memoryName: props.memoryName,
@@ -105,7 +119,7 @@ export class AgentCoreMemory extends Construct {
       expirationDuration: expirationDuration,
       memoryStrategies: memoryStrategies,
       kmsKey: props.kmsKey,
-      executionRole: props.executionRole,
+      executionRole: executionRole,
       tags: props.tags,
     });
 
@@ -154,5 +168,30 @@ export class AgentCoreMemory extends Construct {
       AGENTCORE_MEMORY_ID: this.memoryId,
       USE_AGENTCORE_MEMORY: 'true',
     };
+  }
+
+  /**
+   * CloudWatch Logs 権限を含む executionRole を作成
+   * @param memoryName Memory名（ロール名の一部として使用）
+   * @returns 作成された IAM Role
+   */
+  private createExecutionRole(memoryName: string): iam.Role {
+    const executionRole = new iam.Role(this, 'ExecutionRole', {
+      assumedBy: new iam.ServicePrincipal('bedrock-agentcore.amazonaws.com'),
+      description: `Execution role for AgentCore Memory: ${memoryName}`,
+      roleName: `AgentCoreMemory-${memoryName}-ExecutionRole`,
+    });
+
+    // CloudWatch Logs 権限を追加
+    executionRole.addToPolicy(
+      new iam.PolicyStatement({
+        actions: ['logs:CreateLogGroup', 'logs:CreateLogStream', 'logs:PutLogEvents'],
+        resources: [
+          `arn:aws:logs:${cdk.Stack.of(this).region}:${cdk.Stack.of(this).account}:log-group:/aws/bedrock-agentcore/memory/${memoryName}*`,
+        ],
+      })
+    );
+
+    return executionRole;
   }
 }

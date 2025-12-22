@@ -150,29 +150,77 @@ export class AgentCoreRuntime extends Construct {
       },
     });
 
-    // IAM ポリシーを追加
+    const region = props.region || 'us-east-1';
+    const account = cdk.Stack.of(this).account;
+
+    // CloudWatch Logs 権限（Statement 1: log-group レベル）
     this.runtime.addToRolePolicy(
       new iam.PolicyStatement({
         effect: iam.Effect.ALLOW,
-        actions: ['bedrock:InvokeModel', 'bedrock:InvokeModelWithResponseStream'],
+        actions: ['logs:DescribeLogStreams', 'logs:CreateLogGroup'],
         resources: [
-          'arn:aws:bedrock:*::foundation-model/*',
-          `arn:aws:bedrock:${props.region || 'us-east-1'}:${
-            cdk.Stack.of(this).account
-          }:inference-profile/*`,
+          `arn:aws:logs:${region}:${account}:log-group:/aws/bedrock-agentcore/runtimes/*`,
         ],
       })
     );
 
-    // CloudWatch Logs へのアクセス権限を追加
+    // CloudWatch Logs 権限（Statement 2: 全ロググループの参照）
     this.runtime.addToRolePolicy(
       new iam.PolicyStatement({
         effect: iam.Effect.ALLOW,
-        actions: ['logs:CreateLogGroup', 'logs:CreateLogStream', 'logs:PutLogEvents'],
+        actions: ['logs:DescribeLogGroups'],
+        resources: [`arn:aws:logs:${region}:${account}:log-group:*`],
+      })
+    );
+
+    // CloudWatch Logs 権限（Statement 3: log-stream レベル）
+    this.runtime.addToRolePolicy(
+      new iam.PolicyStatement({
+        effect: iam.Effect.ALLOW,
+        actions: ['logs:CreateLogStream', 'logs:PutLogEvents'],
         resources: [
-          `arn:aws:logs:${props.region || 'us-east-1'}:${
-            cdk.Stack.of(this).account
-          }:log-group:/aws/bedrock-agentcore/runtimes/${props.runtimeName}*`,
+          `arn:aws:logs:${region}:${account}:log-group:/aws/bedrock-agentcore/runtimes/*:log-stream:*`,
+        ],
+      })
+    );
+
+    // X-Ray トレース権限
+    this.runtime.addToRolePolicy(
+      new iam.PolicyStatement({
+        effect: iam.Effect.ALLOW,
+        actions: [
+          'xray:PutTraceSegments',
+          'xray:PutTelemetryRecords',
+          'xray:GetSamplingRules',
+          'xray:GetSamplingTargets',
+        ],
+        resources: ['*'],
+      })
+    );
+
+    // CloudWatch メトリクス権限（条件付き）
+    this.runtime.addToRolePolicy(
+      new iam.PolicyStatement({
+        effect: iam.Effect.ALLOW,
+        actions: ['cloudwatch:PutMetricData'],
+        resources: ['*'],
+        conditions: {
+          StringEquals: {
+            'cloudwatch:namespace': 'bedrock-agentcore',
+          },
+        },
+      })
+    );
+
+    // Bedrock モデル呼び出し権限
+    this.runtime.addToRolePolicy(
+      new iam.PolicyStatement({
+        sid: 'BedrockModelInvocation',
+        effect: iam.Effect.ALLOW,
+        actions: ['bedrock:InvokeModel', 'bedrock:InvokeModelWithResponseStream'],
+        resources: [
+          'arn:aws:bedrock:*::foundation-model/*',
+          `arn:aws:bedrock:${region}:${account}:*`,
         ],
       })
     );
