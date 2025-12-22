@@ -104,11 +104,11 @@ export const AgentSelectorModal: React.FC<AgentSelectorModalProps> = ({
   const getModalTitle = () => {
     switch (mode) {
       case 'create':
-        return 'Agent作成';
+        return 'エージェント作成';
       case 'edit':
-        return 'Agent編集';
+        return 'エージェント編集';
       default:
-        return 'Agent選択';
+        return 'エージェント選択';
     }
   };
 

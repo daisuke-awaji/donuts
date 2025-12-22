@@ -44,18 +44,25 @@ export const MessageList: React.FC<MessageListProps> = ({ onScenarioClick }) => 
           </div>
         )}
 
-        {/* セッション読み込み中はスケルトンを表示 */}
-        {isLoadingEvents && <MessageSkeleton />}
+        {/* セッション読み込み中はスケルトンを表示（メッセージがない場合のみ） */}
+        {isLoadingEvents && messages.length === 0 && <MessageSkeleton />}
 
         {/* ウェルカムメッセージ（メッセージがない場合かつ読み込み中でない） */}
         {messages.length === 0 && !error && !isLoadingEvents && selectedAgent && (
           <div className="text-center py-12">
+            <div className="mx-auto w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mb-4">
+              <svg className="w-8 h-8 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z" />
+                <path d="M15 7v2a4 4 0 01-4 4H9.828l-1.766 1.767c.28.149.599.233.938.233h2l3 3v-3h2a2 2 0 002-2V9a2 2 0 00-2-2h-1z" />
+              </svg>
+            </div>
+
             <h3 className="text-2xl font-semibold text-gray-900 mb-2">{selectedAgent.name}</h3>
             <p className="text-gray-600 max-w-md mx-auto mb-8">{selectedAgent.description}</p>
 
             {/* シナリオボタン（グリッド形式） */}
             {selectedAgent.scenarios.length > 0 && (
-              <div className="grid grid-cols-2 gap-3 max-w-lg mx-auto">
+              <div className="grid grid-cols-3 gap-3 max-w-2xl mx-auto">
                 {selectedAgent.scenarios.map((scenario) => (
                   <button
                     key={scenario.id}
@@ -67,31 +74,6 @@ export const MessageList: React.FC<MessageListProps> = ({ onScenarioClick }) => 
                 ))}
               </div>
             )}
-          </div>
-        )}
-
-        {/* デフォルトウェルカムメッセージ（エージェントが選択されていない場合かつ読み込み中でない） */}
-        {messages.length === 0 && !error && !isLoadingEvents && !selectedAgent && (
-          <div className="text-center py-12">
-            <div className="mx-auto w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mb-4">
-              <svg className="w-8 h-8 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z" />
-                <path d="M15 7v2a4 4 0 01-4 4H9.828l-1.766 1.767c.28.149.599.233.938.233h2l3 3v-3h2a2 2 0 002-2V9a2 2 0 00-2-2h-1z" />
-              </svg>
-            </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">AgentCore Chat へようこそ</h3>
-            <p className="text-gray-600 max-w-md mx-auto mb-6">
-              AI エージェントと会話を始めましょう。
-              質問やタスクを入力すると、リアルタイムで応答を受け取ることができます。
-            </p>
-            <div className="bg-white rounded-2xl p-4 max-w-md mx-auto border border-gray-200">
-              <h4 className="text-sm font-medium text-gray-900 mb-2">例</h4>
-              <ul className="text-sm text-gray-600 space-y-1">
-                <li>• 東京の天気を教えてください</li>
-                <li>• Pythonでリストを操作する方法</li>
-                <li>• 今日のニュースの要約</li>
-              </ul>
-            </div>
           </div>
         )}
 

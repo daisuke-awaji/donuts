@@ -79,7 +79,7 @@ export const ChatContainer: React.FC = () => {
             >
               <Bot className="w-6 h-6 text-gray-700" />
               <h1 className="text-lg font-semibold text-gray-900">
-                {selectedAgent ? selectedAgent.name : 'Software Developer'}
+                {selectedAgent ? selectedAgent.name : '汎用アシスタント'}
               </h1>
             </button>
           </div>

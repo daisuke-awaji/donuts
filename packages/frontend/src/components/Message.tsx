@@ -4,6 +4,7 @@ import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import type { Message as MessageType } from '../types/index';
+import { TypingIndicator } from './TypingIndicator';
 
 interface MessageProps {
   message: MessageType;
@@ -90,29 +91,9 @@ export const Message: React.FC<MessageProps> = ({ message }) => {
                 </ReactMarkdown>
               </div>
             ) : (
-              <div className="text-gray-500 italic">
-                {message.isStreaming ? 'Thinking...' : 'メッセージがありません'}
-              </div>
+              <TypingIndicator />
             )}
           </div>
-
-          {/* ストリーミングインジケーター */}
-          {message.isStreaming && (
-            <div className="flex items-center text-gray-500">
-              <div className="flex space-x-1">
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                <div
-                  className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                  style={{ animationDelay: '0.1s' }}
-                ></div>
-                <div
-                  className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                  style={{ animationDelay: '0.2s' }}
-                ></div>
-              </div>
-              <span className="ml-2 text-xs">生成中...</span>
-            </div>
-          )}
         </div>
       </div>
     </div>
