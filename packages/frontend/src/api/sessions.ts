@@ -4,6 +4,7 @@
  */
 
 import type { User } from '../types/index';
+import { getValidAccessToken } from '../lib/cognito';
 
 /**
  * セッション情報の型定義
@@ -91,16 +92,15 @@ function getBackendBaseUrl(): string {
 }
 
 /**
- * 認証ヘッダーを作成
- * @param user ユーザー情報
+ * 認証ヘッダーを作成（自動トークンリフレッシュ付き）
  * @returns Authorization ヘッダー
  */
-function createAuthHeaders(user: User): Record<string, string> {
-  // Access Token を使用（一貫性のため）
-  const accessToken = user.accessToken || user.idToken;
+async function createAuthHeaders(): Promise<Record<string, string>> {
+  // 有効なアクセストークンを取得（期限切れの場合は自動リフレッシュ）
+  const accessToken = await getValidAccessToken();
 
   if (!accessToken) {
-    throw new Error('認証トークンが見つかりません');
+    throw new Error('認証が必要です。再ログインしてください。');
   }
 
   return {
@@ -111,13 +111,13 @@ function createAuthHeaders(user: User): Record<string, string> {
 
 /**
  * セッション一覧を取得
- * @param user Cognito ユーザー情報
+ * @param _user Cognito ユーザー情報（未使用、後方互換性のため残存）
  * @returns セッション一覧
  */
-export async function fetchSessions(user: User): Promise<SessionSummary[]> {
+export async function fetchSessions(_user?: User): Promise<SessionSummary[]> {
   try {
     const baseUrl = getBackendBaseUrl();
-    const headers = createAuthHeaders(user);
+    const headers = await createAuthHeaders();
 
     console.log('📋 セッション一覧取得開始...');
 
@@ -147,17 +147,17 @@ export async function fetchSessions(user: User): Promise<SessionSummary[]> {
 
 /**
  * セッションの会話履歴を取得
- * @param user Cognito ユーザー情報
+ * @param _user Cognito ユーザー情報（未使用、後方互換性のため残存）
  * @param sessionId セッションID
  * @returns 会話履歴
  */
 export async function fetchSessionEvents(
-  user: User,
+  _user: User,
   sessionId: string
 ): Promise<ConversationMessage[]> {
   try {
     const baseUrl = getBackendBaseUrl();
-    const headers = createAuthHeaders(user);
+    const headers = await createAuthHeaders();
 
     console.log(`💬 セッション会話履歴取得開始: ${sessionId}`);
 

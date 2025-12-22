@@ -8,7 +8,7 @@ import type {
   ToolUse,
   ToolResult,
 } from '../types/index';
-import { useAuthStore } from '../stores/authStore';
+import { getValidAccessToken } from '../lib/cognito';
 
 // Agent API エンドポイント（環境変数から取得）
 // ローカル開発時: http://localhost:8080/invocations → Vite proxy経由
@@ -46,10 +46,11 @@ export const streamAgentResponse = async (
   callbacks: StreamingCallbacks,
   agentConfig?: AgentConfig
 ): Promise<void> => {
-  const { user } = useAuthStore.getState();
+  // 有効なアクセストークンを取得（期限切れの場合は自動リフレッシュ）
+  const accessToken = await getValidAccessToken();
 
-  if (!user) {
-    throw new Error('認証が必要です');
+  if (!accessToken) {
+    throw new Error('認証が必要です。再ログインしてください。');
   }
 
   // ARN部分をURLエンコードする（AgentCore Runtimeの場合）
@@ -66,7 +67,7 @@ export const streamAgentResponse = async (
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    Authorization: `Bearer ${user.accessToken}`,
+    Authorization: `Bearer ${accessToken}`,
   };
 
   // セッションIDを常に付与
