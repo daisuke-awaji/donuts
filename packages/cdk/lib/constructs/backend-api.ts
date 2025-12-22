@@ -128,10 +128,25 @@ export class BackendApi extends Construct {
             'bedrock-agentcore:CreateSession',
             'bedrock-agentcore:UpdateSession',
             'bedrock-agentcore:DeleteSession',
+            // メモリレコード操作権限を追加
+            'bedrock-agentcore:ListMemoryRecords',
+            'bedrock-agentcore:DeleteMemoryRecord',
+            'bedrock-agentcore:RetrieveMemoryRecords',
           ],
           resources: [
             `arn:aws:bedrock-agentcore:${cdk.Stack.of(this).region}:${cdk.Stack.of(this).account}:memory/${props.agentcoreMemoryId}`,
             `arn:aws:bedrock-agentcore:${cdk.Stack.of(this).region}:${cdk.Stack.of(this).account}:memory/${props.agentcoreMemoryId}/*`,
+          ],
+        })
+      );
+
+      // AgentCore Memory Control Plane 権限
+      lambdaExecutionRole.addToPolicy(
+        new iam.PolicyStatement({
+          effect: iam.Effect.ALLOW,
+          actions: ['bedrock-agentcore:GetMemory'],
+          resources: [
+            `arn:aws:bedrock-agentcore:${cdk.Stack.of(this).region}:${cdk.Stack.of(this).account}:memory/${props.agentcoreMemoryId}`,
           ],
         })
       );
