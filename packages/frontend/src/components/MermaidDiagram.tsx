@@ -9,14 +9,18 @@ interface MermaidDiagramProps {
 // Mermaidの初期化（一度だけ実行）
 let isInitialized = false;
 
-// IDカウンター（ランダムではなく連番）
-let idCounter = 0;
+// 一意なIDを生成する関数
+const generateUniqueId = () => {
+  return `mermaid-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+};
 
 const MermaidDiagramComponent: React.FC<MermaidDiagramProps> = ({ chart, className = '' }) => {
-  const mermaidRef = useRef<HTMLDivElement>(null);
-  const chartId = useRef(`mermaid-${++idCounter}`);
+  const [svgContent, setSvgContent] = useState<string | null>(null);
   const [isValidSyntax, setIsValidSyntax] = useState<boolean | null>(null);
+  const [isRendering, setIsRendering] = useState(false);
   const debounceTimerRef = useRef<number | undefined>(undefined);
+  const currentChartRef = useRef<string>('');
+  const mountedRef = useRef(true);
 
   useEffect(() => {
     if (!isInitialized) {
@@ -53,36 +57,76 @@ const MermaidDiagramComponent: React.FC<MermaidDiagramProps> = ({ chart, classNa
   }, []);
 
   useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
     // 前のタイマーをクリア
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
     }
 
     const renderChart = async () => {
-      if (!mermaidRef.current || !chart.trim()) {
-        setIsValidSyntax(null);
+      // コンポーネントがアンマウントされている場合は処理を停止
+      if (!mountedRef.current || !chart.trim()) {
+        if (mountedRef.current) {
+          setIsValidSyntax(null);
+          setSvgContent(null);
+        }
         return;
       }
+
+      // 現在のチャートと同じ場合はスキップ（無限レンダリング防止）
+      if (currentChartRef.current === chart.trim()) {
+        return;
+      }
+
+      currentChartRef.current = chart.trim();
+      setIsRendering(true);
 
       try {
         // まず構文チェックを行う
         await mermaid.parse(chart);
+
+        // コンポーネントがまだマウントされているかチェック
+        if (!mountedRef.current) {
+          return;
+        }
+
         setIsValidSyntax(true);
 
-        // 構文が有効な場合のみレンダリング
-        mermaidRef.current.innerHTML = '';
-        const { svg } = await mermaid.render(chartId.current, chart);
-        mermaidRef.current.innerHTML = svg;
-      } catch {
-        // 構文エラーの場合は静かに失敗（表示しない）
-        setIsValidSyntax(false);
-        if (mermaidRef.current) {
-          mermaidRef.current.innerHTML = '';
+        // 一意なIDを生成
+        const uniqueId = generateUniqueId();
+
+        // Mermaidでレンダリング（DOM操作なし、SVGのみ取得）
+        const { svg } = await mermaid.render(uniqueId, chart);
+
+        // レンダリング完了後、まだマウントされているかチェック
+        if (!mountedRef.current) {
+          return;
+        }
+
+        // SVGをstateに設定（ReactがDOM管理）
+        setSvgContent(svg);
+      } catch (error) {
+        // エラーが発生した場合
+        console.warn('Mermaid rendering error:', error);
+
+        if (mountedRef.current) {
+          setIsValidSyntax(false);
+          setSvgContent(null);
+        }
+      } finally {
+        if (mountedRef.current) {
+          setIsRendering(false);
         }
       }
     };
 
-    // Debounce処理: 300ms待ってからレンダリングを実行
+    // Debounce処理: 100ms待ってからレンダリングを実行
     debounceTimerRef.current = setTimeout(renderChart, 100);
 
     return () => {
@@ -92,9 +136,18 @@ const MermaidDiagramComponent: React.FC<MermaidDiagramProps> = ({ chart, classNa
     };
   }, [chart]);
 
+  // アンマウント時のクリーンアップ
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, []);
+
   return (
     <div
-      ref={mermaidRef}
       className={`mermaid-diagram overflow-x-auto my-4 ${className}`}
       style={{
         // Mermaid SVGのスタイル調整
@@ -103,9 +156,17 @@ const MermaidDiagramComponent: React.FC<MermaidDiagramProps> = ({ chart, classNa
         minHeight: isValidSyntax === null ? '20px' : undefined,
       }}
     >
-      {/* ストリーム処理中で構文が不完全な場合のプレースホルダー */}
-      {isValidSyntax === false && chart.trim() && (
+      {/* ローディング中 */}
+      {isRendering && <div className="text-blue-500 text-sm italic py-2">Rendering diagram...</div>}
+
+      {/* 構文エラーの場合 */}
+      {isValidSyntax === false && chart.trim() && !isRendering && (
         <div className="text-gray-400 text-sm italic py-2">Mermaid diagram loading...</div>
+      )}
+
+      {/* SVGコンテンツを表示（React管理下で） */}
+      {svgContent && !isRendering && (
+        <div className="mermaid-svg-container" dangerouslySetInnerHTML={{ __html: svgContent }} />
       )}
     </div>
   );
