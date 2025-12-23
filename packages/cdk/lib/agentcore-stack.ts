@@ -58,6 +58,12 @@ export interface AgentCoreStackProps extends cdk.StackProps {
    * デフォルト: 90日
    */
   readonly memoryExpirationDays?: number;
+
+  /**
+   * Tavily Search API Key（オプション）
+   * Web検索ツールを使用するために必要
+   */
+  readonly tavilyApiKey?: string;
 }
 
 /**
@@ -205,6 +211,7 @@ export class AgentCoreStack extends cdk.Stack {
         memoryId: this.memory.memoryId,
         enabled: true,
       },
+      tavilyApiKey: props?.tavilyApiKey, // Tavily Search API Key を渡す
     });
 
     // Runtime に Memory アクセス権限を付与

@@ -49,6 +49,73 @@ export const LOCAL_TOOLS: MCPTool[] = [
       required: ['command'],
     },
   },
+  {
+    name: 'tavily_search',
+    description:
+      'Tavily APIを使用して高品質なWeb検索を実行します。最新の情報、ニュース、一般的な話題について包括的な検索結果を取得できます。',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        query: {
+          type: 'string',
+          description: '検索クエリ（必須）',
+        },
+        searchDepth: {
+          type: 'string',
+          enum: ['basic', 'advanced'],
+          default: 'basic',
+          description: '検索深度。basicは1クレジット、advancedは2クレジット使用',
+        },
+        topic: {
+          type: 'string',
+          enum: ['general', 'news', 'finance'],
+          default: 'general',
+          description: '検索カテゴリ。newsは最新情報、generalは一般検索',
+        },
+        maxResults: {
+          type: 'number',
+          minimum: 1,
+          maximum: 20,
+          default: 5,
+          description: '取得する最大検索結果数（1-20）',
+        },
+        includeAnswer: {
+          type: 'boolean',
+          default: true,
+          description: 'LLM生成の要約回答を含める',
+        },
+        timeRange: {
+          type: 'string',
+          enum: ['day', 'week', 'month', 'year', 'd', 'w', 'm', 'y'],
+          description: '時間範囲フィルター（過去の期間で絞り込み）',
+        },
+        includeDomains: {
+          type: 'array',
+          items: {
+            type: 'string',
+          },
+          description: '検索対象に含めるドメインのリスト',
+        },
+        excludeDomains: {
+          type: 'array',
+          items: {
+            type: 'string',
+          },
+          description: '検索対象から除外するドメインのリスト',
+        },
+        includeImages: {
+          type: 'boolean',
+          default: false,
+          description: '関連画像も取得する',
+        },
+        country: {
+          type: 'string',
+          description: '特定の国の結果を優先（例: japan, united states）',
+        },
+      },
+      required: ['query'],
+    },
+  },
 ];
 
 /**

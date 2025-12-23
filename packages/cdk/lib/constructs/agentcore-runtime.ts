@@ -66,6 +66,12 @@ export interface AgentCoreRuntimeProps {
     readonly memoryId: string;
     readonly enabled?: boolean;
   };
+
+  /**
+   * Tavily Search API Key（オプション）
+   * Web検索ツールを使用するために必要
+   */
+  readonly tavilyApiKey?: string;
 }
 
 /**
@@ -135,6 +141,11 @@ export class AgentCoreRuntime extends Construct {
     if (props.memory) {
       environmentVariables.AGENTCORE_MEMORY_ID = props.memory.memoryId;
       environmentVariables.USE_AGENTCORE_MEMORY = props.memory.enabled !== false ? 'true' : 'false';
+    }
+
+    // Tavily Search API Key の設定
+    if (props.tavilyApiKey) {
+      environmentVariables.TAVILY_API_KEY = props.tavilyApiKey;
     }
 
     // AgentCore Runtime を作成

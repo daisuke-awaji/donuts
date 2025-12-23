@@ -5,7 +5,7 @@
 
 import { Agent, HookProvider } from '@strands-agents/sdk';
 import { logger } from './config/index.js';
-import { executeCommandTool, convertMCPToolsToStrands } from './tools/index.js';
+import { localTools, convertMCPToolsToStrands } from './tools/index.js';
 import { buildSystemPrompt } from './prompts/index.js';
 import { createBedrockModel } from './models/index.js';
 import { MCPToolDefinition } from './schemas/types.js';
@@ -65,7 +65,7 @@ export async function createAgent(
     const mcpStrandsTools = convertMCPToolsToStrands(mcpTools as MCPToolDefinition[]);
 
     // 2. ローカルツールとMCPツールを結合
-    let allTools = [executeCommandTool, ...mcpStrandsTools];
+    let allTools = [...localTools, ...mcpStrandsTools];
     allTools = filterTools(allTools, options?.enabledTools);
     logger.info(`✅ 合計${allTools.length}個のツールを準備しました`);
 
