@@ -266,6 +266,88 @@ export const LOCAL_TOOLS: MCPTool[] = [
       required: ['url'],
     },
   },
+  {
+    name: 'code_interpreter',
+    description:
+      'Amazon Bedrock AgentCore CodeInterpreter ツール - セキュアなサンドボックス環境でコード実行やファイル操作を行います。Python、JavaScript、TypeScript のコード実行、シェルコマンド実行、ファイル操作（読み取り、書き込み、削除）、セッション管理などの機能を提供します。',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          enum: [
+            'initSession',
+            'executeCode',
+            'executeCommand',
+            'readFiles',
+            'listFiles',
+            'removeFiles',
+            'writeFiles',
+            'downloadFiles',
+            'listLocalSessions',
+          ],
+          description: '実行する操作',
+        },
+        sessionName: {
+          type: 'string',
+          description: 'セッション名（省略時はデフォルト）',
+        },
+        description: {
+          type: 'string',
+          description: 'セッションの説明（initSession時）',
+        },
+        language: {
+          type: 'string',
+          enum: ['python', 'javascript', 'typescript'],
+          description: 'コード実行時の言語',
+        },
+        code: {
+          type: 'string',
+          description: '実行するコード',
+        },
+        clearContext: {
+          type: 'boolean',
+          default: false,
+          description: 'コンテキストをクリアするか',
+        },
+        command: {
+          type: 'string',
+          description: '実行するシェルコマンド',
+        },
+        paths: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'ファイルパスの配列',
+        },
+        path: {
+          type: 'string',
+          description: 'ディレクトリパス',
+        },
+        content: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              path: { type: 'string' },
+              text: { type: 'string' },
+            },
+            required: ['path', 'text'],
+          },
+          description: '書き込むファイルの配列',
+        },
+        sourcePaths: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'ダウンロードするファイルパスの配列',
+        },
+        destinationDir: {
+          type: 'string',
+          description: 'ダウンロード先ディレクトリ（絶対パス）',
+        },
+      },
+      required: ['action'],
+    },
+  },
 ];
 
 /**

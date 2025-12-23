@@ -236,6 +236,26 @@ export class AgentCoreRuntime extends Construct {
       })
     );
 
+    // CodeInterpreter 操作権限
+    this.runtime.addToRolePolicy(
+      new iam.PolicyStatement({
+        sid: 'BedrockAgentCoreCodeInterpreterAccess',
+        effect: iam.Effect.ALLOW,
+        actions: [
+          'bedrock-agentcore:CreateCodeInterpreter',
+          'bedrock-agentcore:StartCodeInterpreterSession',
+          'bedrock-agentcore:InvokeCodeInterpreter',
+          'bedrock-agentcore:StopCodeInterpreterSession',
+          'bedrock-agentcore:DeleteCodeInterpreter',
+          'bedrock-agentcore:ListCodeInterpreters',
+          'bedrock-agentcore:GetCodeInterpreter',
+          'bedrock-agentcore:GetCodeInterpreterSession',
+          'bedrock-agentcore:ListCodeInterpreterSessions',
+        ],
+        resources: [`arn:aws:bedrock-agentcore:${region}:${account}:code-interpreter/*`],
+      })
+    );
+
     // プロパティを設定
     this.runtimeArn = this.runtime.agentRuntimeArn;
     this.runtimeId = this.runtime.agentRuntimeId;
