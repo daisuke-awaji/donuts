@@ -10,6 +10,7 @@ import { getContextMetadata, getCurrentContext } from './context/request-context
 import { requestContextMiddleware } from './middleware/request-context.js';
 import { createSessionStorage, SessionPersistenceHook } from './session/index.js';
 import type { SessionConfig } from './session/types.js';
+import { logger } from './config/index.js';
 
 /**
  * Strands Agents ストリーミングイベントを安全にシリアライズ
@@ -131,7 +132,7 @@ function serializeStreamEvent(event: unknown): object {
 
     default:
       // 真に未知のイベントタイプの場合のみ警告を表示
-      console.warn(`新しい未知のストリーミングイベント: ${eventObj.type}`);
+      logger.warn('新しい未知のストリーミングイベント:', { type: eventObj.type });
       return baseEvent;
   }
 }
@@ -169,7 +170,7 @@ const corsOptions = {
     ) {
       callback(null, true);
     } else {
-      console.warn(`🚫 CORS blocked origin: ${origin}`);
+      logger.warn('🚫 CORS blocked origin:', { origin });
       callback(new Error('Not allowed by CORS'));
     }
   },
@@ -216,6 +217,8 @@ interface InvocationRequest {
   enabledTools?: string[]; // 任意: 有効化するツール名の配列（undefined=全て、[]=なし）
   systemPrompt?: string; // 任意: カスタムシステムプロンプト
   storagePath?: string; // 任意: ユーザーが選択しているS3ディレクトリパス
+  memoryEnabled?: boolean; // 任意: 長期記憶を有効化するか（デフォルト: false）
+  memoryTopK?: number; // 任意: 取得する長期記憶の件数（デフォルト: 10）
 }
 
 /**
@@ -225,7 +228,7 @@ interface InvocationRequest {
 app.post('/invocations', async (req: Request, res: Response) => {
   try {
     // リクエストボディから各パラメータを取得
-    const { prompt, modelId, enabledTools, systemPrompt, storagePath } =
+    const { prompt, modelId, enabledTools, systemPrompt, storagePath, memoryEnabled, memoryTopK } =
       req.body as InvocationRequest;
 
     if (!prompt?.trim()) {
@@ -249,13 +252,12 @@ app.post('/invocations', async (req: Request, res: Response) => {
     const contextMeta = getContextMetadata();
     const actorId = contextMeta.userId || 'anonymous';
 
-    console.log(`📝 Received prompt (${contextMeta.requestId}): ${prompt}`);
-    console.log(`👤 Actor ID (from JWT): ${actorId}`);
-    if (sessionId) {
-      console.log(`🔗 Session ID: ${sessionId}`);
-    } else {
-      console.log(`🔗 Session ID: なし（セッションなしモード）`);
-    }
+    logger.info('📝 リクエスト受信:', {
+      requestId: contextMeta.requestId,
+      prompt,
+      actorId,
+      sessionId: sessionId || 'なし（セッションなしモード）',
+    });
 
     // セッション設定とフック（sessionIdがある場合のみ）
     let sessionConfig: SessionConfig | undefined;
@@ -272,17 +274,24 @@ app.post('/invocations', async (req: Request, res: Response) => {
       enabledTools,
       systemPrompt,
       ...(sessionId && { sessionStorage, sessionConfig }),
+      // 長期記憶パラメータ（JWT の userId を actorId として使用）
+      memoryEnabled,
+      memoryContext: memoryEnabled ? prompt : undefined,
+      actorId: memoryEnabled ? actorId : undefined,
+      memoryTopK,
     };
-
-    // ログ出力（デバッグ用）
-    if (modelId) console.log(`🤖 カスタムモデル: ${modelId}`);
-    if (enabledTools) console.log(`🔧 指定ツール: ${enabledTools.join(', ')}`);
-    if (systemPrompt) console.log(`📝 カスタムシステムプロンプト使用`);
-    if (storagePath) console.log(`📁 ストレージパス制限: ${storagePath}`);
 
     // Agent を作成（セッションフックは条件付き）
     const hooks = sessionHook ? [sessionHook] : [];
-    const agent = await createAgent(hooks, agentOptions);
+    const { agent, metadata } = await createAgent(hooks, agentOptions);
+
+    // Agent作成完了のログ出力
+    logger.info('📊 Agent作成完了:', {
+      requestId: contextMeta.requestId,
+      loadedMessages: metadata.loadedMessagesCount,
+      longTermMemories: metadata.longTermMemoriesCount,
+      tools: metadata.toolsCount,
+    });
 
     // ストリーミングレスポンス用のヘッダー設定
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
@@ -291,7 +300,7 @@ app.post('/invocations', async (req: Request, res: Response) => {
     res.setHeader('X-Accel-Buffering', 'no'); // nginx のバッファリング無効
 
     try {
-      console.log(`🔄 Agent ストリーミング開始 (${contextMeta.requestId})`);
+      logger.info('🔄 Agent ストリーミング開始:', { requestId: contextMeta.requestId });
 
       // ストリーミングイベントを NDJSON として送信
       for await (const event of agent.stream(prompt)) {
@@ -299,11 +308,12 @@ app.post('/invocations', async (req: Request, res: Response) => {
         if (event.type === 'messageAddedEvent' && event.message && sessionConfig) {
           try {
             await sessionStorage.appendMessage(sessionConfig, event.message);
-            console.log(
-              `💾 メッセージをリアルタイム保存: role=${event.message.role}, content blocks=${event.message.content.length}`
-            );
+            logger.info('💾 メッセージをリアルタイム保存:', {
+              role: event.message.role,
+              contentBlocks: event.message.content.length,
+            });
           } catch (saveError) {
-            console.error(`⚠️ メッセージ保存に失敗 (ストリーミング継続):`, saveError);
+            logger.error('⚠️ メッセージ保存に失敗 (ストリーミング継続):', saveError);
             // 保存エラーでもストリーミングは継続する
           }
         }
@@ -313,7 +323,7 @@ app.post('/invocations', async (req: Request, res: Response) => {
         res.write(`${JSON.stringify(safeEvent)}\n`);
       }
 
-      console.log(`✅ Agent ストリーミング完了 (${contextMeta.requestId})`);
+      logger.info('✅ Agent ストリーミング完了:', { requestId: contextMeta.requestId });
 
       // 完了メタデータを送信
       const completionEvent = {
@@ -324,13 +334,18 @@ app.post('/invocations', async (req: Request, res: Response) => {
           sessionId: sessionId,
           actorId: actorId,
           conversationLength: agent.messages.length,
+          // Agent作成時のメタデータも含める
+          agentMetadata: metadata,
         },
       };
       res.write(`${JSON.stringify(completionEvent)}\n`);
 
       res.end();
     } catch (streamError) {
-      console.error(`❌ Agent ストリーミングエラー (${contextMeta.requestId}):`, streamError);
+      logger.error('❌ Agent ストリーミングエラー:', {
+        requestId: contextMeta.requestId,
+        error: streamError,
+      });
 
       // エラーイベントを送信
       const errorEvent = {
@@ -345,7 +360,10 @@ app.post('/invocations', async (req: Request, res: Response) => {
     }
   } catch (error) {
     const contextMeta = getContextMetadata();
-    console.error(`❌ Error processing request (${contextMeta.requestId}):`, error);
+    logger.error('❌ Error processing request:', {
+      requestId: contextMeta.requestId,
+      error,
+    });
 
     // 初期エラーの場合は JSON レスポンス
     if (!res.headersSent) {
@@ -388,7 +406,7 @@ app.use('*', (req: Request, res: Response) => {
  * エラーハンドラー
  */
 app.use((err: Error, req: Request, res: Response, _next: NextFunction) => {
-  console.error('💥 Unhandled error:', err);
+  logger.error('💥 Unhandled error:', { error: err, path: req.path, method: req.method });
   res.status(500).json({
     error: 'Internal Server Error',
     message: err.message,
@@ -402,13 +420,15 @@ async function startServer(): Promise<void> {
   try {
     // HTTPサーバー開始（Agent初期化は最初のリクエスト時に実行）
     app.listen(PORT, () => {
-      console.log(`🚀 AgentCore Runtime server listening on port ${PORT}`);
-      console.log(`📋 Health check: http://localhost:${PORT}/ping`);
-      console.log(`🤖 Agent endpoint: POST http://localhost:${PORT}/invocations`);
-      console.log('⏳ Agent は最初のリクエスト時に初期化されます');
+      logger.info('🚀 AgentCore Runtime server 起動:', {
+        port: PORT,
+        healthCheck: `http://localhost:${PORT}/ping`,
+        agentEndpoint: `POST http://localhost:${PORT}/invocations`,
+        note: 'Agent は最初のリクエスト時に初期化されます',
+      });
     });
   } catch (error) {
-    console.error('💥 サーバー開始に失敗しました:', error);
+    logger.error('💥 サーバー開始に失敗:', { error });
     process.exit(1);
   }
 }
@@ -418,11 +438,11 @@ startServer();
 
 // Graceful shutdown の処理
 process.on('SIGTERM', () => {
-  console.log('🛑 Received SIGTERM, shutting down gracefully');
+  logger.info('🛑 Received SIGTERM, shutting down gracefully');
   process.exit(0);
 });
 
 process.on('SIGINT', () => {
-  console.log('🛑 Received SIGINT, shutting down gracefully');
+  logger.info('🛑 Received SIGINT, shutting down gracefully');
   process.exit(0);
 });

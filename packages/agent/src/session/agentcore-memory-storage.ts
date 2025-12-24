@@ -17,6 +17,7 @@ import {
   getCurrentTimestamp,
   type AgentCorePayload,
 } from './converters.js';
+import { logger } from '../config/index.js';
 
 /**
  * AgentCore Memory を使用したセッションストレージ
@@ -37,7 +38,10 @@ export class AgentCoreMemoryStorage implements SessionStorage {
    */
   async loadMessages(config: SessionConfig): Promise<Message[]> {
     try {
-      console.log(`[AgentCoreMemoryStorage] Loading messages for session: ${config.sessionId}`);
+      logger.info('[AgentCoreMemoryStorage] Loading messages:', {
+        sessionId: config.sessionId,
+        actorId: config.actorId,
+      });
 
       const command = new ListEventsCommand({
         memoryId: this.memoryId,
@@ -50,7 +54,9 @@ export class AgentCoreMemoryStorage implements SessionStorage {
       const response = await this.client.send(command);
 
       if (!response.events) {
-        console.log(`[AgentCoreMemoryStorage] No events found for session: ${config.sessionId}`);
+        logger.info('[AgentCoreMemoryStorage] No events found:', {
+          sessionId: config.sessionId,
+        });
         return [];
       }
 
@@ -77,12 +83,16 @@ export class AgentCoreMemoryStorage implements SessionStorage {
         }
       }
 
-      console.log(
-        `[AgentCoreMemoryStorage] Loaded ${messages.length} messages for session: ${config.sessionId}`
-      );
+      logger.info('[AgentCoreMemoryStorage] Loaded messages:', {
+        sessionId: config.sessionId,
+        messageCount: messages.length,
+      });
       return messages;
     } catch (error) {
-      console.error(`[AgentCoreMemoryStorage] Error loading messages:`, error);
+      logger.error('[AgentCoreMemoryStorage] Error loading messages:', {
+        sessionId: config.sessionId,
+        error,
+      });
       throw error;
     }
   }
@@ -94,7 +104,10 @@ export class AgentCoreMemoryStorage implements SessionStorage {
    */
   async saveMessages(config: SessionConfig, messages: Message[]): Promise<void> {
     try {
-      console.log(`[AgentCoreMemoryStorage] Saving messages for session: ${config.sessionId}`);
+      logger.info('[AgentCoreMemoryStorage] Saving messages:', {
+        sessionId: config.sessionId,
+        totalMessages: messages.length,
+      });
 
       // 既存のメッセージ数を取得
       const existingMessages = await this.loadMessages(config);
@@ -104,22 +117,26 @@ export class AgentCoreMemoryStorage implements SessionStorage {
       const newMessages = messages.slice(existingCount);
 
       if (newMessages.length === 0) {
-        console.log(
-          `[AgentCoreMemoryStorage] No new messages to save for session: ${config.sessionId}`
-        );
+        logger.info('[AgentCoreMemoryStorage] No new messages to save:', {
+          sessionId: config.sessionId,
+        });
         return;
       }
 
-      console.log(
-        `[AgentCoreMemoryStorage] Saving ${newMessages.length} new messages for session: ${config.sessionId}`
-      );
+      logger.info('[AgentCoreMemoryStorage] Saving new messages:', {
+        sessionId: config.sessionId,
+        newMessageCount: newMessages.length,
+      });
 
       // 各メッセージを個別のイベントとして保存
       for (const message of newMessages) {
         await this.createMessageEvent(config, message);
       }
     } catch (error) {
-      console.error(`[AgentCoreMemoryStorage] Error saving messages:`, error);
+      logger.error('[AgentCoreMemoryStorage] Error saving messages:', {
+        sessionId: config.sessionId,
+        error,
+      });
       throw error;
     }
   }
@@ -130,7 +147,9 @@ export class AgentCoreMemoryStorage implements SessionStorage {
    */
   async clearSession(config: SessionConfig): Promise<void> {
     try {
-      console.log(`[AgentCoreMemoryStorage] Clearing session: ${config.sessionId}`);
+      logger.info('[AgentCoreMemoryStorage] Clearing session:', {
+        sessionId: config.sessionId,
+      });
 
       // セッションの全イベントを取得
       const command = new ListEventsCommand({
@@ -144,15 +163,16 @@ export class AgentCoreMemoryStorage implements SessionStorage {
       const response = await this.client.send(command);
 
       if (!response.events || response.events.length === 0) {
-        console.log(
-          `[AgentCoreMemoryStorage] No events to delete for session: ${config.sessionId}`
-        );
+        logger.info('[AgentCoreMemoryStorage] No events to delete:', {
+          sessionId: config.sessionId,
+        });
         return;
       }
 
-      console.log(
-        `[AgentCoreMemoryStorage] Deleting ${response.events.length} events for session: ${config.sessionId}`
-      );
+      logger.info('[AgentCoreMemoryStorage] Deleting events:', {
+        sessionId: config.sessionId,
+        eventCount: response.events.length,
+      });
 
       // 各イベントを個別に削除
       for (const event of response.events) {
@@ -162,7 +182,10 @@ export class AgentCoreMemoryStorage implements SessionStorage {
         }
       }
     } catch (error) {
-      console.error(`[AgentCoreMemoryStorage] Error clearing session:`, error);
+      logger.error('[AgentCoreMemoryStorage] Error clearing session:', {
+        sessionId: config.sessionId,
+        error,
+      });
       throw error;
     }
   }
@@ -185,9 +208,10 @@ export class AgentCoreMemoryStorage implements SessionStorage {
     });
 
     const response = await this.client.send(command);
-    console.log(
-      `[AgentCoreMemoryStorage] Created event: ${response.event?.eventId} for message role: ${message.role}`
-    );
+    logger.info('[AgentCoreMemoryStorage] Created event:', {
+      eventId: response.event?.eventId,
+      messageRole: message.role,
+    });
   }
 
   /**
@@ -198,13 +222,17 @@ export class AgentCoreMemoryStorage implements SessionStorage {
    */
   async appendMessage(config: SessionConfig, message: Message): Promise<void> {
     try {
-      console.log(
-        `[AgentCoreMemoryStorage] Appending message for session: ${config.sessionId}, role: ${message.role}`
-      );
+      logger.info('[AgentCoreMemoryStorage] Appending message:', {
+        sessionId: config.sessionId,
+        messageRole: message.role,
+      });
 
       await this.createMessageEvent(config, message);
     } catch (error) {
-      console.error(`[AgentCoreMemoryStorage] Error appending message:`, error);
+      logger.error('[AgentCoreMemoryStorage] Error appending message:', {
+        sessionId: config.sessionId,
+        error,
+      });
       throw error;
     }
   }
@@ -224,6 +252,6 @@ export class AgentCoreMemoryStorage implements SessionStorage {
     });
 
     await this.client.send(command);
-    console.log(`[AgentCoreMemoryStorage] Deleted event: ${eventId}`);
+    logger.info('[AgentCoreMemoryStorage] Deleted event:', { eventId });
   }
 }

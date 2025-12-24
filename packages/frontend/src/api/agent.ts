@@ -38,6 +38,8 @@ interface AgentConfig {
   enabledTools?: string[]; // 有効化するツール名の配列
   systemPrompt?: string; // カスタムシステムプロンプト
   storagePath?: string; // ユーザーが選択しているS3ディレクトリパス
+  memoryEnabled?: boolean; // 長期記憶を有効化するか
+  memoryTopK?: number; // 取得する長期記憶の件数
 }
 
 /**
@@ -95,6 +97,14 @@ export const streamAgentResponse = async (
 
   if (agentConfig?.storagePath) {
     requestBody.storagePath = agentConfig.storagePath;
+  }
+
+  if (agentConfig?.memoryEnabled !== undefined) {
+    requestBody.memoryEnabled = agentConfig.memoryEnabled;
+  }
+
+  if (agentConfig?.memoryTopK !== undefined) {
+    requestBody.memoryTopK = agentConfig.memoryTopK;
   }
 
   const body = JSON.stringify(requestBody);

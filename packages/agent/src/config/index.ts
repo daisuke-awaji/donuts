@@ -19,6 +19,9 @@ const envSchema = z.object({
   BEDROCK_MODEL_ID: z.string().default('anthropic.claude-sonnet-4-5-20250929-v1:0'),
   BEDROCK_REGION: z.string().default('us-east-1'),
 
+  // AgentCore Memory Configuration
+  AGENTCORE_MEMORY_ID: z.string().optional(),
+
   // Debug Configuration
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
   DEBUG_MCP: z
@@ -54,25 +57,38 @@ export const config = parseEnv();
 
 /**
  * ロギング設定
+ * オブジェクトを自動的に JSON.stringify して CloudWatch で可読性を向上
  */
 export const logger = {
   debug: (...args: unknown[]) => {
     if (config.LOG_LEVEL === 'debug') {
-      console.log('[DEBUG]', new Date().toISOString(), ...args);
+      const formattedArgs = args.map((arg) =>
+        typeof arg === 'object' && arg !== null ? JSON.stringify(arg) : arg
+      );
+      console.log('[DEBUG]', new Date().toISOString(), ...formattedArgs);
     }
   },
   info: (...args: unknown[]) => {
     if (['debug', 'info'].includes(config.LOG_LEVEL)) {
-      console.log('[INFO]', new Date().toISOString(), ...args);
+      const formattedArgs = args.map((arg) =>
+        typeof arg === 'object' && arg !== null ? JSON.stringify(arg) : arg
+      );
+      console.log('[INFO]', new Date().toISOString(), ...formattedArgs);
     }
   },
   warn: (...args: unknown[]) => {
     if (['debug', 'info', 'warn'].includes(config.LOG_LEVEL)) {
-      console.warn('[WARN]', new Date().toISOString(), ...args);
+      const formattedArgs = args.map((arg) =>
+        typeof arg === 'object' && arg !== null ? JSON.stringify(arg) : arg
+      );
+      console.warn('[WARN]', new Date().toISOString(), ...formattedArgs);
     }
   },
   error: (...args: unknown[]) => {
-    console.error('[ERROR]', new Date().toISOString(), ...args);
+    const formattedArgs = args.map((arg) =>
+      typeof arg === 'object' && arg !== null ? JSON.stringify(arg) : arg
+    );
+    console.error('[ERROR]', new Date().toISOString(), ...formattedArgs);
   },
 };
 

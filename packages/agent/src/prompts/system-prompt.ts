@@ -6,6 +6,7 @@ export interface SystemPromptOptions {
   tools: Array<{ name: string; description?: string }>;
   mcpTools: MCPToolDefinition[];
   storagePath?: string;
+  longTermMemories?: string[]; // 長期記憶の配列
 }
 
 /**
@@ -19,6 +20,16 @@ export function buildSystemPrompt(options: SystemPromptOptions): string {
   } else {
     // デフォルトプロンプト生成ロジック
     basePrompt = generateDefaultSystemPrompt(options.tools, options.mcpTools);
+  }
+
+  // 長期記憶情報を追加（長期記憶がある場合）
+  if (options.longTermMemories && options.longTermMemories.length > 0) {
+    basePrompt += `
+
+## User Context (Long-term Memory)
+Below is what you've learned about this user in the past, so you can tailor your responses to their preferences and circumstances.
+${options.longTermMemories.map((memory, index) => `${index + 1}. ${memory}`).join('\n')}
+`;
   }
 
   // ストレージパス情報を追加（ルート以外の場合）

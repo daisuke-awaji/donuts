@@ -5,6 +5,7 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { createRequestContext, runWithContext } from '../context/request-context.js';
+import { logger } from '../config/index.js';
 
 /**
  * JWT から userId を抽出する（簡易実装）
@@ -22,7 +23,7 @@ function extractUserIdFromJWT(authHeader?: string): string | undefined {
     // 一般的な JWT クレームから userId を抽出
     return payload.sub || payload.userId || payload.user_id || payload.username;
   } catch (error) {
-    console.warn('JWT の解析に失敗:', error);
+    logger.warn('JWT の解析に失敗:', { error });
     return undefined;
   }
 }
@@ -47,8 +48,8 @@ export function requestContextMiddleware(req: Request, res: Response, next: Next
     requestContext.userId = userId;
   }
 
-  // デバッグログ
-  console.log(`📝 Request context middleware activated:`, {
+  // リクエストコンテキストのログ出力
+  logger.info('📝 Request context middleware activated:', {
     requestId: requestContext.requestId,
     userId: requestContext.userId,
     hasAuth: !!authHeader,

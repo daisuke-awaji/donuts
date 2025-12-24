@@ -7,6 +7,7 @@ import type { ConversationMessage } from '../api/sessions';
 import { useAgentStore } from './agentStore';
 import { useStorageStore } from './storageStore';
 import { useSessionStore } from './sessionStore';
+import { useMemoryStore } from './memoryStore';
 
 // AWS AgentCore sessionId制約: [a-zA-Z0-9][a-zA-Z0-9-_]*
 // 英数字のみのカスタムnanoid（ハイフンとアンダースコアを除外）
@@ -169,14 +170,19 @@ export const useChatStore = create<ChatStore>()(
           // ストレージパスを取得
           const currentPath = useStorageStore.getState().currentPath;
 
+          // 長期記憶設定を取得
+          const { isMemoryEnabled } = useMemoryStore.getState();
+
           const agentConfig = selectedAgent
             ? {
                 systemPrompt: selectedAgent.systemPrompt,
                 enabledTools: selectedAgent.enabledTools,
                 storagePath: currentPath,
+                memoryEnabled: isMemoryEnabled,
               }
             : {
                 storagePath: currentPath,
+                memoryEnabled: isMemoryEnabled,
               };
 
           // デバッグログ

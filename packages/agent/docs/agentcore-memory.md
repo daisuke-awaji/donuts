@@ -171,9 +171,6 @@ async clearSession(config: SessionConfig): Promise<void> {
 ### 必須環境変数
 
 ```bash
-# AgentCore Memory 使用フラグ
-USE_AGENTCORE_MEMORY=true
-
 # Memory リソース ID
 AGENTCORE_MEMORY_ID=STM_Memory_20250922_163320-976U2Y9LvO
 

@@ -146,7 +146,6 @@ export class AgentCoreRuntime extends Construct {
     // AgentCore Memory の設定
     if (props.memory) {
       environmentVariables.AGENTCORE_MEMORY_ID = props.memory.memoryId;
-      environmentVariables.USE_AGENTCORE_MEMORY = props.memory.enabled !== false ? 'true' : 'false';
     }
 
     // Tavily Search API Key の設定

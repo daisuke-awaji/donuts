@@ -158,6 +158,9 @@ export class AgentCoreMemory extends Construct {
         'bedrock-agentcore:ListEvents',
         'bedrock-agentcore:DeleteEvent',
         'bedrock-agentcore:GetMemory',
+        'bedrock-agentcore:ListMemoryStrategies', // 長期記憶: 戦略一覧取得
+        'bedrock-agentcore:RetrieveMemory', // 長期記憶: セマンティック検索
+        'bedrock-agentcore:RetrieveMemoryRecords', // 長期記憶: レコード取得（必須）
       ],
       resourceArns: [this.memoryArn],
     });
@@ -169,7 +172,6 @@ export class AgentCoreMemory extends Construct {
   public getEnvironmentVariables(): { [key: string]: string } {
     return {
       AGENTCORE_MEMORY_ID: this.memoryId,
-      USE_AGENTCORE_MEMORY: 'true',
     };
   }
 
