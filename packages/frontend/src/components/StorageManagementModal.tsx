@@ -226,18 +226,21 @@ export function StorageManagementModal({ isOpen, onClose }: StorageManagementMod
   // モーダル表示時にデータを読み込み
   useEffect(() => {
     if (isOpen) {
-      // URLハッシュからパスを読み込む、なければルートパスを使用
-      const pathFromHash = getPathFromHash();
+      // URLハッシュが明示的に設定されている場合はそれを使用、
+      // なければ現在選択中のパス（currentPath）を使用
+      const hasExplicitHash = window.location.hash.startsWith('#storage=');
+      const initialPath = hasExplicitHash ? getPathFromHash() : currentPath || '/';
+
       // 初期表示時にもURLハッシュを設定（履歴を追加）
-      setPathToHash(pathFromHash);
-      loadItems(pathFromHash);
+      setPathToHash(initialPath);
+      loadItems(initialPath);
       // フォルダツリーも読み込み
       loadFolderTree();
     } else {
       // モーダルを閉じたらURLハッシュをクリア
       clearHash();
     }
-  }, [isOpen, loadItems, loadFolderTree]);
+  }, [isOpen, currentPath, loadItems, loadFolderTree]);
 
   // ブラウザバック/フォワードの検知
   useEffect(() => {
