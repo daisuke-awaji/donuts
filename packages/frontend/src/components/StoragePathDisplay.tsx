@@ -22,7 +22,10 @@ export function StoragePathDisplay({ onClick }: StoragePathDisplayProps) {
       className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-all duration-200 group"
       title={`ストレージ: ${currentPath}`}
     >
-      <Folder className="w-4 h-4 text-amber-500 group-hover:text-amber-600 transition-colors" />
+      <Folder
+        fill="rgb(253, 230, 138)"
+        className="w-4 h-4 text-amber-400 group-hover:text-amber-500 transition-colors"
+      />
       <span className="font-mono text-xs">{displayPath}</span>
     </button>
   );

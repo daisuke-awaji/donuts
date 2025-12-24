@@ -18,11 +18,13 @@ import {
   Download,
   Copy,
   Check,
+  HelpCircle,
 } from 'lucide-react';
 import { useStorageStore } from '../stores/storageStore';
 import type { StorageItem } from '../api/storage';
 import { Modal } from './ui/Modal/Modal';
 import { generateDownloadUrl } from '../api/storage';
+import { Tooltip } from './ui/Tooltip/Tooltip';
 
 interface StorageManagementModalProps {
   isOpen: boolean;
@@ -325,6 +327,21 @@ export function StorageManagementModal({ isOpen, onClose }: StorageManagementMod
           <div className="flex items-center gap-2">
             <Folder className="w-5 h-5 text-amber-500" />
             <h2 className="text-lg font-semibold text-gray-900">ファイルストレージ</h2>
+            <Tooltip
+              content={
+                <div className="text-xs leading-relaxed w-64">
+                  ユーザーごとに Amazon S3 の領域を提供しています。 AI エージェントは S3
+                  操作ツールでこの領域にアクセスできます。ディレクトリを選択している場合、AI
+                  エージェントは選択されたディレクトリを読み込みます。
+                </div>
+              }
+              position="bottom"
+              maxWidth="280px"
+            >
+              <button className="w-6 h-6 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-600 transition-colors">
+                <HelpCircle className="w-4 h-4" />
+              </button>
+            </Tooltip>
           </div>
           <button
             onClick={onClose}

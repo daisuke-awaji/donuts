@@ -7,6 +7,9 @@ import { create } from 'zustand';
 import type { StorageItem, ListStorageResponse } from '../api/storage';
 import * as storageApi from '../api/storage';
 
+// localStorageキー
+const STORAGE_PATH_KEY = 'storage-current-path';
+
 interface StorageState {
   // 状態
   currentPath: string;
@@ -27,8 +30,8 @@ interface StorageState {
 }
 
 export const useStorageStore = create<StorageState>((set, get) => ({
-  // 初期状態
-  currentPath: '/',
+  // 初期状態（localStorageから読み込み）
+  currentPath: localStorage.getItem(STORAGE_PATH_KEY) || '/',
   items: [],
   isLoading: false,
   error: null,
@@ -38,6 +41,8 @@ export const useStorageStore = create<StorageState>((set, get) => ({
   // パスを設定
   setCurrentPath: (path: string) => {
     set({ currentPath: path });
+    // localStorageに保存
+    localStorage.setItem(STORAGE_PATH_KEY, path);
   },
 
   // アイテム一覧を読み込み
@@ -48,6 +53,9 @@ export const useStorageStore = create<StorageState>((set, get) => ({
 
     try {
       const response: ListStorageResponse = await storageApi.listStorageItems(targetPath);
+
+      // localStorageに保存
+      localStorage.setItem(STORAGE_PATH_KEY, response.path);
 
       set({
         items: response.items,
