@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, X, Save, AlertCircle, Sparkles, Settings, Wrench } from 'lucide-react';
+import { Plus, X, AlertCircle, Sparkles, Settings, Wrench } from 'lucide-react';
 import { ToolSelector } from './ToolSelector';
 import { SidebarTabsLayout, type TabItem } from './ui/SidebarTabs';
 import type { CreateAgentInput, Agent, Scenario } from '../types/agent';
@@ -10,18 +10,12 @@ import { parseStreamingXml, createInitialXmlState } from '../utils/xmlParser';
 interface AgentFormProps {
   agent?: Agent;
   onSubmit: (data: CreateAgentInput) => void;
-  onCancel: () => void;
   isLoading?: boolean;
 }
 
 type TabType = 'basic' | 'tools';
 
-export const AgentForm: React.FC<AgentFormProps> = ({
-  agent,
-  onSubmit,
-  onCancel,
-  isLoading = false,
-}) => {
+export const AgentForm: React.FC<AgentFormProps> = ({ agent, onSubmit, isLoading = false }) => {
   const [activeTab, setActiveTab] = useState<TabType>('basic');
   const [formData, setFormData] = useState<CreateAgentInput>(() => {
     if (agent) {
@@ -241,7 +235,7 @@ export const AgentForm: React.FC<AgentFormProps> = ({
     <SidebarTabsLayout tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab}>
       <form id="agent-form" onSubmit={handleSubmit} className="flex-1 flex flex-col">
         {/* パネルコンテンツ */}
-        <div className="flex-1 overflow-y-auto px-6 py-6">
+        <div className="h-[80vh] overflow-y-auto px-6 py-6">
           {/* 基本設定パネル */}
           {activeTab === 'basic' && (
             <div className="space-y-6 max-w-5xl mx-auto">
@@ -480,26 +474,6 @@ export const AgentForm: React.FC<AgentFormProps> = ({
               />
             </div>
           )}
-        </div>
-
-        {/* フッター：ボタン */}
-        <div className="border-t border-gray-200 px-6 py-4 flex items-center justify-end space-x-3">
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={isLoading}
-            className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            キャンセル
-          </button>
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="inline-flex items-center space-x-2 px-4 py-2 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            <Save className="w-4 h-4" />
-            <span>{isLoading ? '保存中...' : '保存'}</span>
-          </button>
         </div>
       </form>
     </SidebarTabsLayout>

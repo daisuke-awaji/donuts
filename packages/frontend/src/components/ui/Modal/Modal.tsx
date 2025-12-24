@@ -50,6 +50,18 @@ export const Modal: React.FC<ModalProps> = ({
 
   if (!isOpen) return null;
 
+  // サイズごとのクラスマッピング
+  const sizeClasses: Record<NonNullable<ModalProps['size']>, string> = {
+    sm: 'max-w-sm',
+    md: 'max-w-md',
+    lg: 'max-w-lg',
+    xl: 'max-w-7xl min-h-[70vh] w-[80vw] md:max-w-7xl md:min-h-[70vh] md:w-[80vw] max-md:w-[95vw] max-md:max-h-[90vh] max-md:min-h-[80vh]',
+    full: 'max-w-none w-full h-full',
+  };
+
+  const sizeClass = sizeClasses[size];
+  const heightClass = size === 'full' ? 'h-full' : 'max-h-[calc(100vh-2rem)]';
+
   return (
     <ModalContext.Provider value={{ onClose }}>
       <div className="fixed inset-0 z-50 bg-black/10 flex items-center justify-center p-4">
@@ -57,18 +69,8 @@ export const Modal: React.FC<ModalProps> = ({
         <div
           className={cn(
             'bg-white rounded-3xl shadow-2xl flex flex-col overflow-hidden relative',
-            size === 'sm'
-              ? 'max-w-sm'
-              : size === 'md'
-                ? 'max-w-md'
-                : size === 'lg'
-                  ? 'max-w-lg'
-                  : size === 'xl'
-                    ? 'max-w-7xl min-h-[70vh] w-[80vw] md:max-w-7xl md:min-h-[70vh] md:w-[80vw] max-md:w-[95vw] max-md:max-h-[90vh] max-md:min-h-[80vh]'
-                    : size === 'full'
-                      ? 'max-w-none w-full h-full'
-                      : 'max-w-lg',
-            size === 'full' ? 'h-full' : 'max-h-[calc(100vh-2rem)]',
+            sizeClass,
+            heightClass,
             className
           )}
           onClick={(e) => e.stopPropagation()}

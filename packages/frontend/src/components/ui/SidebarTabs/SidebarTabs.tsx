@@ -46,7 +46,7 @@ export function SidebarTabsLayout<T extends string>({
   children,
 }: SidebarTabsLayoutProps<T>) {
   return (
-    <div className="flex h-full">
+    <div className="flex">
       <SidebarTabs tabs={tabs} activeTab={activeTab} onTabChange={onTabChange} />
       <div className="flex-1 flex flex-col">{children}</div>
     </div>
