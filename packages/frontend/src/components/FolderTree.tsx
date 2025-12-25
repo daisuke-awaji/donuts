@@ -13,6 +13,7 @@ interface TreeNodeProps {
   expandedPaths: Set<string>;
   onSelect: (path: string) => void;
   onToggleExpand: (path: string) => void;
+  onContextMenu?: (e: React.MouseEvent, node: FolderNode) => void;
 }
 
 function TreeNode({
@@ -22,6 +23,7 @@ function TreeNode({
   expandedPaths,
   onSelect,
   onToggleExpand,
+  onContextMenu,
 }: TreeNodeProps) {
   const isExpanded = expandedPaths.has(node.path);
   const isSelected = selectedPath === node.path;
@@ -38,6 +40,14 @@ function TreeNode({
     }
   };
 
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (onContextMenu) {
+      onContextMenu(e, node);
+    }
+  };
+
   return (
     <div>
       <div
@@ -46,6 +56,7 @@ function TreeNode({
         }`}
         style={{ paddingLeft: `${level * 12 + 8}px` }}
         onClick={handleClick}
+        onContextMenu={handleContextMenu}
       >
         {/* 展開/折りたたみアイコン */}
         <button
@@ -80,6 +91,7 @@ function TreeNode({
               expandedPaths={expandedPaths}
               onSelect={onSelect}
               onToggleExpand={onToggleExpand}
+              onContextMenu={onContextMenu}
             />
           ))}
         </div>
@@ -94,6 +106,7 @@ interface FolderTreeProps {
   expandedPaths: Set<string>;
   onSelect: (path: string) => void;
   onToggleExpand: (path: string) => void;
+  onContextMenu?: (e: React.MouseEvent, node: FolderNode) => void;
   isLoading?: boolean;
 }
 
@@ -103,6 +116,7 @@ export function FolderTree({
   expandedPaths,
   onSelect,
   onToggleExpand,
+  onContextMenu,
   isLoading,
 }: FolderTreeProps) {
   if (isLoading) {
@@ -132,6 +146,7 @@ export function FolderTree({
           expandedPaths={expandedPaths}
           onSelect={onSelect}
           onToggleExpand={onToggleExpand}
+          onContextMenu={onContextMenu}
         />
       ))}
     </div>

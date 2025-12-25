@@ -21,11 +21,12 @@ import {
   HelpCircle,
 } from 'lucide-react';
 import { useStorageStore } from '../stores/storageStore';
-import type { StorageItem } from '../api/storage';
+import type { StorageItem, FolderNode } from '../api/storage';
 import { Modal } from './ui/Modal/Modal';
 import { generateDownloadUrl } from '../api/storage';
 import { Tooltip } from './ui/Tooltip/Tooltip';
 import { FolderTree } from './FolderTree';
+import { getFileIcon } from '../utils/fileIcons';
 
 interface StorageManagementModalProps {
   isOpen: boolean;
@@ -105,6 +106,10 @@ function StorageItemComponent({
     onContextMenu(e, item);
   };
 
+  // ファイルアイコンを取得
+  const fileIconConfig = item.type === 'file' ? getFileIcon(item.name) : null;
+  const FileIcon = fileIconConfig?.icon;
+
   return (
     <div
       onClick={handleCardClick}
@@ -124,6 +129,8 @@ function StorageItemComponent({
         <div className="flex-shrink-0">
           {item.type === 'directory' ? (
             <Folder className="w-5 h-5 text-amber-500" />
+          ) : FileIcon ? (
+            <FileIcon className={`w-5 h-5 ${fileIconConfig.color}`} />
           ) : (
             <File className="w-5 h-5 text-blue-500" />
           )}
@@ -198,10 +205,18 @@ export function StorageManagementModal({ isOpen, onClose }: StorageManagementMod
     x: number;
     y: number;
     path: string;
+    type: 'file' | 'directory';
+  } | null>(null);
+  const [folderContextMenu, setFolderContextMenu] = useState<{
+    x: number;
+    y: number;
+    path: string;
+    name: string;
   } | null>(null);
   const [copiedPath, setCopiedPath] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const contextMenuRef = useRef<HTMLDivElement>(null);
+  const folderContextMenuRef = useRef<HTMLDivElement>(null);
 
   // URLハッシュからパスを取得
   const getPathFromHash = (): string => {
@@ -240,7 +255,8 @@ export function StorageManagementModal({ isOpen, onClose }: StorageManagementMod
       // モーダルを閉じたらURLハッシュをクリア
       clearHash();
     }
-  }, [isOpen, currentPath, loadItems, loadFolderTree]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   // ブラウザバック/フォワードの検知
   useEffect(() => {
@@ -271,15 +287,21 @@ export function StorageManagementModal({ isOpen, onClose }: StorageManagementMod
       if (contextMenuRef.current && !contextMenuRef.current.contains(event.target as Node)) {
         setContextMenu(null);
       }
+      if (
+        folderContextMenuRef.current &&
+        !folderContextMenuRef.current.contains(event.target as Node)
+      ) {
+        setFolderContextMenu(null);
+      }
     };
 
-    if (contextMenu) {
+    if (contextMenu || folderContextMenu) {
       document.addEventListener('mousedown', handleClickOutside);
       return () => {
         document.removeEventListener('mousedown', handleClickOutside);
       };
     }
-  }, [contextMenu]);
+  }, [contextMenu, folderContextMenu]);
 
   // パスナビゲーション
   const handleNavigate = (path: string) => {
@@ -465,7 +487,7 @@ export function StorageManagementModal({ isOpen, onClose }: StorageManagementMod
     }
   };
 
-  // コンテキストメニュー表示
+  // コンテンツパネルのコンテキストメニュー表示
   const handleContextMenu = (e: React.MouseEvent, item: StorageItem) => {
     e.preventDefault();
     e.stopPropagation();
@@ -473,23 +495,84 @@ export function StorageManagementModal({ isOpen, onClose }: StorageManagementMod
       x: e.clientX,
       y: e.clientY,
       path: item.path,
+      type: item.type,
+    });
+  };
+
+  // フォルダツリーのコンテキストメニュー表示
+  const handleFolderContextMenu = (e: React.MouseEvent, node: FolderNode) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setFolderContextMenu({
+      x: e.clientX,
+      y: e.clientY,
+      path: node.path,
+      name: node.name,
     });
   };
 
   // パスをコピー
-  const handleCopyPath = async () => {
-    if (!contextMenu) return;
-
+  const handleCopyPath = async (path: string, closeMenu: () => void) => {
     try {
-      await navigator.clipboard.writeText(contextMenu.path);
-      setCopiedPath(contextMenu.path);
+      await navigator.clipboard.writeText(path);
+      setCopiedPath(path);
       setTimeout(() => {
         setCopiedPath(null);
-        setContextMenu(null);
+        closeMenu();
       }, 1500);
     } catch (error) {
       console.error('Copy error:', error);
-      setContextMenu(null);
+      closeMenu();
+    }
+  };
+
+  // コンテンツパネルのコンテキストメニューからダウンロード
+  const handleContextDownload = async () => {
+    if (!contextMenu) return;
+    const item = items.find((i) => i.path === contextMenu.path);
+    if (item && item.type === 'file') {
+      await handleDownload(item);
+    }
+    setContextMenu(null);
+  };
+
+  // コンテンツパネルのコンテキストメニューから削除
+  const handleContextDelete = async () => {
+    if (!contextMenu) return;
+    const item = items.find((i) => i.path === contextMenu.path);
+    if (item) {
+      let confirmMessage: string;
+      if (item.type === 'directory') {
+        confirmMessage = `ディレクトリ "${item.name}" を削除しますか？\n\n⚠️ ディレクトリ内のすべてのファイルとサブフォルダも削除されます。`;
+      } else {
+        confirmMessage = `ファイル "${item.name}" を削除しますか？`;
+      }
+
+      if (window.confirm(confirmMessage)) {
+        setContextMenu(null);
+        await handleDelete(item);
+      } else {
+        setContextMenu(null);
+      }
+    }
+  };
+
+  // フォルダツリーのコンテキストメニューから削除
+  const handleFolderDelete = async () => {
+    if (!folderContextMenu) return;
+
+    const confirmMessage = `ディレクトリ "${folderContextMenu.name}" を削除しますか？\n\n⚠️ ディレクトリ内のすべてのファイルとサブフォルダも削除されます。`;
+
+    if (window.confirm(confirmMessage)) {
+      setFolderContextMenu(null);
+      const folderItem: StorageItem = {
+        name: folderContextMenu.name,
+        path: folderContextMenu.path,
+        type: 'directory',
+      };
+      await handleDelete(folderItem);
+    } else {
+      setFolderContextMenu(null);
     }
   };
 
@@ -617,6 +700,7 @@ export function StorageManagementModal({ isOpen, onClose }: StorageManagementMod
               expandedPaths={expandedFolders}
               onSelect={handleNavigate}
               onToggleExpand={toggleFolderExpand}
+              onContextMenu={handleFolderContextMenu}
               isLoading={isTreeLoading}
             />
           </div>
@@ -726,21 +810,77 @@ export function StorageManagementModal({ isOpen, onClose }: StorageManagementMod
           </div>
         </div>
 
-        {/* コンテキストメニュー */}
+        {/* コンテンツパネルのコンテキストメニュー */}
         {contextMenu && (
           <div
             ref={contextMenuRef}
-            className="fixed bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50"
+            className="fixed bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50 min-w-[160px]"
             style={{
               left: `${contextMenu.x}px`,
               top: `${contextMenu.y}px`,
             }}
           >
+            {contextMenu.type === 'file' && (
+              <button
+                onClick={handleContextDownload}
+                className="w-full px-4 py-2 text-sm text-left hover:bg-gray-100 flex items-center gap-2 transition-colors"
+              >
+                <Download className="w-4 h-4 text-gray-600" />
+                <span className="text-gray-900">ダウンロード</span>
+              </button>
+            )}
             <button
-              onClick={handleCopyPath}
+              onClick={handleContextDelete}
+              className="w-full px-4 py-2 text-sm text-left hover:bg-gray-100 flex items-center gap-2 transition-colors"
+            >
+              <Trash2 className="w-4 h-4 text-gray-600" />
+              <span className="text-gray-900">削除</span>
+            </button>
+            <div className="border-t border-gray-200 my-1" />
+            <button
+              onClick={() => handleCopyPath(contextMenu.path, () => setContextMenu(null))}
               className="w-full px-4 py-2 text-sm text-left hover:bg-gray-100 flex items-center gap-2 transition-colors"
             >
               {copiedPath === contextMenu.path ? (
+                <>
+                  <Check className="w-4 h-4 text-green-600" />
+                  <span className="text-green-600">コピーしました</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="w-4 h-4 text-gray-600" />
+                  <span className="text-gray-900">パスをコピー</span>
+                </>
+              )}
+            </button>
+          </div>
+        )}
+
+        {/* フォルダツリーのコンテキストメニュー */}
+        {folderContextMenu && (
+          <div
+            ref={folderContextMenuRef}
+            className="fixed bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50 min-w-[160px]"
+            style={{
+              left: `${folderContextMenu.x}px`,
+              top: `${folderContextMenu.y}px`,
+            }}
+          >
+            <button
+              onClick={handleFolderDelete}
+              className="w-full px-4 py-2 text-sm text-left hover:bg-gray-100 flex items-center gap-2 transition-colors"
+            >
+              <Trash2 className="w-4 h-4 text-gray-600" />
+              <span className="text-gray-900">削除</span>
+            </button>
+            <div className="border-t border-gray-200 my-1" />
+            <button
+              onClick={() =>
+                handleCopyPath(folderContextMenu.path, () => setFolderContextMenu(null))
+              }
+              className="w-full px-4 py-2 text-sm text-left hover:bg-gray-100 flex items-center gap-2 transition-colors"
+            >
+              {copiedPath === folderContextMenu.path ? (
                 <>
                   <Check className="w-4 h-4 text-green-600" />
                   <span className="text-green-600">コピーしました</span>
