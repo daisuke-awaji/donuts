@@ -117,51 +117,51 @@ export const Message: React.FC<MessageProps> = ({ message }) => {
         >
           {/* メッセージ内容 */}
           <div className="prose prose-sm max-w-none">
-            {message.contents.length > 0 || !message.isStreaming ? (
-              <div className="message-contents space-y-2">
-                {message.contents.map((content, index) => {
-                  switch (content.type) {
-                    case 'text':
-                      return (
-                        <div key={`text-${index}`} className="markdown-content">
-                          <ReactMarkdown
-                            remarkPlugins={[remarkGfm, remarkMath]}
-                            rehypePlugins={[rehypeKatex]}
-                            components={markdownComponents}
-                          >
-                            {content.text || ''}
-                          </ReactMarkdown>
-                        </div>
-                      );
+            <div className="message-contents space-y-2">
+              {message.contents.map((content, index) => {
+                switch (content.type) {
+                  case 'text':
+                    return (
+                      <div key={`text-${index}`} className="markdown-content">
+                        <ReactMarkdown
+                          remarkPlugins={[remarkGfm, remarkMath]}
+                          rehypePlugins={[rehypeKatex]}
+                          components={markdownComponents}
+                        >
+                          {content.text || ''}
+                        </ReactMarkdown>
+                      </div>
+                    );
 
-                    case 'toolUse':
-                      return content.toolUse ? (
-                        <ToolUseBlock key={`tool-use-${index}`} toolUse={content.toolUse} />
-                      ) : null;
+                  case 'toolUse':
+                    return content.toolUse ? (
+                      <ToolUseBlock key={`tool-use-${index}`} toolUse={content.toolUse} />
+                    ) : null;
 
-                    case 'toolResult':
-                      return content.toolResult ? (
-                        <ToolResultBlock
-                          key={`tool-result-${index}`}
-                          toolResult={content.toolResult}
-                        />
-                      ) : null;
+                  case 'toolResult':
+                    return content.toolResult ? (
+                      <ToolResultBlock
+                        key={`tool-result-${index}`}
+                        toolResult={content.toolResult}
+                      />
+                    ) : null;
 
-                    default:
-                      return (
-                        <div key={`unknown-${index}`} className="text-gray-500 text-sm">
-                          未対応のコンテンツタイプ: {content.type}
-                        </div>
-                      );
-                  }
-                })}
+                  default:
+                    return (
+                      <div key={`unknown-${index}`} className="text-gray-500 text-sm">
+                        未対応のコンテンツタイプ: {content.type}
+                      </div>
+                    );
+                }
+              })}
 
-                {/* コンテンツが空でストリーミング中の場合 */}
-                {message.contents.length === 0 && message.isStreaming && <TypingIndicator />}
-              </div>
-            ) : (
-              <TypingIndicator />
-            )}
+              {/* ストリーミング中で、次のコンテンツを待っている状態でTypingIndicatorを表示 */}
+              {message.isStreaming &&
+                (message.contents.length === 0 ||
+                  message.contents[message.contents.length - 1]?.type === 'toolResult') && (
+                  <TypingIndicator />
+                )}
+            </div>
           </div>
         </div>
       </div>

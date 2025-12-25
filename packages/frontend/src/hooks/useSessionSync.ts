@@ -28,17 +28,15 @@ export function useSessionSync(): UseSessionSyncReturn {
 
   const {
     activeSessionId,
-    sessions,
     sessionEvents,
     isCreatingSession,
     selectSession,
-    setActiveSessionId,
     clearActiveSession,
     createNewSession,
     finalizeNewSession,
   } = useSessionStore();
 
-  const { messages, clearMessages, loadSessionHistory } = useChatStore();
+  const { clearMessages, loadSessionHistory } = useChatStore();
 
   // URL → Store 同期
   useEffect(() => {
@@ -63,27 +61,16 @@ export function useSessionSync(): UseSessionSyncReturn {
       return;
     }
 
-    // 既存セッションか新規セッションかを判定
-    const isExistingSession = sessions.some((s) => s.sessionId === urlSessionId);
-
-    if (isExistingSession) {
-      // 既存セッション：メッセージをクリアして履歴を取得
-      console.log(`📥 既存セッション選択: ${urlSessionId}`);
-      clearMessages();
-      selectSession(urlSessionId);
-    } else {
-      // 新規セッション：activeSessionId のみ更新（履歴取得はスキップ）
-      console.log(`🆕 新規セッションとして設定: ${urlSessionId}`);
-      setActiveSessionId(urlSessionId);
-    }
+    // URL に sessionId がある場合は即座に events を取得（sessions 一覧の完了を待たない）
+    // これにより、リロード時のラグを解消し、sessions API と events API が並列実行される
+    console.log(`📥 セッション選択（並列取得）: ${urlSessionId}`);
+    clearMessages();
+    selectSession(urlSessionId);
   }, [
     urlSessionId,
     activeSessionId,
-    sessions,
-    messages.length,
     isCreatingSession,
     selectSession,
-    setActiveSessionId,
     clearActiveSession,
     clearMessages,
   ]);

@@ -214,10 +214,11 @@ export function SessionSidebar() {
           ) : (
             <button
               onClick={handleToggleSidebar}
-              className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors group"
               title="サイドバーを開く"
             >
-              <PanelRight className="w-5 h-5" />
+              <Donut className="w-5 h-5 text-amber-600 group-hover:hidden" />
+              <PanelRight className="w-5 h-5 hidden group-hover:block" />
             </button>
           )}
         </div>
