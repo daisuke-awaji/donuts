@@ -1,8 +1,5 @@
-import { useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
 import { ChatContainer } from '../components/ChatContainer';
-import { useChatStore, setNavigateFunction } from '../stores/chatStore';
-import { useSessionStore } from '../stores/sessionStore';
+import { useSessionSync } from '../hooks/useSessionSync';
 
 /**
  * チャットページ
@@ -10,59 +7,9 @@ import { useSessionStore } from '../stores/sessionStore';
  * - /chat/:sessionId: 既存セッションの継続
  */
 export function ChatPage() {
-  const { sessionId } = useParams<{ sessionId: string }>();
-  const navigate = useNavigate();
+  const { currentSessionId, createAndNavigateToNewSession } = useSessionSync();
 
-  const { setSessionId, clearMessages, loadSessionHistory } = useChatStore();
-  const { sessionEvents, activeSessionId, isLoadingEvents, selectSession } = useSessionStore();
-
-  // navigate 関数を chatStore に設定
-  useEffect(() => {
-    setNavigateFunction(navigate);
-  }, [navigate]);
-
-  // URL の sessionId を store に同期するだけ
-  useEffect(() => {
-    console.log(`🔄 URL sessionId: ${sessionId || 'null'}`);
-
-    if (sessionId) {
-      // sessionId が存在する場合は store に設定
-      setSessionId(sessionId);
-    } else {
-      // /chat（sessionId なし）の場合
-      setSessionId(null);
-      // 明示的に新規チャットを開始する場合のみメッセージクリア
-      clearMessages();
-    }
-  }, [sessionId, setSessionId, clearMessages]);
-
-  // sessionId が変更され、まだこのセッションの履歴が読み込まれていない場合は読み込み
-  // ただし、新規セッション（既にメッセージがある）の場合は履歴取得をスキップ
-  useEffect(() => {
-    if (sessionId && activeSessionId !== sessionId) {
-      const { messages } = useChatStore.getState();
-      // メッセージが既にある場合は新規セッションなので履歴取得不要
-      if (messages.length === 0) {
-        console.log(`📥 セッション履歴を取得開始: ${sessionId}`);
-        selectSession(sessionId);
-      } else {
-        console.log(`⏭️ 新規セッションのため履歴取得をスキップ: ${sessionId}`);
-      }
-    }
-  }, [sessionId, activeSessionId, selectSession]);
-
-  // セッション履歴を chatStore に復元
-  useEffect(() => {
-    if (
-      sessionId &&
-      activeSessionId === sessionId &&
-      sessionEvents.length > 0 &&
-      !isLoadingEvents
-    ) {
-      console.log(`📖 セッション履歴を ChatStore に復元: ${sessionId}`);
-      loadSessionHistory(sessionEvents);
-    }
-  }, [sessionId, activeSessionId, sessionEvents, isLoadingEvents, loadSessionHistory]);
-
-  return <ChatContainer />;
+  return (
+    <ChatContainer sessionId={currentSessionId} onCreateSession={createAndNavigateToNewSession} />
+  );
 }

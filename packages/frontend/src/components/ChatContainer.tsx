@@ -9,7 +9,12 @@ import { MessageInput } from './MessageInput';
 import { AgentSelectorModal } from './AgentSelectorModal';
 import type { Agent } from '../types/agent';
 
-export const ChatContainer: React.FC = () => {
+interface ChatContainerProps {
+  sessionId: string | null;
+  onCreateSession: () => string;
+}
+
+export const ChatContainer: React.FC<ChatContainerProps> = ({ sessionId, onCreateSession }) => {
   const selectedAgent = useSelectedAgent();
   const { isMobileView, toggleSidebar } = useUIStore();
   const [isAgentModalOpen, setIsAgentModalOpen] = useState(false);
@@ -74,7 +79,11 @@ export const ChatContainer: React.FC = () => {
       <MessageList onScenarioClick={handleScenarioClick} />
 
       {/* メッセージ入力 */}
-      <MessageInput getScenarioPrompt={getScenarioPrompt} />
+      <MessageInput
+        sessionId={sessionId}
+        onCreateSession={onCreateSession}
+        getScenarioPrompt={getScenarioPrompt}
+      />
 
       {/* Agent選択モーダル */}
       <AgentSelectorModal

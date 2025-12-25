@@ -5,10 +5,16 @@ import { StoragePathDisplay } from './StoragePathDisplay';
 import { StorageManagementModal } from './StorageManagementModal';
 
 interface MessageInputProps {
+  sessionId: string | null;
+  onCreateSession: () => string;
   getScenarioPrompt?: () => string | null;
 }
 
-export const MessageInput: React.FC<MessageInputProps> = ({ getScenarioPrompt }) => {
+export const MessageInput: React.FC<MessageInputProps> = ({
+  sessionId,
+  onCreateSession,
+  getScenarioPrompt,
+}) => {
   const { sendPrompt, isLoading } = useChatStore();
   const [input, setInput] = useState('');
   const [isStorageModalOpen, setIsStorageModalOpen] = useState(false);
@@ -76,8 +82,14 @@ export const MessageInput: React.FC<MessageInputProps> = ({ getScenarioPrompt })
       // 送信後にテキストエリアにフォーカスを戻す
       textareaRef.current?.focus();
 
+      // 新規セッションの場合は先にセッション作成
+      let targetSessionId = sessionId;
+      if (!targetSessionId) {
+        targetSessionId = onCreateSession();
+      }
+
       // メッセージ送信（非同期で継続）
-      await sendPrompt(messageToSend);
+      await sendPrompt(messageToSend, targetSessionId);
     } catch (err) {
       console.error('メッセージ送信エラー:', err);
     }

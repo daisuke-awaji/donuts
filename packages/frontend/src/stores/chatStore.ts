@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
-import { nanoid, customAlphabet } from 'nanoid';
+import { nanoid } from 'nanoid';
 import type { ChatState, Message, MessageContent, ToolUse, ToolResult } from '../types/index';
 import { streamAgentResponse } from '../api/agent';
 import type { ConversationMessage } from '../api/sessions';
@@ -8,23 +8,6 @@ import { useAgentStore } from './agentStore';
 import { useStorageStore } from './storageStore';
 import { useSessionStore } from './sessionStore';
 import { useMemoryStore } from './memoryStore';
-
-// AWS AgentCore sessionId制約: [a-zA-Z0-9][a-zA-Z0-9-_]*
-// 英数字のみのカスタムnanoid（ハイフンとアンダースコアを除外）
-const generateSessionId = customAlphabet(
-  'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789',
-  33
-);
-
-// React Router のナビゲート関数を格納する変数
-let navigateFunction: ((to: string, options?: { replace?: boolean }) => void) | null = null;
-
-// ナビゲート関数を設定するヘルパー関数
-export const setNavigateFunction = (
-  navigate: (to: string, options?: { replace?: boolean }) => void
-) => {
-  navigateFunction = navigate;
-};
 
 // ヘルパー関数: 文字列コンテンツをMessageContent配列に変換
 const stringToContents = (text: string): MessageContent[] => {
@@ -85,12 +68,11 @@ const updateToolUseStatus = (
 interface ChatActions {
   addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => string;
   updateMessage: (id: string, updates: Partial<Message>) => void;
-  sendPrompt: (prompt: string) => Promise<void>;
+  sendPrompt: (prompt: string, sessionId: string) => Promise<void>;
   clearMessages: () => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   clearError: () => void;
-  setSessionId: (sessionId: string | null) => void;
   loadSessionHistory: (conversationMessages: ConversationMessage[]) => void;
 }
 
@@ -103,7 +85,6 @@ export const useChatStore = create<ChatStore>()(
       messages: [],
       isLoading: false,
       error: null,
-      sessionId: null,
 
       // Actions
       addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => {
@@ -126,18 +107,12 @@ export const useChatStore = create<ChatStore>()(
         }));
       },
 
-      sendPrompt: async (prompt: string) => {
+      sendPrompt: async (prompt: string, sessionId: string) => {
         const { addMessage, updateMessage } = get();
-        let { sessionId } = get();
 
         // 新規セッションかどうかを判定（セッション一覧更新に使用）
-        const isNewSession = !sessionId;
-
-        // セッションIDがない場合は新しく生成（初回メッセージ送信時）
-        if (!sessionId) {
-          sessionId = generateSessionId();
-          set({ sessionId });
-        }
+        const sessions = useSessionStore.getState().sessions;
+        const isNewSession = !sessions.some((s) => s.sessionId === sessionId);
 
         try {
           set({ isLoading: true, error: null });
@@ -147,12 +122,6 @@ export const useChatStore = create<ChatStore>()(
             type: 'user',
             contents: stringToContents(prompt),
           });
-
-          // URL を更新して sessionId を反映（メッセージ追加後に遷移）
-          if (isNewSession && navigateFunction) {
-            console.log(`🆕 新しいセッションを作成: ${sessionId}`);
-            navigateFunction(`/chat/${sessionId}`, { replace: true });
-          }
 
           // アシスタントの応答メッセージを作成（ストリーミング用）
           const assistantMessageId = addMessage({
@@ -334,7 +303,6 @@ export const useChatStore = create<ChatStore>()(
       clearMessages: () => {
         set({
           messages: [],
-          // sessionId は URL から管理されるためクリアしない
         });
       },
 
@@ -348,10 +316,6 @@ export const useChatStore = create<ChatStore>()(
 
       clearError: () => {
         set({ error: null });
-      },
-
-      setSessionId: (sessionId: string | null) => {
-        set({ sessionId });
       },
 
       loadSessionHistory: (conversationMessages: ConversationMessage[]) => {

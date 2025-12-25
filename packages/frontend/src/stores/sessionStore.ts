@@ -5,12 +5,20 @@
 
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
+import { customAlphabet } from 'nanoid';
 import {
   fetchSessions,
   fetchSessionEvents,
   type SessionSummary,
   type ConversationMessage,
 } from '../api/sessions';
+
+// AWS AgentCore sessionId制約: [a-zA-Z0-9][a-zA-Z0-9-_]*
+// 英数字のみのカスタムnanoid（ハイフンとアンダースコアを除外）
+const generateSessionId = customAlphabet(
+  'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789',
+  33
+);
 
 /**
  * セッションストアの状態型定義
@@ -25,6 +33,8 @@ interface SessionState {
   sessionEvents: ConversationMessage[];
   isLoadingEvents: boolean;
   eventsError: string | null;
+
+  isCreatingSession: boolean; // 新規セッション作成中フラグ
 }
 
 /**
@@ -39,6 +49,8 @@ interface SessionActions {
   setEventsError: (error: string | null) => void;
   clearErrors: () => void;
   refreshSessions: () => Promise<void>;
+  createNewSession: () => string; // 新規セッション作成（IDを生成してフラグをセット）
+  finalizeNewSession: () => void; // 新規セッション作成完了（フラグをクリア）
 }
 
 /**
@@ -59,6 +71,7 @@ export const useSessionStore = create<SessionStore>()(
       sessionEvents: [],
       isLoadingEvents: false,
       eventsError: null,
+      isCreatingSession: false, // 新規セッション作成中フラグ
 
       // Actions
       loadSessions: async () => {
@@ -160,6 +173,24 @@ export const useSessionStore = create<SessionStore>()(
         const { loadSessions } = get();
         console.log('🔄 セッション一覧を更新中...');
         await loadSessions();
+      },
+
+      createNewSession: () => {
+        const newSessionId = generateSessionId();
+        set({
+          activeSessionId: newSessionId,
+          sessionEvents: [],
+          eventsError: null,
+          isLoadingEvents: false,
+          isCreatingSession: true, // 新規セッション作成中フラグを立てる
+        });
+        console.log(`🆕 新規セッション作成: ${newSessionId}`);
+        return newSessionId;
+      },
+
+      finalizeNewSession: () => {
+        set({ isCreatingSession: false });
+        console.log('✅ 新規セッション作成完了');
       },
     }),
     {

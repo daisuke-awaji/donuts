@@ -4,7 +4,7 @@
  */
 
 import { useEffect, useState, useRef } from 'react';
-import { useNavigate, useParams, Link } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import {
   Donut,
   SquarePen,
@@ -72,7 +72,6 @@ function SessionItem({ session, isActive, onSelect, isNew = false }: SessionItem
  */
 export function SessionSidebar() {
   const navigate = useNavigate();
-  const { sessionId } = useParams<{ sessionId?: string }>();
 
   const { user, logout } = useAuthStore();
   const {
@@ -82,8 +81,6 @@ export function SessionSidebar() {
     hasLoadedOnce,
     activeSessionId,
     loadSessions,
-    selectSession,
-    setActiveSessionId,
     clearActiveSession,
   } = useSessionStore();
   const { isSidebarOpen, isMobileView, toggleSidebar } = useUIStore();
@@ -129,33 +126,6 @@ export function SessionSidebar() {
 
     prevSessionIdsRef.current = currentIds;
   }, [sessions]);
-
-  // URL のセッションID と現在のアクティブセッションを同期
-  useEffect(() => {
-    if (sessionId && sessionId !== activeSessionId && user) {
-      // 既存のセッション一覧に含まれる場合のみ履歴を取得
-      const existingSession = sessions.find((s) => s.sessionId === sessionId);
-      if (existingSession) {
-        console.log(`🔄 URL からセッション選択（既存）: ${sessionId}`);
-        selectSession(sessionId);
-      } else {
-        // 新規作成されたセッションの場合、activeSessionIdのみ更新（events API呼び出しを回避）
-        console.log(`🆕 新規セッション検出（履歴取得スキップ）: ${sessionId}`);
-        setActiveSessionId(sessionId);
-      }
-    } else if (!sessionId && activeSessionId) {
-      console.log('🗑️ URL からセッションIDが削除されたのでクリア');
-      clearActiveSession();
-    }
-  }, [
-    sessionId,
-    activeSessionId,
-    sessions,
-    user,
-    selectSession,
-    setActiveSessionId,
-    clearActiveSession,
-  ]);
 
   // 新規チャット開始
   const handleNewChat = () => {
