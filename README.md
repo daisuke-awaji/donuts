@@ -1,6 +1,17 @@
-# Fullstack AgentCore
+# AgentCore Starter
 
-Amazon Bedrock AgentCore を使用したフルスタック AI エージェントシステム。
+Amazon Bedrock AgentCore を使った業務向け AI エージェントシステムのスターターキット。
+**すぐに使える・すぐに作れる・組織で共有できる** フルスタック実装を提供します。
+
+> AWS ソリューションアーキテクトによる、エンタープライズグレードのリファレンス実装
+
+## 🎯 このスターターキットで実現できること
+
+- ✅ **10分でAIエージェントシステムを起動** - 環境構築からデプロイまで自動化
+- ✅ **Frontend・Backend・Agent の完全なアーキテクチャ** - プロダクション Ready な構成
+- ✅ **AWS CDK によるワンクリックデプロイ** - インフラコード化された再現可能な環境
+- ✅ **認証・セッション管理・長期記憶を標準装備** - エンタープライズに必要な機能を搭載
+- ✅ **チームでカスタマイズして共有可能** - モノレポ構成で拡張性が高い
 
 ## 🏗️ アーキテクチャ概要
 
@@ -47,7 +58,7 @@ flowchart TB
 ## 📁 プロジェクト構造
 
 ```
-fullstack-agentcore/
+agentcore-starter/
 ├── packages/
 │   ├── agent/                  # Agent Runtime (Express + Strands)
 │   │   ├── src/                # Agent 実装
@@ -140,7 +151,7 @@ STACK_NAME=YourCustomStackName npm run setup-env
 - AgentCore Gateway エンドポイント
 - User Storage バケット名
 
-#### 手動セットアップ（オプション）
+#### 手動セットアップ(オプション)
 
 自動セットアップを使用しない場合は、以下のように手動で設定できます：
 
@@ -303,3 +314,25 @@ AWS_REGION=eu-west-1 AWS_DEFAULT_REGION=eu-west-1 CDK_DEFAULT_REGION=eu-west-1 n
 ```
 
 **注意**: リージョンを指定する場合、`AWS_REGION`、`AWS_DEFAULT_REGION`、`CDK_DEFAULT_REGION` の3つの環境変数を設定する必要があります。
+
+## 💡 ユースケース
+
+このスターターキットは以下のようなシナリオに最適です：
+
+- 📝 **社内ドキュメント検索**: Knowledge Base と連携した情報検索システム
+- 🎯 **カスタマーサポート**: 問い合わせ対応の自動化・支援
+- 📊 **データ分析支援**: 自然言語でのデータクエリと可視化
+- 🔧 **業務自動化**: 定型業務のワークフロー実行
+- 🧪 **AgentCore の PoC**: 素早いプロトタイプ作成と検証
+
+## 🤝 コントリビューション
+
+Issue や Pull Request を歓迎します！
+
+## 📄 ライセンス
+
+MIT License
+
+---
+
+**Built with ❤️ by AWS Solution Architect**
