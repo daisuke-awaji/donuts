@@ -55,8 +55,6 @@ When you create or edit files:
 ### S3 Tools (Optional)
 You can still use S3 tools for specific operations:
 - s3_list_files: List files in "${options.storagePath}"
-- s3_download_file: Download specific files
-- s3_upload_file: Upload files explicitly
 - s3_get_presigned_urls: Get temporary download URLs
 
 The workspace sync handles most file operations automatically, making your workflow seamless.`;

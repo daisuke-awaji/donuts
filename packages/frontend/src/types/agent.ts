@@ -105,15 +105,7 @@ export const DEFAULT_AGENTS: CreateAgentInput[] = [
     description: 'defaultAgents.generalAssistant.description',
     icon: 'Bot',
     systemPrompt: 'defaultAgents.generalAssistant.systemPrompt',
-    enabledTools: [
-      'file_editor',
-      's3_list_files',
-      's3_download_file',
-      's3_upload_file',
-      's3_get_presigned_urls',
-      's3_sync_folder',
-      'tavily_search',
-    ],
+    enabledTools: ['file_editor', 's3_list_files', 's3_get_presigned_urls', 'tavily_search'],
     scenarios: [
       {
         title: 'defaultAgents.generalAssistant.scenarios.question.title',
@@ -202,15 +194,7 @@ export const DEFAULT_AGENTS: CreateAgentInput[] = [
 - Actively use S3 tools (s3_list_files, s3_download_file, s3_upload_file, s3_get_presigned_urls, s3_sync_folder) for file operations
 - Analyze code files from storage when necessary
 - Provide improved versions of code files when requested`,
-    enabledTools: [
-      'file_editor',
-      'execute_command',
-      's3_list_files',
-      's3_download_file',
-      's3_upload_file',
-      's3_get_presigned_urls',
-      's3_sync_folder',
-    ],
+    enabledTools: ['file_editor', 'execute_command', 's3_list_files', 's3_get_presigned_urls'],
     scenarios: [
       {
         title: 'defaultAgents.codeReview.scenarios.codeReview.title',
@@ -311,8 +295,6 @@ export const DEFAULT_AGENTS: CreateAgentInput[] = [
       'utility-tools___kb-retrieve',
       'file_editor',
       's3_list_files',
-      's3_download_file',
-      's3_upload_file',
       's3_get_presigned_urls',
     ],
     scenarios: [
@@ -425,15 +407,7 @@ export const DEFAULT_AGENTS: CreateAgentInput[] = [
 - s3_download_file, s3_upload_file: Access and store data files
 - s3_list_files: Browse available datasets
 - s3_get_presigned_urls: Share results with stakeholders`,
-    enabledTools: [
-      'execute_command',
-      'file_editor',
-      's3_list_files',
-      's3_download_file',
-      's3_upload_file',
-      's3_get_presigned_urls',
-      's3_sync_folder',
-    ],
+    enabledTools: ['execute_command', 'file_editor', 's3_list_files', 's3_get_presigned_urls'],
     scenarios: [
       {
         title: 'defaultAgents.dataAnalyst.scenarios.analysis.title',
@@ -525,10 +499,7 @@ export const DEFAULT_AGENTS: CreateAgentInput[] = [
       'tavily_extract',
       'tavily_crawl',
       's3_list_files',
-      's3_download_file',
-      's3_upload_file',
       's3_get_presigned_urls',
-      's3_sync_folder',
     ],
     scenarios: [
       {
@@ -784,13 +755,7 @@ Office PowerPoint MCP サーバーが提供するツールを使用して、Powe
 [利用可能なツール]
 - Office PowerPoint MCP サーバーのツール群（プレゼン作成・編集）
 - S3 ツール（ファイルの保存・共有用）`,
-    enabledTools: [
-      's3_list_files',
-      's3_download_file',
-      's3_upload_file',
-      's3_get_presigned_urls',
-      's3_sync_folder',
-    ],
+    enabledTools: ['s3_list_files', 's3_get_presigned_urls'],
     scenarios: [
       {
         title: 'defaultAgents.powerpointCreator.scenarios.newPresentation.title',
