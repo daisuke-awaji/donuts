@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "description": "CDK スタックによる Amazon Bedrock AgentCore デプロイメント",
   "private": true,
+  "engines": {
+    "node": ">=22.12.0"
+  },
   "workspaces": [
     "packages/*"
   ],

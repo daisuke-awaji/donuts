@@ -104,7 +104,7 @@ fullstack-agentcore/
 
 ### 前提条件
 
-- **Node.js 18+**
+- **Node.js 22.12.0+** ([n](https://github.com/tj/n) でバージョン管理、`.node-version` ファイル参照)
 - **Docker** (推奨)
 - **AWS CLI** 設定済み (Bedrock API 利用のため)
 - **デプロイ済みの CDK スタック** (環境変数自動セットアップを使用する場合)
