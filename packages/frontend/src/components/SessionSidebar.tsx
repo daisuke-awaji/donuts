@@ -23,6 +23,7 @@ import { useAuthStore } from '../stores/authStore';
 import { useSessionStore } from '../stores/sessionStore';
 import { useUIStore } from '../stores/uiStore';
 import { LoadingIndicator } from './ui/LoadingIndicator';
+import { Tooltip } from './ui/Tooltip';
 import type { SessionSummary } from '../api/sessions';
 
 /**
@@ -222,61 +223,80 @@ export function SessionSidebar() {
         </div>
 
         <div className={`space-y-2 ${!shouldShowExpanded ? 'flex flex-col items-center' : ''}`}>
-          <Link
-            to="/chat"
-            onClick={handleNewChat}
-            className={`p-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors flex items-center gap-2 no-underline ${
-              shouldShowExpanded ? 'w-full text-left' : 'w-auto'
-            }`}
-            title={!shouldShowExpanded ? t('navigation.newChat') : undefined}
-          >
-            <SquarePen className="w-5 h-5 flex-shrink-0" />
-            {shouldShowExpanded && <span className="text-sm">{t('navigation.newChat')}</span>}
-          </Link>
+          <Tooltip content={t('navigation.newChat')} position="right" disabled={shouldShowExpanded}>
+            <Link
+              to="/chat"
+              onClick={handleNewChat}
+              className={`p-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors flex items-center gap-2 no-underline ${
+                shouldShowExpanded ? 'w-full text-left' : 'w-auto'
+              }`}
+            >
+              <SquarePen className="w-5 h-5 flex-shrink-0" />
+              {shouldShowExpanded && <span className="text-sm">{t('navigation.newChat')}</span>}
+            </Link>
+          </Tooltip>
 
-          <Link
-            to="/search"
-            className={`p-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors flex items-center gap-2 no-underline ${
-              shouldShowExpanded ? 'w-full text-left' : 'w-auto'
-            }`}
-            title={!shouldShowExpanded ? t('navigation.searchChat') : undefined}
+          <Tooltip
+            content={t('navigation.searchChat')}
+            position="right"
+            disabled={shouldShowExpanded}
           >
-            <Search className="w-5 h-5 flex-shrink-0" />
-            {shouldShowExpanded && <span className="text-sm">{t('navigation.searchChat')}</span>}
-          </Link>
+            <Link
+              to="/search"
+              className={`p-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors flex items-center gap-2 no-underline ${
+                shouldShowExpanded ? 'w-full text-left' : 'w-auto'
+              }`}
+            >
+              <Search className="w-5 h-5 flex-shrink-0" />
+              {shouldShowExpanded && <span className="text-sm">{t('navigation.searchChat')}</span>}
+            </Link>
+          </Tooltip>
 
-          <Link
-            to="/tools"
-            className={`p-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors flex items-center gap-2 no-underline ${
-              shouldShowExpanded ? 'w-full text-left' : 'w-auto'
-            }`}
-            title={!shouldShowExpanded ? t('navigation.searchTools') : undefined}
+          <Tooltip
+            content={t('navigation.searchTools')}
+            position="right"
+            disabled={shouldShowExpanded}
           >
-            <Wrench className="w-5 h-5 flex-shrink-0" />
-            {shouldShowExpanded && <span className="text-sm">{t('navigation.searchTools')}</span>}
-          </Link>
+            <Link
+              to="/tools"
+              className={`p-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors flex items-center gap-2 no-underline ${
+                shouldShowExpanded ? 'w-full text-left' : 'w-auto'
+              }`}
+            >
+              <Wrench className="w-5 h-5 flex-shrink-0" />
+              {shouldShowExpanded && <span className="text-sm">{t('navigation.searchTools')}</span>}
+            </Link>
+          </Tooltip>
 
-          <Link
-            to="/agents"
-            className={`p-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors flex items-center gap-2 no-underline ${
-              shouldShowExpanded ? 'w-full text-left' : 'w-auto'
-            }`}
-            title={!shouldShowExpanded ? t('navigation.searchAgents') : undefined}
+          <Tooltip
+            content={t('navigation.searchAgents')}
+            position="right"
+            disabled={shouldShowExpanded}
           >
-            <Bot className="w-5 h-5 flex-shrink-0" />
-            {shouldShowExpanded && <span className="text-sm">{t('navigation.searchAgents')}</span>}
-          </Link>
+            <Link
+              to="/agents"
+              className={`p-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors flex items-center gap-2 no-underline ${
+                shouldShowExpanded ? 'w-full text-left' : 'w-auto'
+              }`}
+            >
+              <Bot className="w-5 h-5 flex-shrink-0" />
+              {shouldShowExpanded && (
+                <span className="text-sm">{t('navigation.searchAgents')}</span>
+              )}
+            </Link>
+          </Tooltip>
 
-          <Link
-            to="/events"
-            className={`p-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors flex items-center gap-2 no-underline ${
-              shouldShowExpanded ? 'w-full text-left' : 'w-auto'
-            }`}
-            title={!shouldShowExpanded ? t('navigation.events') : undefined}
-          >
-            <CalendarRange className="w-5 h-5 flex-shrink-0" />
-            {shouldShowExpanded && <span className="text-sm">{t('navigation.events')}</span>}
-          </Link>
+          <Tooltip content={t('navigation.events')} position="right" disabled={shouldShowExpanded}>
+            <Link
+              to="/events"
+              className={`p-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors flex items-center gap-2 no-underline ${
+                shouldShowExpanded ? 'w-full text-left' : 'w-auto'
+              }`}
+            >
+              <CalendarRange className="w-5 h-5 flex-shrink-0" />
+              {shouldShowExpanded && <span className="text-sm">{t('navigation.events')}</span>}
+            </Link>
+          </Tooltip>
         </div>
       </div>
 
@@ -346,20 +366,25 @@ export function SessionSidebar() {
         className={`mt-auto p-4 border-t border-gray-200 ${!shouldShowExpanded ? 'flex justify-center' : ''}`}
       >
         <div className="relative" ref={userDropdownRef}>
-          <button
-            onClick={toggleUserDropdown}
-            className={`flex items-center gap-2 p-2 rounded-lg hover:bg-gray-100 transition-colors ${
-              shouldShowExpanded ? 'w-full text-left' : 'w-auto'
-            }`}
-            title={!shouldShowExpanded ? t('navigation.userMenu') : undefined}
+          <Tooltip
+            content={t('navigation.userMenu')}
+            position="right"
+            disabled={shouldShowExpanded}
           >
-            <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
-              <User className="w-4 h-4 text-gray-600" />
-            </div>
-            {shouldShowExpanded && (
-              <span className="text-sm font-medium text-gray-900 truncate">{user.username}</span>
-            )}
-          </button>
+            <button
+              onClick={toggleUserDropdown}
+              className={`flex items-center gap-2 p-2 rounded-lg hover:bg-gray-100 transition-colors ${
+                shouldShowExpanded ? 'w-full text-left' : 'w-auto'
+              }`}
+            >
+              <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
+                <User className="w-4 h-4 text-gray-600" />
+              </div>
+              {shouldShowExpanded && (
+                <span className="text-sm font-medium text-gray-900 truncate">{user.username}</span>
+              )}
+            </button>
+          </Tooltip>
 
           {/* ドロップダウンメニュー */}
           {isUserDropdownOpen && (
