@@ -9,6 +9,7 @@ export { s3DownloadFileTool } from './s3-download-file.js';
 export { s3UploadFileTool } from './s3-upload-file.js';
 export { s3GetPresignedUrlsTool } from './s3-get-presigned-urls.js';
 export { s3SyncFolderTool } from './s3-sync-folder.js';
+export { fileEditorTool } from './file-editor.js';
 
 // ローカルツール配列のインポート
 import { executeCommandTool } from './execute-command.js';
@@ -21,6 +22,7 @@ import { s3DownloadFileTool } from './s3-download-file.js';
 import { s3UploadFileTool } from './s3-upload-file.js';
 import { s3GetPresignedUrlsTool } from './s3-get-presigned-urls.js';
 import { s3SyncFolderTool } from './s3-sync-folder.js';
+import { fileEditorTool } from './file-editor.js';
 
 /**
  * Agent に内蔵されるローカルツール一覧
@@ -37,4 +39,5 @@ export const localTools = [
   s3UploadFileTool,
   s3GetPresignedUrlsTool,
   s3SyncFolderTool,
+  fileEditorTool,
 ];

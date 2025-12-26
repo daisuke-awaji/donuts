@@ -122,6 +122,27 @@ export interface EnvironmentConfig {
      */
     domainName: string;
   };
+
+  /**
+   * Test user configuration (optional, for development only)
+   * If set, a test user will be created automatically during deployment
+   */
+  testUser?: {
+    /**
+     * Username for the test user
+     */
+    username: string;
+
+    /**
+     * Email address for the test user
+     */
+    email: string;
+
+    /**
+     * Password for the test user (must meet password policy requirements)
+     */
+    password: string;
+  };
 }
 
 /**
@@ -164,6 +185,11 @@ export const environments: Record<Environment, EnvironmentConfig> = {
     backendApiName: 'agentcore-app-dev-backend-api',
     tavilyApiKeySecretName: 'agentcore/dev/tavily-api-key',
     allowedSignUpEmailDomains: ['amazon.com', 'amazon.jp'],
+    testUser: {
+      username: 'testuser',
+      email: 'testuser@amazon.com',
+      password: 'TestPassword123!',
+    },
   },
 
   stg: {

@@ -143,6 +143,7 @@ export class AgentCoreStack extends cdk.Stack {
         },
       },
       allowedSignUpEmailDomains: envConfig.allowedSignUpEmailDomains,
+      testUser: envConfig.testUser, // Add test user configuration
     });
 
     // 2. Create AgentCore Gateway

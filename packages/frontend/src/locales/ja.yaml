@@ -201,7 +201,7 @@ tool:
   tryDifferentKeyword: 別のキーワードで検索してみてください
   noToolsFound: ツールが見つかりません
   noToolsRegistered: Gateway に登録されているツールがありません
-  toolsPageDescription: AgentCore Gateway から提供されるツール一覧です。各ツールは自然言語での検索や、パラメータの詳細確認が可能です。
+  toolsPageDescription: AgentCore Gateway と Agent がネイティブに提供するツールの一覧です。各ツールは自然言語での検索や、パラメータの詳細確認が可能です。
   loadMore: 次のページを読み込む
   displayedCount: 件表示
   hasMore: 続きあり

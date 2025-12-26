@@ -106,6 +106,7 @@ export const DEFAULT_AGENTS: CreateAgentInput[] = [
     icon: 'Bot',
     systemPrompt: 'defaultAgents.generalAssistant.systemPrompt',
     enabledTools: [
+      'file_editor',
       's3_list_files',
       's3_download_file',
       's3_upload_file',
@@ -202,6 +203,8 @@ export const DEFAULT_AGENTS: CreateAgentInput[] = [
 - Analyze code files from storage when necessary
 - Provide improved versions of code files when requested`,
     enabledTools: [
+      'file_editor',
+      'execute_command',
       's3_list_files',
       's3_download_file',
       's3_upload_file',
@@ -306,6 +309,7 @@ export const DEFAULT_AGENTS: CreateAgentInput[] = [
 - s3_upload_file, s3_get_presigned_urls: For sharing results or documents`,
     enabledTools: [
       'utility-tools___kb-retrieve',
+      'file_editor',
       's3_list_files',
       's3_download_file',
       's3_upload_file',
@@ -423,6 +427,7 @@ export const DEFAULT_AGENTS: CreateAgentInput[] = [
 - s3_get_presigned_urls: Share results with stakeholders`,
     enabledTools: [
       'execute_command',
+      'file_editor',
       's3_list_files',
       's3_download_file',
       's3_upload_file',
@@ -515,6 +520,7 @@ export const DEFAULT_AGENTS: CreateAgentInput[] = [
 - Use the fetchWebsite tool for detailed website analysis
 - If you need to execute commands, ask the user's permission beforehand`,
     enabledTools: [
+      'file_editor',
       'tavily_search',
       'tavily_extract',
       'tavily_crawl',
@@ -652,7 +658,7 @@ Using the integrated GitHub MCP server, you can:
 - When unsure about repository access, ask the user
 - GitHub Personal Access Token should be configured in MCP settings
 - For security, never commit sensitive data or credentials`,
-    enabledTools: ['execute_command', 'tavily_search'],
+    enabledTools: ['execute_command', 'tavily_search', 'file_editor'],
     scenarios: [
       {
         title: 'defaultAgents.softwareDeveloper.scenarios.createIssue.title',

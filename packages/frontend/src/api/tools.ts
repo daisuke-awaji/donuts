@@ -515,6 +515,30 @@ export const LOCAL_TOOLS: MCPTool[] = [
       required: ['s3Path', 'localPath'],
     },
   },
+  {
+    name: 'file_editor',
+    description:
+      'ファイルを編集または新規作成します。ファイルの移動や名前変更にはexecute_commandツールでmvコマンドを使用してください。使用前にcatコマンドでファイル内容を確認し、新規ファイルの場合はlsコマンドでディレクトリを確認してください。oldStringで指定したテキストをnewStringで置換します。oldStringはファイル内で一意である必要があり、空白やインデントも含めて完全に一致する必要があります。一度に1箇所のみ変更可能で、複数箇所を変更する場合は複数回呼び出してください。',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        filePath: {
+          type: 'string',
+          description: '編集対象ファイルの絶対パス（相対パスは使用不可）',
+        },
+        oldString: {
+          type: 'string',
+          description:
+            '置換対象のテキスト。ファイル内で一意である必要があり、空白やインデントも含めて完全に一致する必要があります。新規ファイルを作成する場合は空文字列を指定してください。',
+        },
+        newString: {
+          type: 'string',
+          description: '置換後のテキスト。新規ファイル作成時はこの内容がファイルに書き込まれます。',
+        },
+      },
+      required: ['filePath', 'oldString', 'newString'],
+    },
+  },
 ];
 
 /**

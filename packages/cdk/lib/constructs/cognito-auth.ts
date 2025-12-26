@@ -3,6 +3,8 @@ import * as cognito from 'aws-cdk-lib/aws-cognito';
 import * as cdk from 'aws-cdk-lib';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as logs from 'aws-cdk-lib/aws-logs';
+import * as cr from 'aws-cdk-lib/custom-resources';
+import * as iam from 'aws-cdk-lib/aws-iam';
 
 export interface CognitoAuthProps {
   /**
@@ -46,6 +48,16 @@ export interface CognitoAuthProps {
    * 例: ['amazon.com', 'amazon.jp']
    */
   readonly allowedSignUpEmailDomains?: string[];
+
+  /**
+   * テストユーザー設定 (オプション、開発環境用)
+   * 設定した場合、デプロイ時にテストユーザーを自動作成
+   */
+  readonly testUser?: {
+    readonly username: string;
+    readonly email: string;
+    readonly password: string;
+  };
 }
 
 /**
@@ -237,6 +249,114 @@ exports.handler = async (event) => {
       value: this.discoveryUrl,
       description: 'OIDC Discovery URL for JWT authentication',
       exportName: `${cdk.Stack.of(this).stackName}-DiscoveryUrl`,
+    });
+
+    // テストユーザーの作成（設定されている場合のみ）
+    if (props.testUser) {
+      this.createTestUser(props.testUser);
+    }
+  }
+
+  /**
+   * テストユーザーを作成する
+   */
+  private createTestUser(testUser: { username: string; email: string; password: string }): void {
+    // ユーザー作成用の AwsCustomResource
+    const createUser = new cr.AwsCustomResource(this, 'CreateTestUser', {
+      onCreate: {
+        service: 'CognitoIdentityServiceProvider',
+        action: 'adminCreateUser',
+        parameters: {
+          UserPoolId: this.userPoolId,
+          Username: testUser.username,
+          UserAttributes: [
+            {
+              Name: 'email',
+              Value: testUser.email,
+            },
+            {
+              Name: 'email_verified',
+              Value: 'true',
+            },
+          ],
+          MessageAction: 'SUPPRESS', // Welcome email を送信しない
+        },
+        physicalResourceId: cr.PhysicalResourceId.of(`test-user-${testUser.username}`),
+      },
+      onUpdate: {
+        service: 'CognitoIdentityServiceProvider',
+        action: 'adminCreateUser',
+        parameters: {
+          UserPoolId: this.userPoolId,
+          Username: testUser.username,
+          UserAttributes: [
+            {
+              Name: 'email',
+              Value: testUser.email,
+            },
+            {
+              Name: 'email_verified',
+              Value: 'true',
+            },
+          ],
+          MessageAction: 'SUPPRESS',
+        },
+        physicalResourceId: cr.PhysicalResourceId.of(`test-user-${testUser.username}`),
+      },
+      policy: cr.AwsCustomResourcePolicy.fromStatements([
+        new iam.PolicyStatement({
+          actions: ['cognito-idp:AdminCreateUser'],
+          resources: [this.userPoolArn],
+        }),
+      ]),
+      logRetention: logs.RetentionDays.ONE_WEEK,
+    });
+
+    // パスワード設定用の AwsCustomResource
+    const setPassword = new cr.AwsCustomResource(this, 'SetTestUserPassword', {
+      onCreate: {
+        service: 'CognitoIdentityServiceProvider',
+        action: 'adminSetUserPassword',
+        parameters: {
+          UserPoolId: this.userPoolId,
+          Username: testUser.username,
+          Password: testUser.password,
+          Permanent: true, // パスワード変更不要
+        },
+        physicalResourceId: cr.PhysicalResourceId.of(`test-user-password-${testUser.username}`),
+      },
+      onUpdate: {
+        service: 'CognitoIdentityServiceProvider',
+        action: 'adminSetUserPassword',
+        parameters: {
+          UserPoolId: this.userPoolId,
+          Username: testUser.username,
+          Password: testUser.password,
+          Permanent: true,
+        },
+        physicalResourceId: cr.PhysicalResourceId.of(`test-user-password-${testUser.username}`),
+      },
+      policy: cr.AwsCustomResourcePolicy.fromStatements([
+        new iam.PolicyStatement({
+          actions: ['cognito-idp:AdminSetUserPassword'],
+          resources: [this.userPoolArn],
+        }),
+      ]),
+      logRetention: logs.RetentionDays.ONE_WEEK,
+    });
+
+    // パスワード設定はユーザー作成後に実行
+    setPassword.node.addDependency(createUser);
+
+    // CloudFormation Output でテストユーザー情報を出力
+    new cdk.CfnOutput(this, 'TestUserUsername', {
+      value: testUser.username,
+      description: 'Test user username',
+    });
+
+    new cdk.CfnOutput(this, 'TestUserEmail', {
+      value: testUser.email,
+      description: 'Test user email',
     });
   }
 
