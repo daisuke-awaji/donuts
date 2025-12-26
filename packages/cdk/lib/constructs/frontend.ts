@@ -8,6 +8,13 @@ import { Construct } from 'constructs';
 
 export interface FrontendProps {
   /**
+   * リソース名のプレフィックス（オプション）
+   * S3バケット名: {resourcePrefix}-frontend-{ACCOUNT}-{REGION}
+   * @default 'agentcore'
+   */
+  readonly resourcePrefix?: string;
+
+  /**
    * Cognito User Pool ID for frontend configuration
    */
   userPoolId: string;
@@ -41,9 +48,12 @@ export class Frontend extends Construct {
   constructor(scope: Construct, id: string, props: FrontendProps) {
     super(scope, id);
 
+    // リソースプレフィックスの取得
+    const resourcePrefix = props.resourcePrefix || 'agentcore';
+
     // S3 Bucket for Frontend Static Website
     this.s3Bucket = new s3.Bucket(this, 'AgentCoreFrontendBucket', {
-      bucketName: `agentcore-frontend-${cdk.Aws.ACCOUNT_ID}-${cdk.Aws.REGION}`,
+      bucketName: `${resourcePrefix}-frontend-${cdk.Aws.ACCOUNT_ID}-${cdk.Aws.REGION}`,
       publicReadAccess: false,
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       removalPolicy: cdk.RemovalPolicy.DESTROY, // For demo purposes
@@ -55,7 +65,7 @@ export class Frontend extends Construct {
       this,
       'FrontendResponseHeadersPolicy',
       {
-        responseHeadersPolicyName: `agentcore-security-headers-${cdk.Aws.ACCOUNT_ID}-${cdk.Aws.REGION}`,
+        responseHeadersPolicyName: `${resourcePrefix}-security-headers-${cdk.Aws.ACCOUNT_ID}-${cdk.Aws.REGION}`,
         comment: 'Security headers policy for AgentCore Frontend',
         // Security headers
         securityHeadersBehavior: {
@@ -84,7 +94,7 @@ export class Frontend extends Construct {
 
     // Cache Policy for static assets (JS, CSS, fonts, images)
     const staticAssetsCachePolicy = new cloudfront.CachePolicy(this, 'StaticAssetsCachePolicy', {
-      cachePolicyName: `agentcore-static-assets-${cdk.Aws.ACCOUNT_ID}-${cdk.Aws.REGION}`,
+      cachePolicyName: `${resourcePrefix}-static-assets-${cdk.Aws.ACCOUNT_ID}-${cdk.Aws.REGION}`,
       comment: 'Cache policy for static assets with long TTL',
       defaultTtl: cdk.Duration.days(365),
       maxTtl: cdk.Duration.days(365),
@@ -98,7 +108,7 @@ export class Frontend extends Construct {
 
     // Origin Access Control (OAC) を明示的に作成
     const originAccessControl = new cloudfront.S3OriginAccessControl(this, 'FrontendOAC', {
-      originAccessControlName: `agentcore-frontend-oac-${cdk.Aws.ACCOUNT_ID}-${cdk.Aws.REGION}`,
+      originAccessControlName: `${resourcePrefix}-frontend-oac-${cdk.Aws.ACCOUNT_ID}-${cdk.Aws.REGION}`,
       signing: cloudfront.Signing.SIGV4_NO_OVERRIDE,
     });
 

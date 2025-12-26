@@ -415,7 +415,7 @@ export function SessionSidebar() {
               <Link
                 to="/settings"
                 onClick={() => setIsUserDropdownOpen(false)}
-                className="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 no-underline"
+                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 no-underline"
               >
                 <Settings className="w-4 h-4" />
                 {t('navigation.settings')}

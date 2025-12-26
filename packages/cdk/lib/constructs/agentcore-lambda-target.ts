@@ -17,6 +17,13 @@ interface ToolSchemaFile {
 
 export interface AgentCoreLambdaTargetProps {
   /**
+   * リソース名のプレフィックス（オプション）
+   * Lambda関数名: {resourcePrefix}-{targetName}-function
+   * @default 'agentcore'
+   */
+  readonly resourcePrefix?: string;
+
+  /**
    * Target の名前
    */
   readonly targetName: string;
@@ -100,9 +107,12 @@ export class AgentCoreLambdaTarget extends Construct {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     this.toolSchema = agentcore.ToolSchema.fromInline(toolSchemaContent.tools as any);
 
+    // リソースプレフィックスの取得
+    const resourcePrefix = props.resourcePrefix || 'agentcore';
+
     // Lambda 関数を作成
     this.lambdaFunction = new nodejs.NodejsFunction(this, 'Function', {
-      functionName: `agentcore-${props.targetName}-function`,
+      functionName: `${resourcePrefix}-${props.targetName}-function`,
       runtime: props.runtime || lambda.Runtime.NODEJS_22_X,
       entry: path.join(props.lambdaCodePath, 'src', 'handler.ts'),
       handler: 'handler',
