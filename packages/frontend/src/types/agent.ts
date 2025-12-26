@@ -101,16 +101,10 @@ export type AgentStore = AgentState & AgentActions;
  */
 export const DEFAULT_AGENTS: CreateAgentInput[] = [
   {
-    name: '汎用アシスタント',
-    description: '様々なタスクに対応できる汎用的なAIアシスタント',
+    name: 'defaultAgents.generalAssistant.name',
+    description: 'defaultAgents.generalAssistant.description',
     icon: 'Bot',
-    systemPrompt: `あなたは親切で知識豊富なAIアシスタントです。ユーザーの質問に対して、正確で分かりやすい回答を提供してください。
-
-以下の点を心がけてください：
-- 日本語で自然に回答する
-- 専門的な内容も初心者にも理解しやすいように説明する
-- 不明な点があれば素直に「分からない」と答える
-- 必要に応じて追加の質問をする`,
+    systemPrompt: 'defaultAgents.generalAssistant.systemPrompt',
     enabledTools: [
       's3_list_files',
       's3_download_file',
@@ -121,35 +115,34 @@ export const DEFAULT_AGENTS: CreateAgentInput[] = [
     ],
     scenarios: [
       {
-        title: '質問・相談',
-        prompt: '以下について教えてください:\n\n',
+        title: 'defaultAgents.generalAssistant.scenarios.question.title',
+        prompt: 'defaultAgents.generalAssistant.scenarios.question.prompt',
       },
       {
-        title: '文章の添削',
-        prompt: '以下の文章を添削・改善してください:\n\n',
+        title: 'defaultAgents.generalAssistant.scenarios.correction.title',
+        prompt: 'defaultAgents.generalAssistant.scenarios.correction.prompt',
       },
       {
-        title: 'Web 検索',
-        prompt: 'Amazon Bedrock AgentCore Runtime のデプロイ方法について調査してください',
+        title: 'defaultAgents.generalAssistant.scenarios.webSearch.title',
+        prompt: 'defaultAgents.generalAssistant.scenarios.webSearch.prompt',
       },
       {
-        title: '要約作成',
-        prompt: '以下の内容を簡潔に要約してください:\n\n',
+        title: 'defaultAgents.generalAssistant.scenarios.summary.title',
+        prompt: 'defaultAgents.generalAssistant.scenarios.summary.prompt',
       },
       {
-        title: 'アイディア出し',
-        prompt: '以下のテーマでアイディアを10個出してください:\n\nテーマ: ',
+        title: 'defaultAgents.generalAssistant.scenarios.ideation.title',
+        prompt: 'defaultAgents.generalAssistant.scenarios.ideation.prompt',
       },
       {
-        title: '比較・検討',
-        prompt:
-          '以下の選択肢について、メリット・デメリットを比較して検討してください:\n\n選択肢:\n1. \n2. \n3. ',
+        title: 'defaultAgents.generalAssistant.scenarios.comparison.title',
+        prompt: 'defaultAgents.generalAssistant.scenarios.comparison.prompt',
       },
     ],
   },
   {
-    name: 'Code Review Agent',
-    description: 'コードレビューとプログラミング支援に特化したAgent',
+    name: 'defaultAgents.codeReview.name',
+    description: 'defaultAgents.codeReview.description',
     icon: 'Code',
     systemPrompt: `You are an experienced software engineer specializing in code review and programming assistance. Your role is to provide thorough, actionable feedback that helps developers write better, more maintainable code.
 
@@ -217,38 +210,34 @@ export const DEFAULT_AGENTS: CreateAgentInput[] = [
     ],
     scenarios: [
       {
-        title: 'コードレビュー',
-        prompt:
-          '以下のコードをレビューしてください。改善点があれば具体的な提案をお願いします:\n\n```\n\n```',
+        title: 'defaultAgents.codeReview.scenarios.codeReview.title',
+        prompt: 'defaultAgents.codeReview.scenarios.codeReview.prompt',
       },
       {
-        title: 'バグ調査',
-        prompt:
-          '以下のコードでバグが発生しています。原因を調査して修正案を提示してください:\n\n```\n\n```\n\nエラー内容:\n',
+        title: 'defaultAgents.codeReview.scenarios.bugInvestigation.title',
+        prompt: 'defaultAgents.codeReview.scenarios.bugInvestigation.prompt',
       },
       {
-        title: 'リファクタリング',
-        prompt: '以下のコードをより良い設計にリファクタリングしてください:\n\n```\n\n```',
+        title: 'defaultAgents.codeReview.scenarios.refactoring.title',
+        prompt: 'defaultAgents.codeReview.scenarios.refactoring.prompt',
       },
       {
-        title: 'コード説明',
-        prompt:
-          '以下のコードが何をしているかを初心者にも分かりやすく説明してください:\n\n```\n\n```',
+        title: 'defaultAgents.codeReview.scenarios.explanation.title',
+        prompt: 'defaultAgents.codeReview.scenarios.explanation.prompt',
       },
       {
-        title: 'パフォーマンス最適化',
-        prompt: '以下のコードのパフォーマンスを最適化する方法を提案してください:\n\n```\n\n```',
+        title: 'defaultAgents.codeReview.scenarios.optimization.title',
+        prompt: 'defaultAgents.codeReview.scenarios.optimization.prompt',
       },
       {
-        title: 'テストコード作成',
-        prompt: '以下のコードに対するユニットテストを作成してください:\n\n```\n\n```',
+        title: 'defaultAgents.codeReview.scenarios.testCreation.title',
+        prompt: 'defaultAgents.codeReview.scenarios.testCreation.prompt',
       },
     ],
   },
   {
-    name: 'Knowledge Base Search Agent',
-    description:
-      'A specialized agent for searching and retrieving information from Amazon Bedrock Knowledge Base using semantic search',
+    name: 'defaultAgents.knowledgeBaseSearch.name',
+    description: 'defaultAgents.knowledgeBaseSearch.description',
     icon: 'Search',
     systemPrompt: `You are an AI assistant specializing in information retrieval and analysis using Amazon Bedrock Knowledge Base. Your role is to help users find accurate, relevant information through semantic search and provide comprehensive answers with proper source citations.
 
@@ -324,41 +313,34 @@ export const DEFAULT_AGENTS: CreateAgentInput[] = [
     ],
     scenarios: [
       {
-        title: 'Knowledge Base 検索',
-        prompt:
-          '以下について Knowledge Base から情報を検索してください:\n\n質問: \n\n(注: システムプロンプトの [Configuration] セクションで Knowledge Base ID を設定してください)',
+        title: 'defaultAgents.knowledgeBaseSearch.scenarios.search.title',
+        prompt: 'defaultAgents.knowledgeBaseSearch.scenarios.search.prompt',
       },
       {
-        title: 'ドキュメント質問回答',
-        prompt:
-          'Knowledge Base に登録されているドキュメントに基づいて、以下の質問に回答してください:\n\n質問: \n\n回答には関連するソース情報も含めてください。',
+        title: 'defaultAgents.knowledgeBaseSearch.scenarios.qa.title',
+        prompt: 'defaultAgents.knowledgeBaseSearch.scenarios.qa.prompt',
       },
       {
-        title: '関連情報の収集',
-        prompt:
-          '以下のトピックに関連する情報を Knowledge Base から収集してまとめてください:\n\nトピック: \n\n関連度の高い情報を優先的に提示してください。',
+        title: 'defaultAgents.knowledgeBaseSearch.scenarios.relatedInfo.title',
+        prompt: 'defaultAgents.knowledgeBaseSearch.scenarios.relatedInfo.prompt',
       },
       {
-        title: '複数ソースからの情報統合',
-        prompt:
-          '以下のテーマについて、複数のドキュメントから情報を統合して包括的な回答を作成してください:\n\nテーマ: \n\n各ソースの情報を明示しながら統合してください。',
+        title: 'defaultAgents.knowledgeBaseSearch.scenarios.integration.title',
+        prompt: 'defaultAgents.knowledgeBaseSearch.scenarios.integration.prompt',
       },
       {
-        title: 'ファクトチェック',
-        prompt:
-          '以下の情報が Knowledge Base のドキュメントと一致するか確認してください:\n\n確認したい情報: \n\n一致する場合はソースを、不一致の場合は正しい情報を提示してください。',
+        title: 'defaultAgents.knowledgeBaseSearch.scenarios.factCheck.title',
+        prompt: 'defaultAgents.knowledgeBaseSearch.scenarios.factCheck.prompt',
       },
       {
-        title: '詳細情報の取得',
-        prompt:
-          '以下のキーワード/概念について、詳細な説明を Knowledge Base から取得してください:\n\nキーワード/概念: \n\n関連する全ての情報を網羅的に収集してください。',
+        title: 'defaultAgents.knowledgeBaseSearch.scenarios.detailedInfo.title',
+        prompt: 'defaultAgents.knowledgeBaseSearch.scenarios.detailedInfo.prompt',
       },
     ],
   },
   {
-    name: 'Data Analyst Agent',
-    description:
-      'A specialized agent for data analysis, statistical processing, and data visualization using code execution and file operations',
+    name: 'defaultAgents.dataAnalyst.name',
+    description: 'defaultAgents.dataAnalyst.description',
     icon: 'BarChart3',
     systemPrompt: `You are an expert data analyst specializing in data processing, statistical analysis, and visualization. Your role is to help users extract insights from data, perform rigorous analysis, and create clear, informative visualizations.
 
@@ -449,51 +431,42 @@ export const DEFAULT_AGENTS: CreateAgentInput[] = [
     ],
     scenarios: [
       {
-        title: 'データ分析',
-        prompt:
-          '以下のデータファイルを分析してください:\n\nファイル名: \n分析の目的: \n\n主要な統計量、トレンド、異常値などを報告してください。',
+        title: 'defaultAgents.dataAnalyst.scenarios.analysis.title',
+        prompt: 'defaultAgents.dataAnalyst.scenarios.analysis.prompt',
       },
       {
-        title: '統計サマリー作成',
-        prompt:
-          '以下のデータの基本統計量を計算してください:\n\nファイル名: \n対象カラム: \n\n平均、中央値、標準偏差、最大値、最小値などを含めてください。',
+        title: 'defaultAgents.dataAnalyst.scenarios.statistics.title',
+        prompt: 'defaultAgents.dataAnalyst.scenarios.statistics.prompt',
       },
       {
-        title: 'データ可視化',
-        prompt:
-          '以下のデータをグラフ化してください:\n\nファイル名: \nグラフの種類: (折れ線グラフ / 棒グラフ / 散布図 / ヒストグラム)\nX軸: \nY軸: \n\n適切なタイトルとラベルを付けてください。',
+        title: 'defaultAgents.dataAnalyst.scenarios.visualization.title',
+        prompt: 'defaultAgents.dataAnalyst.scenarios.visualization.prompt',
       },
       {
-        title: '相関分析',
-        prompt:
-          '以下のデータセットの変数間の相関関係を分析してください:\n\nファイル名: \n対象変数: \n\n相関係数を計算し、ヒートマップで可視化してください。',
+        title: 'defaultAgents.dataAnalyst.scenarios.correlation.title',
+        prompt: 'defaultAgents.dataAnalyst.scenarios.correlation.prompt',
       },
       {
-        title: 'データクリーニング',
-        prompt:
-          '以下のデータをクリーニングしてください:\n\nファイル名: \n\n欠損値の処理、重複の削除、異常値の検出を行い、クリーン済みデータを保存してください。',
+        title: 'defaultAgents.dataAnalyst.scenarios.cleaning.title',
+        prompt: 'defaultAgents.dataAnalyst.scenarios.cleaning.prompt',
       },
       {
-        title: 'トレンド分析',
-        prompt:
-          '以下の時系列データのトレンドを分析してください:\n\nファイル名: \n時間軸カラム: \n分析対象カラム: \n\nトレンドの可視化と季節性の有無を報告してください。',
+        title: 'defaultAgents.dataAnalyst.scenarios.trend.title',
+        prompt: 'defaultAgents.dataAnalyst.scenarios.trend.prompt',
       },
       {
-        title: 'グループ別集計',
-        prompt:
-          '以下のデータをグループ別に集計してください:\n\nファイル名: \nグループ化カラム: \n集計対象カラム: \n集計方法: (合計 / 平均 / 最大 / 最小)\n\n結果を表形式で表示してください。',
+        title: 'defaultAgents.dataAnalyst.scenarios.grouping.title',
+        prompt: 'defaultAgents.dataAnalyst.scenarios.grouping.prompt',
       },
       {
-        title: 'レポート生成',
-        prompt:
-          '以下のデータから包括的な分析レポートを作成してください:\n\nファイル名: \n分析テーマ: \n\n統計サマリー、可視化、インサイトを含む完全なレポートを生成してください。',
+        title: 'defaultAgents.dataAnalyst.scenarios.report.title',
+        prompt: 'defaultAgents.dataAnalyst.scenarios.report.prompt',
       },
     ],
   },
   {
-    name: 'Web Deep Researcher',
-    description:
-      'A research-specialized agent that conducts in-depth research, information gathering, and analysis using the web',
+    name: 'defaultAgents.webResearcher.name',
+    description: 'defaultAgents.webResearcher.description',
     icon: 'Globe',
     systemPrompt: `You are an AI assistant that performs multi-stage web searches like DeepSearch to gather comprehensive information to achieve the user's goals.  - Perform multiple web searches in succession to gather in-depth information.
 
@@ -553,37 +526,34 @@ export const DEFAULT_AGENTS: CreateAgentInput[] = [
     ],
     scenarios: [
       {
-        title: '市場・業界調査',
-        prompt:
-          '以下の業界/分野について、市場規模、主要プレイヤー、トレンドを調査してまとめてください:\n\n業界/分野: ',
+        title: 'defaultAgents.webResearcher.scenarios.marketResearch.title',
+        prompt: 'defaultAgents.webResearcher.scenarios.marketResearch.prompt',
       },
       {
-        title: '競合分析',
-        prompt: '以下の製品/サービスの競合を調査し、比較表を作成してください:\n\n製品/サービス: ',
+        title: 'defaultAgents.webResearcher.scenarios.competitive.title',
+        prompt: 'defaultAgents.webResearcher.scenarios.competitive.prompt',
       },
       {
-        title: '技術トレンド調査',
-        prompt: '以下の技術/キーワードに関する最新動向を調査してください:\n\n技術/キーワード: ',
+        title: 'defaultAgents.webResearcher.scenarios.techTrend.title',
+        prompt: 'defaultAgents.webResearcher.scenarios.techTrend.prompt',
       },
       {
-        title: 'ニュース・動向まとめ',
-        prompt: '以下のトピックに関する最新ニュース・動向をまとめてください:\n\nトピック: ',
+        title: 'defaultAgents.webResearcher.scenarios.news.title',
+        prompt: 'defaultAgents.webResearcher.scenarios.news.prompt',
       },
       {
-        title: '製品・サービス比較',
-        prompt:
-          '以下のカテゴリの製品/サービスを比較調査し、メリット・デメリットを整理してください:\n\nカテゴリ: ',
+        title: 'defaultAgents.webResearcher.scenarios.productComparison.title',
+        prompt: 'defaultAgents.webResearcher.scenarios.productComparison.prompt',
       },
       {
-        title: '事例・ベストプラクティス調査',
-        prompt: '以下のテーマに関する成功事例やベストプラクティスを調査してください:\n\nテーマ: ',
+        title: 'defaultAgents.webResearcher.scenarios.bestPractice.title',
+        prompt: 'defaultAgents.webResearcher.scenarios.bestPractice.prompt',
       },
     ],
   },
   {
-    name: 'Software Developer',
-    description:
-      'A specialized agent for software development with GitHub integration, capable of coding and source code review',
+    name: 'defaultAgents.softwareDeveloper.name',
+    description: 'defaultAgents.softwareDeveloper.description',
     icon: 'CodeXml',
     systemPrompt: `You are an experienced software developer with comprehensive expertise in modern software development practices, GitHub operations, and code quality assurance. Your role is to assist with coding tasks, conduct thorough code reviews, and manage development workflows using GitHub integration.
 
@@ -685,44 +655,36 @@ Using the integrated GitHub MCP server, you can:
     enabledTools: ['execute_command', 'tavily_search'],
     scenarios: [
       {
-        title: 'Issue 作成',
-        prompt:
-          '以下の内容でGitHub Issueを作成してください:\n\nリポジトリ: owner/repo\nタイトル: \n説明: \nラベル: ',
+        title: 'defaultAgents.softwareDeveloper.scenarios.createIssue.title',
+        prompt: 'defaultAgents.softwareDeveloper.scenarios.createIssue.prompt',
       },
       {
-        title: 'Pull Request 作成',
-        prompt:
-          '以下の内容でPull Requestを作成してください:\n\nリポジトリ: owner/repo\nベースブランチ: main\nヘッドブランチ: \nタイトル: \n説明: ',
+        title: 'defaultAgents.softwareDeveloper.scenarios.createPR.title',
+        prompt: 'defaultAgents.softwareDeveloper.scenarios.createPR.prompt',
       },
       {
-        title: 'コードレビュー',
-        prompt:
-          '以下のPull Requestをレビューしてください:\n\nリポジトリ: owner/repo\nPR番号: \n\n品質、セキュリティ、パフォーマンスの観点から詳細なフィードバックをお願いします。',
+        title: 'defaultAgents.softwareDeveloper.scenarios.prReview.title',
+        prompt: 'defaultAgents.softwareDeveloper.scenarios.prReview.prompt',
       },
       {
-        title: 'リポジトリ検索',
-        prompt:
-          '以下の条件でGitHubリポジトリを検索してください:\n\n検索キーワード: \n言語: \nその他の条件: ',
+        title: 'defaultAgents.softwareDeveloper.scenarios.repoSearch.title',
+        prompt: 'defaultAgents.softwareDeveloper.scenarios.repoSearch.prompt',
       },
       {
-        title: 'コード実装相談',
-        prompt:
-          '以下の機能を実装する際のベストプラクティスを教えてください:\n\n機能: \n言語/フレームワーク: \n要件: ',
+        title: 'defaultAgents.softwareDeveloper.scenarios.implementation.title',
+        prompt: 'defaultAgents.softwareDeveloper.scenarios.implementation.prompt',
       },
       {
-        title: 'バグ修正の提案',
-        prompt:
-          '以下のバグについて、修正案を提案してください:\n\nリポジトリ: owner/repo\nIssue番号: \nバグの内容: ',
+        title: 'defaultAgents.softwareDeveloper.scenarios.bugFix.title',
+        prompt: 'defaultAgents.softwareDeveloper.scenarios.bugFix.prompt',
       },
       {
-        title: 'リファクタリング提案',
-        prompt:
-          '以下のコードのリファクタリングを提案してください:\n\nリポジトリ: owner/repo\nファイルパス: \n改善したい点: ',
+        title: 'defaultAgents.softwareDeveloper.scenarios.refactoringProposal.title',
+        prompt: 'defaultAgents.softwareDeveloper.scenarios.refactoringProposal.prompt',
       },
       {
-        title: 'アーキテクチャ設計',
-        prompt:
-          '以下のシステムのアーキテクチャ設計を提案してください:\n\nシステム概要: \n要件: \n制約: ',
+        title: 'defaultAgents.softwareDeveloper.scenarios.architecture.title',
+        prompt: 'defaultAgents.softwareDeveloper.scenarios.architecture.prompt',
       },
     ],
     mcpConfig: {
@@ -738,9 +700,8 @@ Using the integrated GitHub MCP server, you can:
     },
   },
   {
-    name: 'PowerPoint Creator',
-    description:
-      'プレゼンテーション資料の作成・編集に特化したAIエージェント。Office PowerPoint MCP サーバーを使用してプロフェッショナルなスライドを生成',
+    name: 'defaultAgents.powerpointCreator.name',
+    description: 'defaultAgents.powerpointCreator.description',
     icon: 'Presentation',
     systemPrompt: `あなたは PowerPoint プレゼンテーション作成の専門家です。Office PowerPoint MCP サーバーを使用して、効果的で視覚的に魅力的なプレゼンテーション資料を作成します。
 
@@ -826,44 +787,36 @@ Office PowerPoint MCP サーバーが提供するツールを使用して、Powe
     ],
     scenarios: [
       {
-        title: '新規プレゼン作成',
-        prompt:
-          '以下の内容で新しいプレゼンテーションを作成してください:\n\nテーマ: \n対象者: \nスライド枚数: \n重要なポイント: ',
+        title: 'defaultAgents.powerpointCreator.scenarios.newPresentation.title',
+        prompt: 'defaultAgents.powerpointCreator.scenarios.newPresentation.prompt',
       },
       {
-        title: 'ビジネス提案資料',
-        prompt:
-          '以下のビジネス提案用のプレゼンテーションを作成してください:\n\n提案内容: \n課題: \nソリューション: \n期待される効果: ',
+        title: 'defaultAgents.powerpointCreator.scenarios.businessProposal.title',
+        prompt: 'defaultAgents.powerpointCreator.scenarios.businessProposal.prompt',
       },
       {
-        title: '製品・サービス紹介',
-        prompt:
-          '以下の製品/サービスの紹介プレゼンを作成してください:\n\n製品/サービス名: \n特徴: \nターゲット: \n競合優位性: ',
+        title: 'defaultAgents.powerpointCreator.scenarios.productIntro.title',
+        prompt: 'defaultAgents.powerpointCreator.scenarios.productIntro.prompt',
       },
       {
-        title: '技術説明資料',
-        prompt:
-          '以下の技術内容を説明するプレゼンを作成してください:\n\n技術名: \nアーキテクチャ: \n主要機能: \n技術的メリット: ',
+        title: 'defaultAgents.powerpointCreator.scenarios.technical.title',
+        prompt: 'defaultAgents.powerpointCreator.scenarios.technical.prompt',
       },
       {
-        title: '報告・レポート資料',
-        prompt:
-          '以下の報告用プレゼンテーションを作成してください:\n\n報告内容: \n期間: \n実績・成果: \n課題と対策: ',
+        title: 'defaultAgents.powerpointCreator.scenarios.reportPresentation.title',
+        prompt: 'defaultAgents.powerpointCreator.scenarios.reportPresentation.prompt',
       },
       {
-        title: '研修・教育資料',
-        prompt:
-          '以下のトピックの研修資料を作成してください:\n\nテーマ: \n学習目標: \n対象者のレベル: \n時間: ',
+        title: 'defaultAgents.powerpointCreator.scenarios.training.title',
+        prompt: 'defaultAgents.powerpointCreator.scenarios.training.prompt',
       },
       {
-        title: 'スライドデザイン改善',
-        prompt:
-          '既存のプレゼンテーションのデザインを改善してください:\n\nファイル: \n改善したい点: \n希望するスタイル: ',
+        title: 'defaultAgents.powerpointCreator.scenarios.designImprovement.title',
+        prompt: 'defaultAgents.powerpointCreator.scenarios.designImprovement.prompt',
       },
       {
-        title: 'テンプレートからの作成',
-        prompt:
-          'テンプレートを使用してプレゼンを作成してください:\n\nテンプレート: \n内容: \nカスタマイズ箇所: ',
+        title: 'defaultAgents.powerpointCreator.scenarios.templateBased.title',
+        prompt: 'defaultAgents.powerpointCreator.scenarios.templateBased.prompt',
       },
     ],
     mcpConfig: {

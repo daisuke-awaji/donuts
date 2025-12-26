@@ -24,7 +24,7 @@ i18n
         translation: en,
       },
     },
-    fallbackLng: 'ja', // フォールバック言語
+    fallbackLng: 'en', // フォールバック言語
     supportedLngs: ['ja', 'en'], // サポートする言語
     debug: import.meta.env.DEV, // 開発モードでデバッグログを有効化
 

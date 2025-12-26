@@ -6,6 +6,7 @@ import { create } from 'zustand';
 import { v4 as uuidv4 } from 'uuid';
 import type { Agent, CreateAgentInput, UpdateAgentInput, AgentStore } from '../types/agent';
 import { DEFAULT_AGENTS } from '../types/agent';
+import i18n from '../i18n';
 
 const STORAGE_KEY = 'agentcore-agents';
 const SELECTED_AGENT_KEY = 'agentcore-selected-agent';
@@ -100,14 +101,21 @@ const saveAgentsToStorage = (agents: Agent[]): void => {
  */
 const createDefaultAgents = (): Agent[] => {
   const now = new Date();
+  const t = i18n.t.bind(i18n);
 
   return DEFAULT_AGENTS.map((input) => ({
     id: uuidv4(),
-    ...input,
+    name: t(input.name),
+    description: t(input.description),
+    icon: input.icon,
+    systemPrompt: t(input.systemPrompt),
+    enabledTools: [...input.enabledTools],
     scenarios: input.scenarios.map((scenario) => ({
-      ...scenario,
       id: uuidv4(),
+      title: t(scenario.title),
+      prompt: t(scenario.prompt),
     })),
+    mcpConfig: input.mcpConfig,
     createdAt: now,
     updatedAt: now,
   }));
