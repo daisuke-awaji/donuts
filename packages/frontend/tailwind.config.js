@@ -18,7 +18,7 @@ export default {
         },
       },
       fontFamily: {
-        sans: ['ui-rounded', 'system-ui', 'sans-serif'],
+        sans: ['"M PLUS Rounded 1c"', 'ui-rounded', 'system-ui', 'sans-serif'],
       },
       borderRadius: {
         xl: '0.75rem',
