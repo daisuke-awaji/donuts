@@ -26,8 +26,8 @@ export const MessageList: React.FC<MessageListProps> = ({ onScenarioClick }) => 
     const container = containerRef.current;
     if (!container) return;
 
-    // スクロール位置が最下部から100px以内なら自動スクロールを有効化
-    const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+    // スクロール位置が最下部から10px以内なら自動スクロールを有効化
+    const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 10;
     setShouldAutoScroll(isAtBottom);
   };
 
