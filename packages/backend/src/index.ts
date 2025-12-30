@@ -7,6 +7,7 @@ import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import { config } from './config/index.js';
 import { jwtAuthMiddleware, AuthenticatedRequest, getCurrentAuth } from './middleware/auth.js';
+import agentsRouter from './routes/agents.js';
 import sessionsRouter from './routes/sessions.js';
 import toolsRouter from './routes/tools.js';
 import memoryRouter from './routes/memory.js';
@@ -47,6 +48,7 @@ app.use(cors(corsOptions));
 app.use(express.json());
 
 // API ルート設定
+app.use('/agents', agentsRouter);
 app.use('/sessions', sessionsRouter);
 app.use('/tools', toolsRouter);
 app.use('/memory', jwtAuthMiddleware, memoryRouter);

@@ -4,6 +4,7 @@ import { AgentCoreGateway } from './constructs/agentcore-gateway';
 import { AgentCoreLambdaTarget } from './constructs/agentcore-lambda-target';
 import { AgentCoreMemory } from './constructs/agentcore-memory';
 import { AgentCoreRuntime } from './constructs/agentcore-runtime';
+import { AgentsTable } from './constructs/agents-table';
 import { BackendApi } from './constructs/backend-api';
 import { CognitoAuth } from './constructs/cognito-auth';
 import { Frontend } from './constructs/frontend';
@@ -118,6 +119,11 @@ export class AgentCoreStack extends cdk.Stack {
    * Created User Storage
    */
   public readonly userStorage: UserStorage;
+
+  /**
+   * Created Agents Table
+   */
+  public readonly agentsTable: AgentsTable;
 
   constructor(scope: Construct, id: string, props: AgentCoreStackProps) {
     super(scope, id, props);
@@ -245,7 +251,14 @@ export class AgentCoreStack extends cdk.Stack {
       autoDeleteObjects: envConfig.s3AutoDeleteObjects,
     });
 
-    // 5. Create AgentCore Runtime
+    // 5. Create Agents Table
+    this.agentsTable = new AgentsTable(this, 'AgentsTable', {
+      tableNamePrefix: resourcePrefix,
+      removalPolicy: envConfig.s3RemovalPolicy, // Use same removal policy as S3
+      pointInTimeRecovery: true,
+    });
+
+    // 6. Create AgentCore Runtime
     this.agentRuntime = new AgentCoreRuntime(this, 'AgentCoreRuntime', {
       runtimeName: envConfig.runtimeName,
       description: `TypeScript-based Strands Agent Runtime - ${resourcePrefix}`,
@@ -268,7 +281,7 @@ export class AgentCoreStack extends cdk.Stack {
     // Grant User Storage full access to Runtime
     this.userStorage.grantFullAccess(this.agentRuntime.runtime);
 
-    // 6. Create Backend API (Lambda Web Adapter)
+    // 7. Create Backend API (Lambda Web Adapter)
     this.backendApi = new BackendApi(this, 'BackendApi', {
       apiName: envConfig.backendApiName || `${resourcePrefix}-backend-api`,
       cognitoAuth: this.cognitoAuth,
@@ -278,13 +291,17 @@ export class AgentCoreStack extends cdk.Stack {
       timeout: 30,
       memorySize: 1024,
       userStorageBucketName: this.userStorage.bucketName,
+      agentsTableName: this.agentsTable.tableName,
       logRetention: envConfig.logRetentionDays,
     });
 
     // Grant User Storage full access to Backend API
     this.userStorage.grantFullAccess(this.backendApi.lambdaFunction);
 
-    // 7. Create Frontend
+    // Grant Agents Table read/write access to Backend API
+    this.agentsTable.grantReadWrite(this.backendApi.lambdaFunction);
+
+    // 8. Create Frontend
     this.frontend = new Frontend(this, 'Frontend', {
       resourcePrefix: envConfig.frontendBucketPrefix || resourcePrefix,
       userPoolId: this.cognitoAuth.userPoolId,
@@ -295,7 +312,7 @@ export class AgentCoreStack extends cdk.Stack {
       customDomain: envConfig.customDomain, // Add custom domain configuration
     });
 
-    // 8. Additional CloudFormation outputs (authentication related)
+    // 9. Additional CloudFormation outputs (authentication related)
     new cdk.CfnOutput(this, 'GatewayMcpEndpoint', {
       value: `https://${this.gateway.gatewayId}.gateway.bedrock-agentcore.${this.region}.amazonaws.com/mcp`,
       description: 'AgentCore Gateway MCP Endpoint',
@@ -413,11 +430,30 @@ export class AgentCoreStack extends cdk.Stack {
       description: 'User Storage configuration summary',
     });
 
+    // Agents Table-related outputs
+    new cdk.CfnOutput(this, 'AgentsTableName', {
+      value: this.agentsTable.tableName,
+      description: 'Agents DynamoDB Table Name',
+      exportName: `${id}-AgentsTableName`,
+    });
+
+    new cdk.CfnOutput(this, 'AgentsTableArn', {
+      value: this.agentsTable.tableArn,
+      description: 'Agents DynamoDB Table ARN',
+      exportName: `${id}-AgentsTableArn`,
+    });
+
+    new cdk.CfnOutput(this, 'AgentsTableConfiguration', {
+      value: `Agents Table: ${this.agentsTable.tableName} - User agent storage`,
+      description: 'Agents Table configuration summary',
+    });
+
     // Add tags
     cdk.Tags.of(this).add('Project', 'AgentCore');
     cdk.Tags.of(this).add('Component', 'Gateway');
     cdk.Tags.of(this).add('Memory', 'Enabled');
     cdk.Tags.of(this).add('BackendApi', 'Enabled');
     cdk.Tags.of(this).add('UserStorage', 'Enabled');
+    cdk.Tags.of(this).add('AgentsTable', 'Enabled');
   }
 }

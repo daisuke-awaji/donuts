@@ -38,6 +38,9 @@ const envSchema = z.object({
 
   // User Storage 設定
   USER_STORAGE_BUCKET_NAME: z.string().optional(),
+
+  // Agents Table 設定
+  AGENTS_TABLE_NAME: z.string().optional(),
 });
 
 /**
@@ -103,6 +106,9 @@ export const config = {
 
   // User Storage 設定
   userStorageBucketName: env.USER_STORAGE_BUCKET_NAME,
+
+  // Agents Table 設定
+  agentsTableName: env.AGENTS_TABLE_NAME,
 } as const;
 
 /**

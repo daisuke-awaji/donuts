@@ -8,6 +8,7 @@ import { Modal, ConfirmModal } from './ui/Modal';
 import { useAgentStore } from '../stores/agentStore';
 import { useUIStore } from '../stores/uiStore';
 import type { Agent, CreateAgentInput } from '../types/agent';
+import { translateIfKey } from '../utils/agent-translation';
 
 interface AgentSelectorModalProps {
   isOpen: boolean;
@@ -71,18 +72,18 @@ export const AgentSelectorModal: React.FC<AgentSelectorModalProps> = ({
   };
 
   // Agent作成
-  const handleCreateAgent = (data: CreateAgentInput) => {
-    const newAgent = createAgent(data);
+  const handleCreateAgent = async (data: CreateAgentInput) => {
+    const newAgent = await createAgent(data);
     setMode('list');
     selectAgent(newAgent);
     onAgentSelect(newAgent);
   };
 
   // Agent更新
-  const handleUpdateAgent = (data: CreateAgentInput) => {
+  const handleUpdateAgent = async (data: CreateAgentInput) => {
     if (!editingAgent) return;
 
-    updateAgent({
+    await updateAgent({
       id: editingAgent.id,
       ...data,
     });
@@ -91,8 +92,8 @@ export const AgentSelectorModal: React.FC<AgentSelectorModalProps> = ({
   };
 
   // Agent削除
-  const handleDeleteAgent = (agent: Agent) => {
-    deleteAgent(agent.id);
+  const handleDeleteAgent = async (agent: Agent) => {
+    await deleteAgent(agent.id);
     setDeleteConfirmAgent(null);
     setOpenMenuId(null);
 
@@ -257,10 +258,12 @@ export const AgentSelectorModal: React.FC<AgentSelectorModalProps> = ({
                                 </div>
                                 <div className="flex-1">
                                   <div className="flex items-center space-x-2">
-                                    <h3 className="font-medium text-gray-900">{agent.name}</h3>
+                                    <h3 className="font-medium text-gray-900">
+                                      {translateIfKey(agent.name, t)}
+                                    </h3>
                                   </div>
                                   <p className="text-sm text-gray-500 mt-1 line-clamp-2">
-                                    {agent.description}
+                                    {translateIfKey(agent.description, t)}
                                   </p>
                                 </div>
                               </div>
@@ -347,7 +350,9 @@ export const AgentSelectorModal: React.FC<AgentSelectorModalProps> = ({
           onClose={() => setDeleteConfirmAgent(null)}
           onConfirm={() => handleDeleteAgent(deleteConfirmAgent)}
           title={t('agent.deleteAgentConfirmTitle')}
-          message={t('agent.deleteAgentConfirmMessage', { name: deleteConfirmAgent.name })}
+          message={t('agent.deleteAgentConfirmMessage', {
+            name: translateIfKey(deleteConfirmAgent.name, t),
+          })}
           confirmText={t('common.delete')}
           cancelText={t('common.cancel')}
           variant="danger"

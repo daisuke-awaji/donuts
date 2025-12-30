@@ -9,6 +9,7 @@ import type { CreateAgentInput, Agent, Scenario } from '../types/agent';
 import { streamAgentResponse, createAgentConfigGenerationPrompt } from '../api/agent';
 import { useToolStore } from '../stores/toolStore';
 import { parseStreamingXml, createInitialXmlState } from '../utils/xmlParser';
+import { translateIfKey } from '../utils/agent-translation';
 
 interface AgentFormProps {
   agent?: Agent;
@@ -24,14 +25,14 @@ export const AgentForm: React.FC<AgentFormProps> = ({ agent, onSubmit, isLoading
   const [formData, setFormData] = useState<CreateAgentInput>(() => {
     if (agent) {
       return {
-        name: agent.name,
-        description: agent.description,
+        name: translateIfKey(agent.name, t),
+        description: translateIfKey(agent.description, t),
         icon: agent.icon || 'Bot',
         systemPrompt: agent.systemPrompt,
         enabledTools: [...agent.enabledTools],
         scenarios: agent.scenarios.map((s) => ({
-          title: s.title,
-          prompt: s.prompt,
+          title: translateIfKey(s.title, t),
+          prompt: translateIfKey(s.prompt, t),
         })),
         mcpConfig: agent.mcpConfig,
       };

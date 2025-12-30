@@ -73,22 +73,18 @@ export interface AgentState {
  * AgentStore のアクション
  */
 export interface AgentActions {
-  // Agent CRUD
-  createAgent: (input: CreateAgentInput) => Agent;
-  updateAgent: (input: UpdateAgentInput) => void;
-  deleteAgent: (id: string) => void;
+  // Agent CRUD (async)
+  createAgent: (input: CreateAgentInput) => Promise<Agent>;
+  updateAgent: (input: UpdateAgentInput) => Promise<void>;
+  deleteAgent: (id: string) => Promise<void>;
   getAgent: (id: string) => Agent | undefined;
 
   // Agent選択
   selectAgent: (agent: Agent | null) => void;
 
-  // 初期化・リセット
-  initializeStore: () => void;
+  // 初期化・リセット (async)
+  initializeStore: () => Promise<void>;
   clearError: () => void;
-
-  // LocalStorage 操作
-  saveToLocalStorage: () => void;
-  loadFromLocalStorage: () => void;
 }
 
 /**

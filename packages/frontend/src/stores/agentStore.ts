@@ -1,147 +1,39 @@
 /**
- * Agent管理用Zustandストア（LocalStorage永続化）
+ * Agent管理用Zustandストア（API + LocalStorage）
  */
 
 import { create } from 'zustand';
-import { v4 as uuidv4 } from 'uuid';
 import type { Agent, CreateAgentInput, UpdateAgentInput, AgentStore } from '../types/agent';
-import { DEFAULT_AGENTS } from '../types/agent';
-import i18n from '../i18n';
+import * as agentsApi from '../api/agents';
 
-const STORAGE_KEY = 'agentcore-agents';
 const SELECTED_AGENT_KEY = 'agentcore-selected-agent';
 
 /**
- * LocalStorageからAgentデータを読み込む
+ * LocalStorageに選択されたAgentのIDを保存
  */
-const loadAgentsFromStorage = (): Agent[] => {
+const saveSelectedAgentIdToStorage = (agentId: string | null): void => {
   try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (!stored) {
-      return [];
-    }
-
-    const parsed = JSON.parse(stored);
-    return parsed.map(
-      (agent: { createdAt: string | number | Date; updatedAt: string | number | Date }) => ({
-        ...agent,
-        createdAt: new Date(agent.createdAt),
-        updatedAt: new Date(agent.updatedAt),
-      })
-    ) as Agent[];
-  } catch (error) {
-    console.error('Agent一覧の読み込みに失敗:', error);
-    return [];
-  }
-};
-
-/**
- * LocalStorageに選択されたAgentを保存
- */
-const saveSelectedAgentToStorage = (agent: Agent | null): void => {
-  try {
-    if (agent) {
-      localStorage.setItem(
-        SELECTED_AGENT_KEY,
-        JSON.stringify({
-          ...agent,
-          createdAt: agent.createdAt.toISOString(),
-          updatedAt: agent.updatedAt.toISOString(),
-        })
-      );
+    if (agentId) {
+      localStorage.setItem(SELECTED_AGENT_KEY, agentId);
     } else {
       localStorage.removeItem(SELECTED_AGENT_KEY);
     }
   } catch (error) {
-    console.error('選択Agent保存エラー:', error);
+    console.error('選択AgentID保存エラー:', error);
   }
 };
 
 /**
- * LocalStorageから選択されたAgentを読み込む
+ * LocalStorageから選択されたAgentのIDを読み込む
  */
-const loadSelectedAgentFromStorage = (): Agent | null => {
+const loadSelectedAgentIdFromStorage = (): string | null => {
   try {
     const stored = localStorage.getItem(SELECTED_AGENT_KEY);
-    if (!stored) {
-      return null;
-    }
-
-    const parsed = JSON.parse(stored);
-    return {
-      ...parsed,
-      createdAt: new Date(parsed.createdAt),
-      updatedAt: new Date(parsed.updatedAt),
-    };
+    return stored || null;
   } catch (error) {
-    console.error('選択Agent読み込みエラー:', error);
+    console.error('選択AgentID読み込みエラー:', error);
     return null;
   }
-};
-
-/**
- * LocalStorageにAgentデータを保存
- */
-const saveAgentsToStorage = (agents: Agent[]): void => {
-  try {
-    const serializable = agents.map((agent) => ({
-      ...agent,
-      createdAt: agent.createdAt.toISOString(),
-      updatedAt: agent.updatedAt.toISOString(),
-    }));
-
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(serializable));
-  } catch (error) {
-    console.error('Agent一覧の保存に失敗:', error);
-  }
-};
-
-/**
- * デフォルトAgentを作成
- */
-const createDefaultAgents = (): Agent[] => {
-  const now = new Date();
-  const t = i18n.t.bind(i18n);
-
-  return DEFAULT_AGENTS.map((input) => ({
-    id: uuidv4(),
-    name: t(input.name),
-    description: t(input.description),
-    icon: input.icon,
-    systemPrompt: t(input.systemPrompt),
-    enabledTools: [...input.enabledTools],
-    scenarios: input.scenarios.map((scenario) => ({
-      id: uuidv4(),
-      title: t(scenario.title),
-      prompt: t(scenario.prompt),
-    })),
-    mcpConfig: input.mcpConfig,
-    createdAt: now,
-    updatedAt: now,
-  }));
-};
-
-/**
- * CreateAgentInputからAgentを作成
- */
-const createAgentFromInput = (input: CreateAgentInput): Agent => {
-  const now = new Date();
-
-  return {
-    id: uuidv4(),
-    name: input.name,
-    description: input.description,
-    icon: input.icon,
-    systemPrompt: input.systemPrompt,
-    enabledTools: [...input.enabledTools],
-    scenarios: input.scenarios.map((scenario) => ({
-      ...scenario,
-      id: uuidv4(),
-    })),
-    mcpConfig: input.mcpConfig,
-    createdAt: now,
-    updatedAt: now,
-  };
 };
 
 /**
@@ -155,89 +47,86 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
   error: null,
 
   // Agent CRUD操作
-  createAgent: (input: CreateAgentInput) => {
-    const newAgent = createAgentFromInput(input);
+  createAgent: async (input: CreateAgentInput) => {
+    set({ isLoading: true, error: null });
 
-    set((state) => {
-      const updatedAgents = [...state.agents, newAgent];
-      saveAgentsToStorage(updatedAgents);
+    try {
+      const newAgent = await agentsApi.createAgent(input);
 
-      return {
-        agents: updatedAgents,
+      set((state) => ({
+        agents: [...state.agents, newAgent],
+        isLoading: false,
         error: null,
-      };
-    });
+      }));
 
-    return newAgent;
+      return newAgent;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Agent作成に失敗しました';
+      set({ isLoading: false, error: errorMessage });
+      throw error;
+    }
   },
 
-  updateAgent: (input: UpdateAgentInput) => {
-    set((state) => {
-      const agentIndex = state.agents.findIndex((agent) => agent.id === input.id);
+  updateAgent: async (input: UpdateAgentInput) => {
+    set({ isLoading: true, error: null });
 
-      if (agentIndex === -1) {
+    try {
+      const updatedAgent = await agentsApi.updateAgent(input.id, input);
+
+      set((state) => {
+        const agentIndex = state.agents.findIndex((agent) => agent.id === input.id);
+        const updatedAgents = [...state.agents];
+
+        if (agentIndex !== -1) {
+          updatedAgents[agentIndex] = updatedAgent;
+        }
+
+        // 選択中のAgentが更新された場合は選択状態も更新
+        const updatedSelectedAgent =
+          state.selectedAgent?.id === input.id ? updatedAgent : state.selectedAgent;
+
         return {
-          error: 'Agent が見つかりません',
+          agents: updatedAgents,
+          selectedAgent: updatedSelectedAgent,
+          isLoading: false,
+          error: null,
         };
-      }
-
-      const currentAgent = state.agents[agentIndex];
-      const updatedAgent: Agent = {
-        ...currentAgent,
-        name: input.name ?? currentAgent.name,
-        description: input.description ?? currentAgent.description,
-        icon: input.icon ?? currentAgent.icon,
-        systemPrompt: input.systemPrompt ?? currentAgent.systemPrompt,
-        enabledTools: input.enabledTools ?? currentAgent.enabledTools,
-        scenarios: input.scenarios
-          ? input.scenarios.map((scenario) => ({
-              ...scenario,
-              id: uuidv4(),
-            }))
-          : currentAgent.scenarios,
-        mcpConfig: input.mcpConfig ?? currentAgent.mcpConfig,
-        updatedAt: new Date(),
-      };
-
-      const updatedAgents = [...state.agents];
-      updatedAgents[agentIndex] = updatedAgent;
-
-      saveAgentsToStorage(updatedAgents);
-
-      // 選択中のAgentが更新された場合は選択状態も更新
-      const updatedSelectedAgent =
-        state.selectedAgent?.id === input.id ? updatedAgent : state.selectedAgent;
-
-      if (updatedSelectedAgent && state.selectedAgent?.id === input.id) {
-        saveSelectedAgentToStorage(updatedSelectedAgent);
-      }
-
-      return {
-        agents: updatedAgents,
-        selectedAgent: updatedSelectedAgent,
-        error: null,
-      };
-    });
+      });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Agent更新に失敗しました';
+      set({ isLoading: false, error: errorMessage });
+      throw error;
+    }
   },
 
-  deleteAgent: (id: string) => {
-    set((state) => {
-      const updatedAgents = state.agents.filter((agent) => agent.id !== id);
-      saveAgentsToStorage(updatedAgents);
+  deleteAgent: async (id: string) => {
+    set({ isLoading: true, error: null });
 
-      // 削除されたAgentが選択中だった場合は選択を解除
-      const updatedSelectedAgent = state.selectedAgent?.id === id ? null : state.selectedAgent;
+    try {
+      await agentsApi.deleteAgent(id);
 
-      if (updatedSelectedAgent !== state.selectedAgent) {
-        saveSelectedAgentToStorage(updatedSelectedAgent);
-      }
+      set((state) => {
+        const updatedAgents = state.agents.filter((agent) => agent.id !== id);
 
-      return {
-        agents: updatedAgents,
-        selectedAgent: updatedSelectedAgent,
-        error: null,
-      };
-    });
+        // 削除されたAgentが選択中だった場合は選択を解除
+        const updatedSelectedAgent = state.selectedAgent?.id === id ? null : state.selectedAgent;
+
+        if (updatedSelectedAgent !== state.selectedAgent) {
+          saveSelectedAgentIdToStorage(updatedSelectedAgent?.id || null);
+        }
+
+        return {
+          agents: updatedAgents,
+          selectedAgent: updatedSelectedAgent,
+          isLoading: false,
+          error: null,
+        };
+      });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Agent削除に失敗しました';
+      set({ isLoading: false, error: errorMessage });
+      throw error;
+    }
   },
 
   getAgent: (id: string) => {
@@ -247,46 +136,53 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
   // Agent選択
   selectAgent: (agent: Agent | null) => {
     set({ selectedAgent: agent });
-    saveSelectedAgentToStorage(agent);
+    saveSelectedAgentIdToStorage(agent?.id || null);
   },
 
   // ユーティリティ
-  initializeStore: () => {
-    set({ isLoading: true });
+  initializeStore: async () => {
+    set({ isLoading: true, error: null });
 
     try {
-      let agents = loadAgentsFromStorage();
+      console.log('🔧 AgentStore初期化開始...');
 
-      // 初回起動時はデフォルトAgentを作成
+      // APIからAgent一覧を取得
+      let agents = await agentsApi.listAgents();
+
+      // Agentが存在しない場合はデフォルトAgentを初期化
       if (agents.length === 0) {
-        agents = createDefaultAgents();
-        saveAgentsToStorage(agents);
+        console.log('📦 デフォルトAgentを初期化...');
+        agents = await agentsApi.initializeDefaultAgents();
       }
 
-      const selectedAgent = loadSelectedAgentFromStorage();
+      // 保存されている選択AgentIDを取得
+      const selectedAgentId = loadSelectedAgentIdFromStorage();
+      let selectedAgent: Agent | null = null;
 
-      // 選択されたAgentが削除されている場合は選択を解除
-      let validSelectedAgent =
-        selectedAgent && agents.some((a) => a.id === selectedAgent.id) ? selectedAgent : null;
-
-      // 未選択の場合はデフォルトで最初のAgent（汎用アシスタント）を選択
-      if (!validSelectedAgent && agents.length > 0) {
-        validSelectedAgent = agents[0];
+      // 選択されたAgentIDが有効か確認
+      if (selectedAgentId) {
+        selectedAgent = agents.find((a) => a.id === selectedAgentId) || null;
       }
 
-      if (validSelectedAgent !== selectedAgent) {
-        saveSelectedAgentToStorage(validSelectedAgent);
+      // 未選択の場合はデフォルトで最初のAgentを選択
+      if (!selectedAgent && agents.length > 0) {
+        selectedAgent = agents[0];
+        saveSelectedAgentIdToStorage(selectedAgent.id);
       }
+
+      console.log(`✅ AgentStore初期化完了: ${agents.length}件`);
 
       set({
         agents,
-        selectedAgent: validSelectedAgent,
+        selectedAgent,
         isLoading: false,
         error: null,
       });
     } catch (error) {
-      console.error('AgentStore初期化エラー:', error);
+      console.error('💥 AgentStore初期化エラー:', error);
       set({
+        agents: [],
+        selectedAgent: null,
         isLoading: false,
         error: error instanceof Error ? error.message : 'ストアの初期化に失敗しました',
       });
@@ -295,17 +191,6 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
 
   clearError: () => {
     set({ error: null });
-  },
-
-  // LocalStorage操作
-  saveToLocalStorage: () => {
-    const { agents, selectedAgent } = get();
-    saveAgentsToStorage(agents);
-    saveSelectedAgentToStorage(selectedAgent);
-  },
-
-  loadFromLocalStorage: () => {
-    get().initializeStore();
   },
 }));
 
