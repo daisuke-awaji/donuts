@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Loader2, AlertTriangle } from 'lucide-react';
 import { generateDownloadUrl } from '../api/storage';
 
 interface S3ImageProps {
@@ -8,6 +10,7 @@ interface S3ImageProps {
 }
 
 export const S3Image: React.FC<S3ImageProps> = ({ path, alt, className = '' }) => {
+  const { t } = useTranslation();
   const [presignedUrl, setPresignedUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -38,8 +41,8 @@ export const S3Image: React.FC<S3ImageProps> = ({ path, alt, className = '' }) =
         style={{ minHeight: '200px' }}
       >
         <div className="text-center text-gray-500">
-          <div className="inline-block animate-spin text-2xl mb-2">⟳</div>
-          <div className="text-sm">Loading image...</div>
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2" />
+          <div className="text-sm">{t('storage.loadingImage')}</div>
         </div>
       </div>
     );
@@ -52,8 +55,8 @@ export const S3Image: React.FC<S3ImageProps> = ({ path, alt, className = '' }) =
         style={{ minHeight: '150px' }}
       >
         <div className="text-center text-red-600">
-          <div className="text-2xl mb-2">⚠️</div>
-          <div className="text-sm">Failed to load image</div>
+          <AlertTriangle className="w-8 h-8 mx-auto mb-2" />
+          <div className="text-sm">{t('storage.failedToLoadImage')}</div>
           {error && <div className="text-xs mt-1 text-gray-600">{error}</div>}
         </div>
       </div>

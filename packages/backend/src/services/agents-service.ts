@@ -94,6 +94,15 @@ export interface UpdateAgentInput extends Partial<CreateAgentInput> {
 }
 
 /**
+ * ページネーション結果の型定義
+ */
+export interface PaginatedResult<T> {
+  items: T[];
+  nextCursor?: string;
+  hasMore: boolean;
+}
+
+/**
  * Agent管理サービスクラス
  */
 export class AgentsService {
@@ -394,10 +403,26 @@ export class AgentsService {
   }
 
   /**
-   * 共有されたAgent一覧を取得
+   * 共有されたAgent一覧を取得（ページネーション対応）
    */
-  async listSharedAgents(limit: number = 20, searchQuery?: string): Promise<Agent[]> {
+  async listSharedAgents(
+    limit: number = 20,
+    searchQuery?: string,
+    cursor?: string
+  ): Promise<PaginatedResult<Agent>> {
     try {
+      // カーソルをデコード
+      let exclusiveStartKey: Record<string, any> | undefined;
+      if (cursor) {
+        try {
+          const decoded = Buffer.from(cursor, 'base64').toString('utf-8');
+          exclusiveStartKey = JSON.parse(decoded);
+        } catch (error) {
+          console.error('Invalid cursor format:', error);
+          throw new Error('Invalid pagination cursor');
+        }
+      }
+
       const command = new QueryCommand({
         TableName: this.tableName,
         IndexName: 'isShared-createdAt-index',
@@ -410,12 +435,16 @@ export class AgentsService {
         }),
         ScanIndexForward: false, // 新しい順
         Limit: limit,
+        ExclusiveStartKey: exclusiveStartKey ? marshall(exclusiveStartKey) : undefined,
       });
 
       const response = await this.dynamoClient.send(command);
 
       if (!response.Items || response.Items.length === 0) {
-        return [];
+        return {
+          items: [],
+          hasMore: false,
+        };
       }
 
       // DynamoDB から取得したデータを Agent 型に変換
@@ -427,10 +456,21 @@ export class AgentsService {
         agents = agents.filter((agent) => agent.name.toLowerCase().includes(query));
       }
 
-      return agents;
+      // 次のカーソルをエンコード
+      let nextCursor: string | undefined;
+      if (response.LastEvaluatedKey) {
+        const unmarshalled = unmarshall(response.LastEvaluatedKey);
+        nextCursor = Buffer.from(JSON.stringify(unmarshalled)).toString('base64');
+      }
+
+      return {
+        items: agents,
+        nextCursor,
+        hasMore: !!response.LastEvaluatedKey,
+      };
     } catch (error) {
       console.error('Error listing shared agents:', error);
-      throw new Error('Failed to list shared agents');
+      throw error instanceof Error ? error : new Error('Failed to list shared agents');
     }
   }
 

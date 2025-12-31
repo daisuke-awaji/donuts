@@ -523,8 +523,12 @@ router.post('/initialize', jwtAuthMiddleware, async (req: AuthenticatedRequest, 
 });
 
 /**
- * 共有Agent一覧取得エンドポイント
- * GET /shared-agents
+ * 共有Agent一覧取得エンドポイント（ページネーション対応）
+ * GET /shared-agents/list
+ * Query parameters:
+ *   - q: 検索クエリ（オプション）
+ *   - limit: 取得件数（デフォルト: 20）
+ *   - cursor: ページネーションカーソル（オプション）
  * JWT認証必須
  */
 router.get(
@@ -533,27 +537,31 @@ router.get(
   async (req: AuthenticatedRequest, res: Response) => {
     try {
       const auth = getCurrentAuth(req);
-      const { q: searchQuery, limit } = req.query;
+      const { q: searchQuery, limit, cursor } = req.query;
 
       console.log(`📋 共有Agent一覧取得開始 (${auth.requestId}):`, {
         searchQuery,
         limit,
+        hasCursor: !!cursor,
       });
 
       const agentsService = createAgentsService();
-      const agents = await agentsService.listSharedAgents(
+      const result = await agentsService.listSharedAgents(
         limit ? parseInt(limit as string, 10) : 20,
-        searchQuery as string | undefined
+        searchQuery as string | undefined,
+        cursor as string | undefined
       );
 
-      console.log(`✅ 共有Agent一覧取得完了 (${auth.requestId}): ${agents.length}件`);
+      console.log(`✅ 共有Agent一覧取得完了 (${auth.requestId}): ${result.items.length}件`);
 
       res.status(200).json({
-        agents: agents.map((agent) => toFrontendAgent(agent, true)),
+        agents: result.items.map((agent) => toFrontendAgent(agent, true)),
+        nextCursor: result.nextCursor,
+        hasMore: result.hasMore,
         metadata: {
           requestId: auth.requestId,
           timestamp: new Date().toISOString(),
-          count: agents.length,
+          count: result.items.length,
         },
       });
     } catch (error) {

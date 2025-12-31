@@ -21,7 +21,15 @@ import { convertDefaultAgentsToAgents } from '../utils/default-agents';
  */
 export function AgentDirectoryPage() {
   const { t } = useTranslation();
-  const { sharedAgents, isLoading, error, fetchSharedAgents } = useSharedAgentStore();
+  const {
+    sharedAgents,
+    isLoading,
+    isLoadingMore,
+    error,
+    hasMore,
+    fetchSharedAgents,
+    loadMoreAgents,
+  } = useSharedAgentStore();
 
   const [localSearchQuery, setLocalSearchQuery] = useState('');
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
@@ -161,42 +169,71 @@ export function AgentDirectoryPage() {
         )}
 
         {!isLoading && filteredAgents.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {filteredAgents.map((agent) => {
-              const AgentIcon = (icons[agent.icon as keyof typeof icons] as LucideIcon) || Bot;
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {filteredAgents.map((agent) => {
+                const AgentIcon = (icons[agent.icon as keyof typeof icons] as LucideIcon) || Bot;
 
-              return (
-                <div
-                  key={`${agent.createdBy}-${agent.id}`}
-                  onClick={() => handleAgentClick(agent)}
-                  className="bg-white rounded-xl border border-gray-200 p-4 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer"
+                return (
+                  <div
+                    key={`${agent.createdBy}-${agent.id}`}
+                    onClick={() => handleAgentClick(agent)}
+                    className="bg-white rounded-xl border border-gray-200 p-4 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer"
+                  >
+                    {/* アイコンと名前 */}
+                    <div className="flex items-start gap-3 mb-3">
+                      <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
+                        <AgentIcon className="w-5 h-5 text-gray-600" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-medium text-gray-900 truncate">
+                          {translateIfKey(agent.name, t)}
+                        </h3>
+                      </div>
+                    </div>
+
+                    {/* 説明 */}
+                    <p className="text-sm text-gray-600 line-clamp-2 mb-3">
+                      {translateIfKey(agent.description, t)}
+                    </p>
+
+                    {/* 作成者 */}
+                    <div className="text-xs text-gray-500">
+                      {t('agentDirectory.createdBy')}:{' '}
+                      <span className="font-medium">{agent.createdBy}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* ページネーション: もっと読み込むボタン */}
+            {hasMore && (
+              <div className="flex justify-center mt-8 pt-6 border-t border-gray-100">
+                <button
+                  onClick={loadMoreAgents}
+                  disabled={isLoadingMore}
+                  className="flex items-center gap-2 px-6 py-3 bg-gray-500 text-white text-sm font-medium rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
-                  {/* アイコンと名前 */}
-                  <div className="flex items-start gap-3 mb-3">
-                    <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
-                      <AgentIcon className="w-5 h-5 text-gray-600" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-medium text-gray-900 truncate">
-                        {translateIfKey(agent.name, t)}
-                      </h3>
-                    </div>
-                  </div>
+                  {isLoadingMore ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      {t('common.loading')}
+                    </>
+                  ) : (
+                    <>{t('agentDirectory.loadMore')}</>
+                  )}
+                </button>
+              </div>
+            )}
 
-                  {/* 説明 */}
-                  <p className="text-sm text-gray-600 line-clamp-2 mb-3">
-                    {translateIfKey(agent.description, t)}
-                  </p>
-
-                  {/* 作成者 */}
-                  <div className="text-xs text-gray-500">
-                    {t('agentDirectory.createdBy')}:{' '}
-                    <span className="font-medium">{agent.createdBy}</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+            {/* 表示件数情報 */}
+            <p className="text-center text-xs text-gray-500 mt-4">
+              {filteredAgents.length}
+              {t('agentDirectory.itemsDisplayed')}{' '}
+              {hasMore ? `/ ${t('agentDirectory.hasMore')}` : `/ ${t('agentDirectory.allLoaded')}`}
+            </p>
+          </>
         )}
       </div>
 

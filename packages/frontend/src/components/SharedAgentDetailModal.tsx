@@ -5,6 +5,7 @@
 
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import toast from 'react-hot-toast';
 import { X, User } from 'lucide-react';
 import * as icons from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -59,18 +60,18 @@ export const SharedAgentDetailModal: React.FC<SharedAgentDetailModalProps> = ({
       } else {
         // 共有エージェントの場合はクローン
         if (!agent.userId) {
-          alert('エージェントのユーザーIDが見つかりません');
+          toast.error('エージェントのユーザーIDが見つかりません');
           return;
         }
         await cloneAgent(agent.userId, agent.id);
       }
 
       await refreshAgents();
-      alert('エージェントをマイエージェントに追加しました！');
+      toast.success('エージェントをマイエージェントに追加しました！');
       onClose();
     } catch (error) {
       console.error('エージェントの追加に失敗:', error);
-      alert('エージェントの追加に失敗しました');
+      toast.error('エージェントの追加に失敗しました');
     } finally {
       setIsCloning(false);
     }
@@ -82,11 +83,11 @@ export const SharedAgentDetailModal: React.FC<SharedAgentDetailModalProps> = ({
     try {
       await toggleShareAgent(agent.id);
       await fetchSharedAgents(); // 共有エージェント一覧を更新
-      alert('共有を解除しました');
+      toast.success('共有を解除しました');
       onClose();
     } catch (error) {
       console.error('共有解除に失敗:', error);
-      alert('共有解除に失敗しました');
+      toast.error('共有解除に失敗しました');
     } finally {
       setIsUnsharing(false);
     }
@@ -125,7 +126,9 @@ export const SharedAgentDetailModal: React.FC<SharedAgentDetailModalProps> = ({
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
             {/* 左側: System Prompt */}
             <div className="flex flex-col h-[80%]">
-              <h3 className="text-sm font-semibold text-gray-900 mb-3">System Prompt</h3>
+              <h3 className="text-sm font-semibold text-gray-900 mb-3">
+                {t('agent.systemPromptLabel2')}
+              </h3>
               <div className="bg-gray-50 rounded-lg p-4 flex-1 min-h-0 overflow-y-auto">
                 <pre className="text-sm text-gray-700 whitespace-pre-wrap font-mono">
                   {agent.systemPrompt}
@@ -137,7 +140,9 @@ export const SharedAgentDetailModal: React.FC<SharedAgentDetailModalProps> = ({
             <div className="space-y-6">
               {/* Tools */}
               <div>
-                <h3 className="text-sm font-semibold text-gray-900 mb-3">Tools</h3>
+                <h3 className="text-sm font-semibold text-gray-900 mb-3">
+                  {t('agent.toolsLabel')}
+                </h3>
                 <div className="flex flex-wrap gap-2">
                   {agent.enabledTools.map((tool) => (
                     <span
@@ -152,7 +157,9 @@ export const SharedAgentDetailModal: React.FC<SharedAgentDetailModalProps> = ({
 
               {/* Scenarios */}
               <div>
-                <h3 className="text-sm font-semibold text-gray-900 mb-3">Scenario</h3>
+                <h3 className="text-sm font-semibold text-gray-900 mb-3">
+                  {t('agent.scenarioLabel')}
+                </h3>
                 <div className="space-y-2">
                   {agent.scenarios.map((scenario) => (
                     <div
@@ -191,7 +198,7 @@ export const SharedAgentDetailModal: React.FC<SharedAgentDetailModalProps> = ({
               onClick={onClose}
               className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
             >
-              閉じる
+              {t('common.close')}
             </button>
             {isOwnAgent ? (
               <button

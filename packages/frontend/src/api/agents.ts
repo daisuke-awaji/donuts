@@ -24,6 +24,17 @@ export interface AgentsListResponse {
   };
 }
 
+export interface SharedAgentsResponse {
+  agents: Agent[];
+  nextCursor?: string;
+  hasMore: boolean;
+  metadata: {
+    requestId: string;
+    timestamp: string;
+    count: number;
+  };
+}
+
 export interface InitializeAgentsResponse {
   agents: Agent[];
   skipped: boolean;
@@ -325,9 +336,13 @@ export async function toggleShareAgent(agentId: string): Promise<Agent> {
 }
 
 /**
- * List shared agents
+ * List shared agents (with pagination support)
  */
-export async function listSharedAgents(searchQuery?: string, limit?: number): Promise<Agent[]> {
+export async function listSharedAgents(
+  searchQuery?: string,
+  limit?: number,
+  cursor?: string
+): Promise<SharedAgentsResponse> {
   try {
     const baseUrl = getBackendBaseUrl();
     const headers = await createAuthHeaders();
@@ -335,11 +350,12 @@ export async function listSharedAgents(searchQuery?: string, limit?: number): Pr
     const params = new URLSearchParams();
     if (searchQuery) params.append('q', searchQuery);
     if (limit) params.append('limit', limit.toString());
+    if (cursor) params.append('cursor', cursor);
 
     const queryString = params.toString();
     const url = `${baseUrl}/agents/shared-agents/list${queryString ? `?${queryString}` : ''}`;
 
-    console.log('📋 共有Agent一覧取得開始...', { searchQuery, limit });
+    console.log('📋 共有Agent一覧取得開始...', { searchQuery, limit, hasCursor: !!cursor });
 
     const response = await fetch(url, {
       method: 'GET',
@@ -355,14 +371,19 @@ export async function listSharedAgents(searchQuery?: string, limit?: number): Pr
       );
     }
 
-    const data: AgentsListResponse = await response.json();
-    console.log(`✅ 共有Agent一覧取得完了: ${data.agents.length}件`);
+    const data: SharedAgentsResponse = await response.json();
+    console.log(`✅ 共有Agent一覧取得完了: ${data.agents.length}件 (hasMore: ${data.hasMore})`);
 
-    return data.agents.map((agent) => ({
-      ...agent,
-      createdAt: new Date(agent.createdAt),
-      updatedAt: new Date(agent.updatedAt),
-    }));
+    return {
+      agents: data.agents.map((agent) => ({
+        ...agent,
+        createdAt: new Date(agent.createdAt),
+        updatedAt: new Date(agent.updatedAt),
+      })),
+      nextCursor: data.nextCursor,
+      hasMore: data.hasMore,
+      metadata: data.metadata,
+    };
   } catch (error) {
     console.error('💥 共有Agent一覧取得エラー:', error);
     throw error;

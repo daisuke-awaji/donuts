@@ -1,5 +1,5 @@
 /**
- * 共有Agent管理用Zustandストア
+ * 共有Agent管理用Zustandストア（ページネーション対応）
  */
 
 import { create } from 'zustand';
@@ -9,13 +9,22 @@ import * as agentsApi from '../api/agents';
 interface SharedAgentState {
   sharedAgents: Agent[];
   isLoading: boolean;
+  isLoadingMore: boolean;
   error: string | null;
   searchQuery: string;
+  nextCursor: string | null;
+  hasMore: boolean;
 }
 
 interface SharedAgentActions {
-  // 共有Agent一覧取得
+  // 共有Agent一覧取得（初回または検索クエリ変更時）
   fetchSharedAgents: (searchQuery?: string) => Promise<void>;
+
+  // 追加のAgentを読み込み（ページネーション）
+  loadMoreAgents: () => Promise<void>;
+
+  // ページネーションをリセット
+  resetPagination: () => void;
 
   // 検索クエリ更新
   setSearchQuery: (query: string) => void;
@@ -33,10 +42,13 @@ export const useSharedAgentStore = create<SharedAgentStore>((set, get) => ({
   // 初期状態
   sharedAgents: [],
   isLoading: false,
+  isLoadingMore: false,
   error: null,
   searchQuery: '',
+  nextCursor: null,
+  hasMore: false,
 
-  // 共有Agent一覧取得
+  // 共有Agent一覧取得（初回または検索クエリ変更時）
   fetchSharedAgents: async (searchQuery?: string) => {
     set({ isLoading: true, error: null });
 
@@ -44,12 +56,16 @@ export const useSharedAgentStore = create<SharedAgentStore>((set, get) => ({
       const query = searchQuery !== undefined ? searchQuery : get().searchQuery;
       console.log('📋 共有Agent一覧取得開始...', { query });
 
-      const agents = await agentsApi.listSharedAgents(query || undefined, 50);
+      const result = await agentsApi.listSharedAgents(query || undefined, 20);
 
-      console.log(`✅ 共有Agent一覧取得完了: ${agents.length}件`);
+      console.log(
+        `✅ 共有Agent一覧取得完了: ${result.agents.length}件 (hasMore: ${result.hasMore})`
+      );
 
       set({
-        sharedAgents: agents,
+        sharedAgents: result.agents,
+        nextCursor: result.nextCursor || null,
+        hasMore: result.hasMore,
         isLoading: false,
         error: null,
       });
@@ -59,10 +75,58 @@ export const useSharedAgentStore = create<SharedAgentStore>((set, get) => ({
       console.error('💥 共有Agent一覧取得エラー:', error);
       set({
         sharedAgents: [],
+        nextCursor: null,
+        hasMore: false,
         isLoading: false,
         error: errorMessage,
       });
     }
+  },
+
+  // 追加のAgentを読み込み（ページネーション）
+  loadMoreAgents: async () => {
+    const { nextCursor, isLoadingMore, searchQuery } = get();
+
+    if (!nextCursor || isLoadingMore) {
+      return;
+    }
+
+    set({ isLoadingMore: true, error: null });
+
+    try {
+      console.log('📋 追加Agent読み込み開始...', { cursor: nextCursor });
+
+      const result = await agentsApi.listSharedAgents(searchQuery || undefined, 20, nextCursor);
+
+      console.log(
+        `✅ 追加Agent読み込み完了: ${result.agents.length}件 (hasMore: ${result.hasMore})`
+      );
+
+      set((state) => ({
+        sharedAgents: [...state.sharedAgents, ...result.agents],
+        nextCursor: result.nextCursor || null,
+        hasMore: result.hasMore,
+        isLoadingMore: false,
+        error: null,
+      }));
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : '追加Agentの読み込みに失敗しました';
+      console.error('💥 追加Agent読み込みエラー:', error);
+      set({
+        isLoadingMore: false,
+        error: errorMessage,
+      });
+    }
+  },
+
+  // ページネーションをリセット
+  resetPagination: () => {
+    set({
+      sharedAgents: [],
+      nextCursor: null,
+      hasMore: false,
+    });
   },
 
   // 検索クエリ更新

@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Loader2 } from 'lucide-react';
 import { generateDownloadUrl } from '../api/storage';
 
 interface S3FileLinkProps {
@@ -7,6 +9,7 @@ interface S3FileLinkProps {
 }
 
 export const S3FileLink: React.FC<S3FileLinkProps> = ({ path, children }) => {
+  const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -90,9 +93,9 @@ export const S3FileLink: React.FC<S3FileLinkProps> = ({ path, children }) => {
       >
         <span className="text-base leading-none">{getFileIcon()}</span>
         <span>{children}</span>
-        {isLoading && <span className="inline-block animate-spin text-xs">⟳</span>}
+        {isLoading && <Loader2 className="w-3 h-3 animate-spin" />}
       </a>
-      {error && <span className="text-xs text-red-600 ml-1">(Failed to load)</span>}
+      {error && <span className="text-xs text-red-600 ml-1">({t('storage.failedToLoad')})</span>}
     </span>
   );
 };

@@ -101,6 +101,9 @@ chat:
 
 # Agent
 agent:
+  systemPromptLabel2: System Prompt
+  toolsLabel: Tools
+  scenarioLabel: Scenario
   selectAgent: Select Agent
   createAgent: Create Agent
   editAgent: Edit Agent
@@ -174,6 +177,10 @@ agentDirectory:
   noAgentsDescription: Try changing your search criteria and try again
   noAgentsEmpty: No agents available
   createdBy: Created by
+  loadMore: Load More
+  itemsDisplayed: items displayed
+  hasMore: more available
+  allLoaded: all loaded
 
 # Tools
 tool:
@@ -242,6 +249,9 @@ tool:
 # Storage
 storage:
   title: Storage Management
+  loadingImage: Loading image...
+  failedToLoadImage: Failed to load image
+  failedToLoad: Failed to load
   currentPath: Current Path
   uploadFile: Upload File
   uploadFolder: Upload Folder
