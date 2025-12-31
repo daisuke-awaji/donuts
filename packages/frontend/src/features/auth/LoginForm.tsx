@@ -135,19 +135,6 @@ export const LoginForm: React.FC<LoginFormProps> = ({
             </div>
           </div>
 
-          {/* パスワードを忘れた方はこちら */}
-          {onSwitchToForgotPassword && (
-            <div className="flex justify-end">
-              <button
-                type="button"
-                onClick={onSwitchToForgotPassword}
-                className="text-sm text-indigo-600 hover:text-indigo-500 transition-colors"
-              >
-                パスワードを忘れた方はこちら
-              </button>
-            </div>
-          )}
-
           {error && (
             <div className="bg-red-50 border border-red-200 rounded-2xl p-4">
               <div className="flex">
@@ -201,7 +188,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
           </button>
         </form>
 
-        <div className="text-center">
+        <div className="text-center space-y-2">
           <p className="text-sm text-gray-600">
             {t('auth.noAccount')}{' '}
             {onSwitchToSignUp && (
@@ -214,6 +201,17 @@ export const LoginForm: React.FC<LoginFormProps> = ({
               </button>
             )}
           </p>
+          {onSwitchToForgotPassword && (
+            <p className="text-sm">
+              <button
+                type="button"
+                onClick={onSwitchToForgotPassword}
+                className="text-gray-600 hover:text-indigo-600 transition-colors"
+              >
+                パスワードを忘れた方はこちら
+              </button>
+            </p>
+          )}
         </div>
       </div>
     </div>
