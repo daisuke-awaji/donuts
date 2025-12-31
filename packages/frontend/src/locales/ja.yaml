@@ -84,6 +84,7 @@ navigation:
   searchChat: チャットを検索
   searchTools: ツールを検索
   searchAgents: エージェントを検索
+  manageAgents: エージェント管理
   events: イベント連携
   settings: 設定
   userMenu: ユーザーメニュー
@@ -113,6 +114,9 @@ chat:
 
 # エージェント
 agent:
+  systemPromptLabel2: System Prompt
+  toolsLabel: Tools
+  scenarioLabel: Scenario
   selectAgent: エージェントを選択
   createAgent: エージェントを作成
   createNewAgent: 新規エージェント作成
@@ -174,6 +178,26 @@ agent:
   validationScenarioTitleRequired: シナリオタイトルは必須です
   validationScenarioPromptRequired: シナリオプロンプトは必須です
   validationGenerationFailed: 生成に失敗しました
+  share: 共有する
+  unshare: 共有を解除
+  shareSuccess: エージェントを共有しました
+  unshareSuccess: エージェントの共有を解除しました
+  shareError: 共有状態の変更に失敗しました
+
+# Agent Directory
+agentDirectory:
+  loading: エージェントを読み込み中...
+  description: 組織によって作成されたエージェントを閲覧し、コレクションに追加できます
+  searchTitle: エージェントを検索
+  searchPlaceholder: エージェントを検索...
+  noAgentsFound: エージェントが見つかりませんでした
+  noAgentsDescription: 検索条件を変更してもう一度お試しください
+  noAgentsEmpty: エージェントがありません
+  createdBy: 作成者
+  loadMore: もっと読み込む
+  itemsDisplayed: 件表示
+  hasMore: 続きあり
+  allLoaded: 全件表示完了
 
 # ツール
 tool:
@@ -247,6 +271,9 @@ tool:
 storage:
   title: ストレージ管理
   fileStorage: ファイルストレージ
+  loadingImage: 画像を読み込み中...
+  failedToLoadImage: 画像の読み込みに失敗しました
+  failedToLoad: 読み込み失敗
   description: ユーザーごとに Amazon S3 の領域を提供しています。AI エージェントのワークスペース（/tmp/ws）と自動的に同期されるため、エージェントが作成・編集したファイルはこの領域に保存されます。ディレクトリを選択すると、そのディレクトリ内のファイルがエージェントのワークスペースに読み込まれます。
   currentPath: 現在のパス
   uploadFile: ファイルをアップロード
@@ -273,7 +300,7 @@ storage:
   uploadSuccess: アップロード完了
   uploadError: アップロードエラー
   deleteConfirm: 本当に削除しますか？
-  deleteDirectoryConfirm: 'ディレクトリ "{{name}}" を削除しますか？\n\n⚠️ ディレクトリ内のすべてのファイルとサブフォルダも削除されます。'
+  deleteDirectoryConfirm: 'ディレクトリ "{{name}}" を削除しますか？ディレクトリ内のすべてのファイルとサブフォルダも削除されます。'
   deleteFileConfirm: 'ファイル "{{name}}" を削除しますか？'
   emptyFolder: フォルダが空です
   dragAndDropHint: ファイルをドラッグ&ドロップするか、アップロードボタンをクリックしてください

@@ -37,6 +37,11 @@ export interface Agent {
   mcpConfig?: MCPConfig; // MCP サーバー設定
   createdAt: Date;
   updatedAt: Date;
+
+  // 共有関連
+  isShared: boolean; // 共有フラグ（組織全体に公開）
+  createdBy: string; // 作成者名（Cognito username）
+  userId?: string; // 元のユーザーID（共有エージェントのクローン時に使用）
 }
 
 /**
@@ -73,22 +78,21 @@ export interface AgentState {
  * AgentStore のアクション
  */
 export interface AgentActions {
-  // Agent CRUD
-  createAgent: (input: CreateAgentInput) => Agent;
-  updateAgent: (input: UpdateAgentInput) => void;
-  deleteAgent: (id: string) => void;
+  // Agent CRUD (async)
+  createAgent: (input: CreateAgentInput) => Promise<Agent>;
+  updateAgent: (input: UpdateAgentInput) => Promise<void>;
+  deleteAgent: (id: string) => Promise<void>;
   getAgent: (id: string) => Agent | undefined;
+
+  // Agent共有
+  toggleShare: (id: string) => Promise<Agent>;
 
   // Agent選択
   selectAgent: (agent: Agent | null) => void;
 
-  // 初期化・リセット
-  initializeStore: () => void;
+  // 初期化・リセット (async)
+  initializeStore: () => Promise<void>;
   clearError: () => void;
-
-  // LocalStorage 操作
-  saveToLocalStorage: () => void;
-  loadFromLocalStorage: () => void;
 }
 
 /**
@@ -100,39 +104,6 @@ export type AgentStore = AgentState & AgentActions;
  * デフォルトAgent作成用のデータ
  */
 export const DEFAULT_AGENTS: CreateAgentInput[] = [
-  {
-    name: 'defaultAgents.generalAssistant.name',
-    description: 'defaultAgents.generalAssistant.description',
-    icon: 'Bot',
-    systemPrompt: 'defaultAgents.generalAssistant.systemPrompt',
-    enabledTools: ['file_editor', 's3_list_files', 's3_get_presigned_urls', 'tavily_search'],
-    scenarios: [
-      {
-        title: 'defaultAgents.generalAssistant.scenarios.question.title',
-        prompt: 'defaultAgents.generalAssistant.scenarios.question.prompt',
-      },
-      {
-        title: 'defaultAgents.generalAssistant.scenarios.correction.title',
-        prompt: 'defaultAgents.generalAssistant.scenarios.correction.prompt',
-      },
-      {
-        title: 'defaultAgents.generalAssistant.scenarios.webSearch.title',
-        prompt: 'defaultAgents.generalAssistant.scenarios.webSearch.prompt',
-      },
-      {
-        title: 'defaultAgents.generalAssistant.scenarios.summary.title',
-        prompt: 'defaultAgents.generalAssistant.scenarios.summary.prompt',
-      },
-      {
-        title: 'defaultAgents.generalAssistant.scenarios.ideation.title',
-        prompt: 'defaultAgents.generalAssistant.scenarios.ideation.prompt',
-      },
-      {
-        title: 'defaultAgents.generalAssistant.scenarios.comparison.title',
-        prompt: 'defaultAgents.generalAssistant.scenarios.comparison.prompt',
-      },
-    ],
-  },
   {
     name: 'defaultAgents.codeReview.name',
     description: 'defaultAgents.codeReview.description',

@@ -6,6 +6,7 @@ import { useSelectedAgent } from '../stores/agentStore';
 import { useSessionStore } from '../stores/sessionStore';
 import { Message } from './Message';
 import { MessageSkeleton } from './MessageSkeleton';
+import { translateIfKey } from '../utils/agent-translation';
 
 interface MessageListProps {
   onScenarioClick?: (prompt: string) => void;
@@ -75,8 +76,12 @@ export const MessageList: React.FC<MessageListProps> = ({ onScenarioClick }) => 
               </svg>
             </div>
 
-            <h3 className="text-2xl font-semibold text-gray-900 mb-2">{selectedAgent.name}</h3>
-            <p className="text-gray-600 max-w-md mx-auto mb-8">{selectedAgent.description}</p>
+            <h3 className="text-2xl font-semibold text-gray-900 mb-2">
+              {translateIfKey(selectedAgent.name, t)}
+            </h3>
+            <p className="text-gray-600 max-w-md mx-auto mb-8">
+              {translateIfKey(selectedAgent.description, t)}
+            </p>
 
             {/* シナリオボタン（グリッド形式） */}
             {selectedAgent.scenarios.length > 0 && (
@@ -84,10 +89,10 @@ export const MessageList: React.FC<MessageListProps> = ({ onScenarioClick }) => 
                 {selectedAgent.scenarios.map((scenario) => (
                   <button
                     key={scenario.id}
-                    onClick={() => onScenarioClick?.(scenario.prompt)}
+                    onClick={() => onScenarioClick?.(translateIfKey(scenario.prompt, t))}
                     className="px-4 py-3 text-left text-sm text-gray-700 bg-white hover:bg-gray-50 rounded-xl border border-gray-200 transition-colors"
                   >
-                    {scenario.title}
+                    {translateIfKey(scenario.title, t)}
                   </button>
                 ))}
               </div>

@@ -20,6 +20,7 @@ interface StackOutputs {
   MemoryId?: string;
   GatewayMcpEndpoint?: string;
   UserStorageBucketName?: string;
+  AgentsTableName?: string;
 }
 
 const STACK_NAME = process.env.STACK_NAME || 'AgentCoreStack';
@@ -117,6 +118,11 @@ AGENTCORE_GATEWAY_ENDPOINT=${outputs.GatewayMcpEndpoint || ''}
 # User Storage 設定
 # =============================================================================
 USER_STORAGE_BUCKET_NAME=${outputs.UserStorageBucketName || ''}
+
+# =============================================================================
+# Agents Table 設定
+# =============================================================================
+AGENTS_TABLE_NAME=${outputs.AgentsTableName || ''}
 `;
 }
 
@@ -169,6 +175,7 @@ async function main() {
       'MemoryId',
       'GatewayMcpEndpoint',
       'UserStorageBucketName',
+      'AgentsTableName',
     ];
 
     const missingOutputs = requiredOutputs.filter((key) => !outputs[key]);

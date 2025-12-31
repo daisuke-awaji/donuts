@@ -71,6 +71,7 @@ navigation:
   searchChat: Search Chats
   searchTools: Search Tools
   searchAgents: Search Agents
+  manageAgents: Manage Agents
   events: Event Integration
   settings: Settings
   userMenu: User Menu
@@ -100,6 +101,9 @@ chat:
 
 # Agent
 agent:
+  systemPromptLabel2: System Prompt
+  toolsLabel: Tools
+  scenarioLabel: Scenario
   selectAgent: Select Agent
   createAgent: Create Agent
   editAgent: Edit Agent
@@ -157,6 +161,26 @@ agent:
   validationScenarioTitleRequired: Scenario title is required
   validationScenarioPromptRequired: Scenario prompt is required
   validationGenerationFailed: Generation failed
+  share: Share
+  unshare: Unshare
+  shareSuccess: Agent shared successfully
+  unshareSuccess: Agent unshared successfully
+  shareError: Failed to change sharing status
+
+# Agent Directory
+agentDirectory:
+  loading: Loading agents...
+  description: Browse agents created by your organization and add them to your collection
+  searchTitle: Search Agents
+  searchPlaceholder: Search agents...
+  noAgentsFound: No agents found
+  noAgentsDescription: Try changing your search criteria and try again
+  noAgentsEmpty: No agents available
+  createdBy: Created by
+  loadMore: Load More
+  itemsDisplayed: items displayed
+  hasMore: more available
+  allLoaded: all loaded
 
 # Tools
 tool:
@@ -225,6 +249,9 @@ tool:
 # Storage
 storage:
   title: Storage Management
+  loadingImage: Loading image...
+  failedToLoadImage: Failed to load image
+  failedToLoad: Failed to load
   currentPath: Current Path
   uploadFile: Upload File
   uploadFolder: Upload Folder
