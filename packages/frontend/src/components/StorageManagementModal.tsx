@@ -143,12 +143,12 @@ function StorageItemComponent({
           <div className="text-sm font-medium text-gray-900 truncate">{item.name}</div>
           <div className="flex items-center gap-4 text-xs text-gray-500 mt-1">
             {item.type === 'file' && <span>{formatSize(item.size)}</span>}
-            <span>{formatDate(item.lastModified)}</span>
+            <span className="hidden sm:inline">{formatDate(item.lastModified)}</span>
           </div>
         </div>
 
         {/* アクション */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-2">
           <button
             onClick={handleDownloadClick}
             className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
@@ -670,13 +670,13 @@ export function StorageManagementModal({ isOpen, onClose }: StorageManagementMod
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="xl" className="max-w-6xl h-[85vh]">
+    <Modal isOpen={isOpen} onClose={onClose} size="xl" className="md:max-w-6xl md:h-[85vh] max-w-full h-screen">
       {/* ヘッダー */}
-      <div className="border-b border-gray-200 px-6 py-4">
+      <div className="border-b border-gray-200 px-4 md:px-6 py-3 md:py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Folder className="w-5 h-5 text-amber-500" />
-            <h2 className="text-lg font-semibold text-gray-900">{t('storage.fileStorage')}</h2>
+            <h2 className="text-base md:text-lg font-semibold text-gray-900">{t('storage.fileStorage')}</h2>
             <Tooltip
               content={<div className="text-xs leading-relaxed">{t('storage.description')}</div>}
               position="bottom"
@@ -697,15 +697,15 @@ export function StorageManagementModal({ isOpen, onClose }: StorageManagementMod
       </div>
 
       {/* ツールバー */}
-      <div className="px-6 py-2.5 border-b border-gray-100 bg-gray-50">
-        <div className="flex items-center gap-1.5">
+      <div className="px-4 md:px-6 py-2.5 border-b border-gray-100 bg-gray-50">
+        <div className="flex flex-wrap items-center gap-1.5">
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={isUploading}
             className="flex items-center gap-1.5 px-2 py-1.5 text-xs text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <Upload className="w-3.5 h-3.5" />
-            {t('storage.upload')}
+            <span className="hidden sm:inline">{t('storage.upload')}</span>
           </button>
 
           <button
@@ -713,7 +713,7 @@ export function StorageManagementModal({ isOpen, onClose }: StorageManagementMod
             className="flex items-center gap-1.5 px-2 py-1.5 text-xs text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors"
           >
             <FolderPlus className="w-3.5 h-3.5" />
-            {t('storage.newFolder')}
+            <span className="hidden sm:inline">{t('storage.newFolder')}</span>
           </button>
 
           <input
@@ -727,7 +727,7 @@ export function StorageManagementModal({ isOpen, onClose }: StorageManagementMod
 
         {/* 新規ディレクトリ入力 */}
         {showNewDirectoryInput && (
-          <div className="flex items-center gap-2 mt-3">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mt-3">
             <input
               type="text"
               value={newDirectoryName}
@@ -737,30 +737,32 @@ export function StorageManagementModal({ isOpen, onClose }: StorageManagementMod
               className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               autoFocus
             />
-            <button
-              onClick={handleCreateDirectory}
-              disabled={!newDirectoryName.trim()}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {t('storage.create')}
-            </button>
-            <button
-              onClick={() => {
-                setShowNewDirectoryInput(false);
-                setNewDirectoryName('');
-              }}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 rounded-md transition-colors"
-            >
-              {t('common.cancel')}
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={handleCreateDirectory}
+                disabled={!newDirectoryName.trim()}
+                className="flex-1 sm:flex-none px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {t('storage.create')}
+              </button>
+              <button
+                onClick={() => {
+                  setShowNewDirectoryInput(false);
+                  setNewDirectoryName('');
+                }}
+                className="flex-1 sm:flex-none px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 rounded-md transition-colors"
+              >
+                {t('common.cancel')}
+              </button>
+            </div>
           </div>
         )}
 
         {/* アップロード進捗 */}
         {isUploading && (
           <div className="mt-3">
-            <div className="flex items-center justify-between text-sm text-gray-600 mb-1">
-              <span>
+            <div className="flex items-center justify-between text-xs sm:text-sm text-gray-600 mb-1">
+              <span className="truncate">
                 {uploadTotal > 0
                   ? t('storage.uploadingProgress', {
                       completed: uploadCompleted,
@@ -768,7 +770,7 @@ export function StorageManagementModal({ isOpen, onClose }: StorageManagementMod
                     })
                   : t('storage.uploading')}
               </span>
-              <span>{uploadProgress}%</span>
+              <span className="ml-2">{uploadProgress}%</span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2">
               <div
@@ -780,10 +782,10 @@ export function StorageManagementModal({ isOpen, onClose }: StorageManagementMod
         )}
       </div>
 
-      {/* コンテンツエリア: 2カラムレイアウト */}
+      {/* コンテンツエリア: レスポンシブレイアウト */}
       <div className="flex divide-x divide-gray-200 flex-1 min-h-0">
-        {/* 左カラム: フォルダツリー */}
-        <div className="w-[240px] flex-shrink-0 overflow-y-auto bg-gray-50">
+        {/* 左カラム: フォルダツリー - デスクトップのみ表示 */}
+        <div className="hidden md:block md:w-[240px] flex-shrink-0 overflow-y-auto bg-gray-50">
           <div className="px-3 py-2">
             <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 px-2">
               {t('storage.folders')}
@@ -803,13 +805,13 @@ export function StorageManagementModal({ isOpen, onClose }: StorageManagementMod
         {/* 右カラム: ファイル一覧 */}
         <div className="flex-1 flex flex-col min-w-0">
           {/* パンくずナビゲーション */}
-          <div className="px-6 py-3 border-b border-gray-100 bg-white">
-            <div className="flex items-center gap-1 text-sm">
+          <div className="px-4 md:px-6 py-3 border-b border-gray-100 bg-white">
+            <div className="flex flex-wrap items-center gap-1 text-sm overflow-x-auto">
               <button
                 onClick={handleNavigateToRoot}
-                className="flex items-center gap-1 px-2 py-1 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors"
+                className="flex items-center gap-1 px-2 py-1 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors whitespace-nowrap"
               >
-                <Home className="w-4 h-4" />
+                <Home className="w-4 h-4 flex-shrink-0" />
                 <span>{t('storage.root')}</span>
               </button>
 
@@ -817,10 +819,10 @@ export function StorageManagementModal({ isOpen, onClose }: StorageManagementMod
                 const segmentPath = '/' + pathSegments.slice(0, index + 1).join('/');
                 return (
                   <div key={segmentPath} className="flex items-center gap-1">
-                    <ChevronRight className="w-4 h-4 text-gray-400" />
+                    <ChevronRight className="w-4 h-4 text-gray-400 flex-shrink-0" />
                     <button
                       onClick={() => handleNavigate(segmentPath)}
-                      className="px-2 py-1 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors"
+                      className="px-2 py-1 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors truncate max-w-[120px] sm:max-w-none"
                     >
                       {segment}
                     </button>
@@ -832,7 +834,7 @@ export function StorageManagementModal({ isOpen, onClose }: StorageManagementMod
 
           {/* ファイルリスト */}
           <div
-            className={`flex-1 overflow-y-auto px-6 py-4 relative ${
+            className={`flex-1 overflow-y-auto px-4 md:px-6 py-4 relative ${
               isDragOver ? 'bg-blue-50' : ''
             }`}
             onDragOver={handleDragOver}
@@ -843,8 +845,8 @@ export function StorageManagementModal({ isOpen, onClose }: StorageManagementMod
             {error && (
               <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
                 <AlertCircle className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />
-                <div className="flex-1">
-                  <p className="text-sm text-red-800">{error}</p>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-red-800 break-words">{error}</p>
                   <button
                     onClick={clearError}
                     className="text-sm text-red-600 hover:text-red-800 font-medium mt-1"
@@ -908,8 +910,8 @@ export function StorageManagementModal({ isOpen, onClose }: StorageManagementMod
             ref={contextMenuRef}
             className="fixed bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50 min-w-[160px]"
             style={{
-              left: `${contextMenu.x}px`,
-              top: `${contextMenu.y}px`,
+              left: `${Math.min(contextMenu.x, window.innerWidth - 180)}px`,
+              top: `${Math.min(contextMenu.y, window.innerHeight - 200)}px`,
             }}
           >
             {contextMenu.type === 'file' ? (
@@ -962,8 +964,8 @@ export function StorageManagementModal({ isOpen, onClose }: StorageManagementMod
             ref={folderContextMenuRef}
             className="fixed bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50 min-w-[160px]"
             style={{
-              left: `${folderContextMenu.x}px`,
-              top: `${folderContextMenu.y}px`,
+              left: `${Math.min(folderContextMenu.x, window.innerWidth - 180)}px`,
+              top: `${Math.min(folderContextMenu.y, window.innerHeight - 200)}px`,
             }}
           >
             <button
@@ -1004,8 +1006,8 @@ export function StorageManagementModal({ isOpen, onClose }: StorageManagementMod
       </div>
 
       {/* フッター */}
-      <div className="border-t border-gray-200 px-6 py-4 bg-gray-50">
-        <div className="flex justify-between items-center">
+      <div className="border-t border-gray-200 px-4 md:px-6 py-3 md:py-4 bg-gray-50">
+        <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-2 sm:gap-0">
           <p className="text-xs text-gray-500">{t('storage.itemCount', { count: items.length })}</p>
           <button
             onClick={onClose}
