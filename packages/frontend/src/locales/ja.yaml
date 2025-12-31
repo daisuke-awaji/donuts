@@ -362,6 +362,12 @@ settings:
   themeLight: ライト
   themeDark: ダーク
   themeAuto: 自動
+  advanced: 詳細設定
+  enterBehaviorDescription: メッセージを書いているとき、
+  enterBehaviorSuffix: を押すと
+  sendOnEnter: メッセージを送信
+  newlineOnEnter: 改行
+  sendSuffix: で送信
 
 # エラー
 error:

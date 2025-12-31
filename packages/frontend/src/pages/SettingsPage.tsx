@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Settings, Brain, HelpCircle, Languages, ChevronDown, Check } from 'lucide-react';
 import { useMemoryStore } from '../stores/memoryStore';
+import { useSettingsStore } from '../stores/settingsStore';
 import { MemoryManagementModal } from '../components/MemoryManagementModal';
 
 /**
@@ -11,6 +12,7 @@ import { MemoryManagementModal } from '../components/MemoryManagementModal';
 export function SettingsPage() {
   const { t, i18n } = useTranslation();
   const { isMemoryEnabled, setMemoryEnabled } = useMemoryStore();
+  const { sendBehavior, setSendBehavior } = useSettingsStore();
   const [showMemoryModal, setShowMemoryModal] = useState(false);
   const [isLanguageDropdownOpen, setIsLanguageDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -146,6 +148,53 @@ export function SettingsPage() {
                   `}
                 />
               </button>
+            </div>
+          </div>
+        </div>
+
+        {/* 詳細設定セクション */}
+        <div className="mb-8">
+          <h2 className="text-lg font-semibold text-gray-900 mb-6">{t('settings.advanced')}</h2>
+
+          <div className="space-y-4">
+            <p className="text-sm text-gray-700">
+              {t('settings.enterBehaviorDescription')}
+              <kbd className="mx-1 px-2 py-1 bg-gray-100 rounded text-sm font-mono">Enter</kbd>
+              {t('settings.enterBehaviorSuffix')}
+            </p>
+
+            {/* ラジオボタン選択 */}
+            <div className="space-y-3">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="radio"
+                  name="sendBehavior"
+                  value="enter"
+                  checked={sendBehavior === 'enter'}
+                  onChange={() => setSendBehavior('enter')}
+                  className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                />
+                <span className="text-sm text-gray-900">{t('settings.sendOnEnter')}</span>
+              </label>
+
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="radio"
+                  name="sendBehavior"
+                  value="cmdEnter"
+                  checked={sendBehavior === 'cmdEnter'}
+                  onChange={() => setSendBehavior('cmdEnter')}
+                  className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                />
+                <span className="text-sm text-gray-900">
+                  {t('settings.newlineOnEnter')}（
+                  <kbd className="mx-1 px-1.5 py-0.5 bg-gray-100 rounded text-xs font-mono">⌘</kbd>+
+                  <kbd className="mx-1 px-1.5 py-0.5 bg-gray-100 rounded text-xs font-mono">
+                    Enter
+                  </kbd>
+                  {t('settings.sendSuffix')}）
+                </span>
+              </label>
             </div>
           </div>
         </div>

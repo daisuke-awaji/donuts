@@ -122,14 +122,14 @@ export const SharedAgentDetailModal: React.FC<SharedAgentDetailModalProps> = ({
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-hidden p-6">
+        <div className="flex-1 overflow-y-auto p-6 min-h-0">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
             {/* 左側: System Prompt */}
-            <div className="flex flex-col h-[80%]">
+            <div className="flex flex-col min-h-0">
               <h3 className="text-sm font-semibold text-gray-900 mb-3">
                 {t('agent.systemPromptLabel2')}
               </h3>
-              <div className="bg-gray-50 rounded-lg p-4 flex-1 min-h-0 overflow-y-auto">
+              <div className="bg-gray-50 rounded-lg p-4 flex-1 overflow-y-auto max-h-[50vh]">
                 <pre className="text-sm text-gray-700 whitespace-pre-wrap font-mono">
                   {agent.systemPrompt}
                 </pre>

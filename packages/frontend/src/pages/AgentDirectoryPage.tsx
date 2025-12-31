@@ -178,7 +178,7 @@ export function AgentDirectoryPage() {
                   <div
                     key={`${agent.createdBy}-${agent.id}`}
                     onClick={() => handleAgentClick(agent)}
-                    className="bg-white rounded-xl border border-gray-200 p-4 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer"
+                    className="bg-white rounded-xl border border-gray-200 p-4 hover:border-gray-300 hover:shadow-md transition-all cursor-pointer"
                   >
                     {/* アイコンと名前 */}
                     <div className="flex items-start gap-3 mb-3">

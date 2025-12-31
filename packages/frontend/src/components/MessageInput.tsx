@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Send, Loader2 } from 'lucide-react';
 import { useChatStore } from '../stores/chatStore';
+import { useSettingsStore } from '../stores/settingsStore';
 import { StoragePathDisplay } from './StoragePathDisplay';
 import { StorageManagementModal } from './StorageManagementModal';
 
@@ -18,6 +19,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
 }) => {
   const { t } = useTranslation();
   const { sendPrompt, isLoading } = useChatStore();
+  const { sendBehavior } = useSettingsStore();
   const [input, setInput] = useState('');
   const [isStorageModalOpen, setIsStorageModalOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -98,10 +100,23 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    // Shift + Enter で改行、Enter で送信（IME変換中は除く）
-    if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
-      e.preventDefault();
-      handleSubmit(e);
+    // IME変換中は何もしない
+    if (e.nativeEvent.isComposing) {
+      return;
+    }
+
+    if (sendBehavior === 'enter') {
+      // Enter で送信、Shift+Enter で改行
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        handleSubmit(e);
+      }
+    } else {
+      // Cmd/Ctrl+Enter で送信、Enter で改行
+      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        handleSubmit(e);
+      }
     }
   };
 
@@ -143,9 +158,6 @@ export const MessageInput: React.FC<MessageInputProps> = ({
             )}
           </button>
         </div>
-
-        {/* ヘルプテキスト */}
-        <p className="mt-2 text-xs text-gray-500">{t('chat.inputHelp')}</p>
       </form>
 
       {/* ストレージ管理モーダル */}
