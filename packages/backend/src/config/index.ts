@@ -41,6 +41,9 @@ const envSchema = z.object({
 
   // Agents Table 設定
   AGENTS_TABLE_NAME: z.string().optional(),
+
+  // Events Table 設定
+  EVENTS_TABLE_NAME: z.string().optional(),
 });
 
 /**
@@ -109,6 +112,11 @@ export const config = {
 
   // Agents Table 設定
   agentsTableName: env.AGENTS_TABLE_NAME,
+
+  // Events Table 設定
+  events: {
+    tableName: env.EVENTS_TABLE_NAME,
+  },
 } as const;
 
 /**
