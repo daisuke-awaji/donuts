@@ -3,9 +3,7 @@
  * ユーザーファイルストレージAPI
  */
 
-import { getValidAccessToken } from '../lib/cognito';
-
-const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
+import { backendGet, backendPost, backendRequest } from './client/backend-client';
 
 export interface StorageItem {
   name: string;
@@ -37,199 +35,6 @@ export interface FolderTreeResponse {
   tree: FolderNode[];
 }
 
-/**
- * 認証ヘッダーを作成（自動トークンリフレッシュ付き）
- */
-async function createAuthHeaders(): Promise<Record<string, string>> {
-  const accessToken = await getValidAccessToken();
-
-  if (!accessToken) {
-    throw new Error('認証が必要です。再ログインしてください。');
-  }
-
-  return {
-    'Content-Type': 'application/json',
-    Authorization: `Bearer ${accessToken}`,
-  };
-}
-
-/**
- * ディレクトリ一覧を取得
- */
-export async function listStorageItems(path: string = '/'): Promise<ListStorageResponse> {
-  const url = new URL(`${API_BASE_URL}/storage/list`);
-  url.searchParams.append('path', path);
-
-  const headers = await createAuthHeaders();
-
-  const response = await fetch(url.toString(), {
-    method: 'GET',
-    headers,
-  });
-
-  if (!response.ok) {
-    throw new Error(`Failed to list storage items: ${response.statusText}`);
-  }
-
-  return response.json();
-}
-
-/**
- * ファイルアップロード用の署名付きURLを生成
- */
-export async function generateUploadUrl(
-  fileName: string,
-  path: string = '/',
-  contentType?: string
-): Promise<UploadUrlResponse> {
-  const headers = await createAuthHeaders();
-
-  const response = await fetch(`${API_BASE_URL}/storage/upload`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({
-      fileName,
-      path,
-      contentType,
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Failed to generate upload URL: ${response.statusText}`);
-  }
-
-  return response.json();
-}
-
-/**
- * 署名付きURLを使用してS3にファイルをアップロード
- */
-export async function uploadFileToS3(uploadUrl: string, file: File): Promise<void> {
-  const response = await fetch(uploadUrl, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': file.type || 'application/octet-stream',
-    },
-    body: file,
-  });
-
-  if (!response.ok) {
-    throw new Error(`Failed to upload file to S3: ${response.statusText}`);
-  }
-}
-
-/**
- * ディレクトリを作成
- */
-export async function createDirectory(directoryName: string, path: string = '/') {
-  const headers = await createAuthHeaders();
-
-  const response = await fetch(`${API_BASE_URL}/storage/directory`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({
-      directoryName,
-      path,
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Failed to create directory: ${response.statusText}`);
-  }
-
-  return response.json();
-}
-
-/**
- * ファイルを削除
- */
-export async function deleteFile(path: string) {
-  const url = new URL(`${API_BASE_URL}/storage/file`);
-  url.searchParams.append('path', path);
-
-  const headers = await createAuthHeaders();
-
-  const response = await fetch(url.toString(), {
-    method: 'DELETE',
-    headers,
-  });
-
-  if (!response.ok) {
-    throw new Error(`Failed to delete file: ${response.statusText}`);
-  }
-
-  return response.json();
-}
-
-/**
- * ディレクトリを削除
- * @param path ディレクトリパス
- * @param force true の場合、ディレクトリ内のすべてのファイルを含めて削除
- */
-export async function deleteDirectory(path: string, force: boolean = false) {
-  const url = new URL(`${API_BASE_URL}/storage/directory`);
-  url.searchParams.append('path', path);
-  if (force) {
-    url.searchParams.append('force', 'true');
-  }
-
-  const headers = await createAuthHeaders();
-
-  const response = await fetch(url.toString(), {
-    method: 'DELETE',
-    headers,
-  });
-
-  if (!response.ok) {
-    throw new Error(`Failed to delete directory: ${response.statusText}`);
-  }
-
-  return response.json();
-}
-
-/**
- * ファイルダウンロード用の署名付きURLを生成
- */
-export async function generateDownloadUrl(path: string): Promise<string> {
-  const url = new URL(`${API_BASE_URL}/storage/download`);
-  url.searchParams.append('path', path);
-
-  const headers = await createAuthHeaders();
-
-  const response = await fetch(url.toString(), {
-    method: 'GET',
-    headers,
-  });
-
-  if (!response.ok) {
-    throw new Error(`Failed to generate download URL: ${response.statusText}`);
-  }
-
-  const data = await response.json();
-  return data.downloadUrl;
-}
-
-/**
- * フォルダツリー構造を取得
- */
-export async function fetchFolderTree(): Promise<FolderTreeResponse> {
-  const headers = await createAuthHeaders();
-
-  const response = await fetch(`${API_BASE_URL}/storage/tree`, {
-    method: 'GET',
-    headers,
-  });
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch folder tree: ${response.statusText}`);
-  }
-
-  return response.json();
-}
-
-/**
- * フォルダダウンロード用のファイル情報
- */
 export interface DownloadFileInfo {
   relativePath: string;
   downloadUrl: string;
@@ -250,31 +55,115 @@ export interface DownloadProgress {
 }
 
 /**
- * フォルダ内のすべてのファイル情報を取得
+ * ディレクトリ一覧を取得
  */
-export async function getFolderDownloadInfo(path: string): Promise<FolderDownloadInfo> {
-  const url = new URL(`${API_BASE_URL}/storage/download-folder`);
-  url.searchParams.append('path', path);
+export async function listStorageItems(path: string = '/'): Promise<ListStorageResponse> {
+  const params = new URLSearchParams();
+  params.append('path', path);
 
-  const headers = await createAuthHeaders();
+  return backendGet<ListStorageResponse>(`/storage/list?${params.toString()}`);
+}
 
-  const response = await fetch(url.toString(), {
-    method: 'GET',
-    headers,
+/**
+ * ファイルアップロード用の署名付きURLを生成
+ */
+export async function generateUploadUrl(
+  fileName: string,
+  path: string = '/',
+  contentType?: string
+): Promise<UploadUrlResponse> {
+  return backendPost<UploadUrlResponse>('/storage/upload', {
+    fileName,
+    path,
+    contentType,
+  });
+}
+
+/**
+ * 署名付きURLを使用してS3にファイルをアップロード
+ * Note: This is direct S3 upload, not using backend client
+ */
+export async function uploadFileToS3(uploadUrl: string, file: File): Promise<void> {
+  const response = await fetch(uploadUrl, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': file.type || 'application/octet-stream',
+    },
+    body: file,
   });
 
   if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(
-      errorData.message || `Failed to get folder download info: ${response.statusText}`
-    );
+    throw new Error(`Failed to upload file to S3: ${response.statusText}`);
+  }
+}
+
+/**
+ * ディレクトリを作成
+ */
+export async function createDirectory(directoryName: string, path: string = '/') {
+  return backendPost('/storage/directory', {
+    directoryName,
+    path,
+  });
+}
+
+/**
+ * ファイルを削除
+ */
+export async function deleteFile(path: string) {
+  const params = new URLSearchParams();
+  params.append('path', path);
+
+  return backendRequest(`/storage/file?${params.toString()}`, { method: 'DELETE' });
+}
+
+/**
+ * ディレクトリを削除
+ * @param path ディレクトリパス
+ * @param force true の場合、ディレクトリ内のすべてのファイルを含めて削除
+ */
+export async function deleteDirectory(path: string, force: boolean = false) {
+  const params = new URLSearchParams();
+  params.append('path', path);
+  if (force) {
+    params.append('force', 'true');
   }
 
-  return response.json();
+  return backendRequest(`/storage/directory?${params.toString()}`, { method: 'DELETE' });
+}
+
+/**
+ * ファイルダウンロード用の署名付きURLを生成
+ */
+export async function generateDownloadUrl(path: string): Promise<string> {
+  const params = new URLSearchParams();
+  params.append('path', path);
+
+  const data = await backendGet<{ downloadUrl: string }>(`/storage/download?${params.toString()}`);
+
+  return data.downloadUrl;
+}
+
+/**
+ * フォルダツリー構造を取得
+ */
+export async function fetchFolderTree(): Promise<FolderTreeResponse> {
+  return backendGet<FolderTreeResponse>('/storage/tree');
+}
+
+/**
+ * フォルダ内のすべてのファイル情報を取得
+ */
+export async function getFolderDownloadInfo(path: string): Promise<FolderDownloadInfo> {
+  const params = new URLSearchParams();
+  params.append('path', path);
+
+  return backendGet<FolderDownloadInfo>(`/storage/download-folder?${params.toString()}`);
 }
 
 /**
  * フォルダを一括ダウンロード（ZIP形式）
+ * Note: This uses external libraries (jszip, file-saver) and direct fetch to S3
  */
 export async function downloadFolder(
   folderPath: string,
@@ -314,7 +203,7 @@ export async function downloadFolder(
     }
 
     try {
-      // ファイルをダウンロード
+      // ファイルをダウンロード (direct S3 fetch, not using backend client)
       const response = await fetch(file.downloadUrl, { signal });
 
       if (!response.ok) {

@@ -9,12 +9,7 @@ import type {
   ToolUse,
   ToolResult,
 } from '../types/index';
-import { getValidAccessToken } from '../lib/cognito';
-
-// Agent API エンドポイント（環境変数から取得）
-// ローカル開発時: http://localhost:8080/invocations → Vite proxy経由
-// 本番環境: AgentCore Runtime エンドポイント（/invocations 含む）
-const AGENT_ENDPOINT = import.meta.env.VITE_AGENT_ENDPOINT || '';
+import { agentRequest, getAgentConfig, testAgentConnection } from './client/agent-client';
 
 /**
  * ストリーミングコールバック型
@@ -34,13 +29,13 @@ interface StreamingCallbacks {
  * Agent 設定オプション
  */
 interface AgentConfig {
-  modelId?: string; // 使用するモデルID
-  enabledTools?: string[]; // 有効化するツール名の配列
-  systemPrompt?: string; // カスタムシステムプロンプト
-  storagePath?: string; // ユーザーが選択しているS3ディレクトリパス
-  memoryEnabled?: boolean; // 長期記憶を有効化するか
-  memoryTopK?: number; // 取得する長期記憶の件数
-  mcpConfig?: Record<string, unknown>; // MCP サーバー設定
+  modelId?: string;
+  enabledTools?: string[];
+  systemPrompt?: string;
+  storagePath?: string;
+  memoryEnabled?: boolean;
+  memoryTopK?: number;
+  mcpConfig?: Record<string, unknown>;
 }
 
 /**
@@ -52,28 +47,8 @@ export const streamAgentResponse = async (
   callbacks: StreamingCallbacks,
   agentConfig?: AgentConfig
 ): Promise<void> => {
-  // 有効なアクセストークンを取得（期限切れの場合は自動リフレッシュ）
-  const accessToken = await getValidAccessToken();
-
-  if (!accessToken) {
-    throw new Error('認証が必要です。再ログインしてください。');
-  }
-
-  // ARN部分をURLエンコードする（AgentCore Runtimeの場合）
-  let url = AGENT_ENDPOINT;
-  if (AGENT_ENDPOINT.includes('bedrock-agentcore') && AGENT_ENDPOINT.includes('/runtimes/arn:')) {
-    // ARN部分を抽出してエンコード
-    url = AGENT_ENDPOINT.replace(
-      /\/runtimes\/(arn:[^/]+\/[^/]+)\//,
-      (_match: string, arn: string) => {
-        return `/runtimes/${encodeURIComponent(arn)}/`;
-      }
-    );
-  }
-
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    Authorization: `Bearer ${accessToken}`,
   };
 
   // セッションIDが指定されている場合のみ付与
@@ -81,7 +56,7 @@ export const streamAgentResponse = async (
     headers['X-Amzn-Bedrock-AgentCore-Runtime-Session-Id'] = sessionId;
   }
 
-  // リクエストボディを構築（agentConfigが指定されている場合は含める）
+  // リクエストボディを構築
   const requestBody: Record<string, unknown> = { prompt };
 
   if (agentConfig?.modelId) {
@@ -115,7 +90,7 @@ export const streamAgentResponse = async (
   const body = JSON.stringify(requestBody);
 
   try {
-    const response = await fetch(url, {
+    const response = await agentRequest({
       method: 'POST',
       headers,
       body,
@@ -336,38 +311,31 @@ const handleStreamEvent = (event: AgentStreamEvent, callbacks: StreamingCallback
 };
 
 /**
- * Agent エンドポイントの設定を取得
- */
-export const getAgentConfig = () => ({
-  endpoint: AGENT_ENDPOINT,
-});
-
-/**
- * Agent設定の自動生成用プロンプトを作成
+ * Generate prompt for automatic agent configuration creation
  */
 export const createAgentConfigGenerationPrompt = (
   name: string,
   description: string,
   availableTools: string[]
 ): string => {
-  return `あなたはAgent設定のエキスパートです。以下のAgent情報を元に、最適な設定を生成してください。
+  return `You are an expert in Agent configuration. Based on the following Agent information, generate optimal configuration settings.
 
-Agent名: ${name}
-説明: ${description}
+Agent Name: ${name}
+Description: ${description}
 
-利用可能なツール一覧:
+Available Tools:
 ${availableTools.map((tool) => `- ${tool}`).join('\n')}
 
-以下の要件に従って、指定されたXML形式で出力してください：
+Please follow these requirements and output in the specified XML format:
 
-1. システムプロンプト: Agent名と説明に基づいて、役割・振る舞いを明確に定義
-2. 推奨ツール: 説明に基づいて最適なツールを3-5個選択
-3. シナリオ: よく使われそうなプロンプトテンプレートを6個作成
+1. System Prompt: Clearly define the role and behavior based on the Agent name and description
+2. Recommended Tools: Select 3-5 optimal tools based on the description
+3. Scenarios: Create 6 commonly used prompt templates
 
-**出力形式（必ずこの形式で出力）:**
+**Output Format (must follow this format exactly):**
 
 <agent_config>
-  <system_prompt>システムプロンプトを記述
+  <system_prompt>Write the system prompt here
   </system_prompt>
   
   <enabled_tools>
@@ -377,35 +345,38 @@ ${availableTools.map((tool) => `- ${tool}`).join('\n')}
   
   <scenarios>
     <scenario>
-      <title>シナリオタイトル1</title>
-      <prompt>プロンプトテンプレート1</prompt>
+      <title>Scenario Title 1</title>
+      <prompt>Prompt Template 1</prompt>
     </scenario>
     <scenario>
-      <title>シナリオタイトル2</title>
-      <prompt>プロンプトテンプレート2</prompt>
+      <title>Scenario Title 2</title>
+      <prompt>Prompt Template 2</prompt>
     </scenario>
     <scenario>
-      <title>シナリオタイトル3</title>
-      <prompt>プロンプトテンプレート3</prompt>
+      <title>Scenario Title 3</title>
+      <prompt>Prompt Template 3</prompt>
     </scenario>
     <scenario>
-      <title>シナリオタイトル4</title>
-      <prompt>プロンプトテンプレート4</prompt>
+      <title>Scenario Title 4</title>
+      <prompt>Prompt Template 4</prompt>
     </scenario>
     <scenario>
-      <title>シナリオタイトル5</title>
-      <prompt>プロンプトテンプレート5</prompt>
+      <title>Scenario Title 5</title>
+      <prompt>Prompt Template 5</prompt>
     </scenario>
     <scenario>
-      <title>シナリオタイトル6</title>
-      <prompt>プロンプトテンプレート6</prompt>
+      <title>Scenario Title 6</title>
+      <prompt>Prompt Template 6</prompt>
     </scenario>
   </scenarios>
 </agent_config>
 
-重要: XMLタグ以外の説明文は出力しないでください。
+Important: 
+- Do not output any explanatory text outside of XML tags.
+- If the Agent name or description is provided in Japanese, output the system_prompt, scenario titles, and prompts in Japanese.
+- Otherwise, output in English.
 
-なお、Web検索を行う Web Deep Researcher のシステムプロンプトの例を以下に記載します。
+Here is an example system prompt for "Web Deep Researcher" that performs web searches:
 
 You are an AI assistant that performs multi-stage web searches like DeepSearch to gather comprehensive information to achieve the user's goals.  - Perform multiple web searches in succession to gather in-depth information.
 
@@ -457,33 +428,5 @@ You are an AI assistant that performs multi-stage web searches like DeepSearch t
 `;
 };
 
-/**
- * Agent 接続をテストする
- */
-export const testAgentConnection = async (): Promise<boolean> => {
-  try {
-    // ARN部分をURLエンコード処理してからbaseEndpointを構築
-    let baseEndpoint = AGENT_ENDPOINT.replace('/invocations', '').replace('?qualifier=DEFAULT', '');
-
-    if (baseEndpoint.includes('bedrock-agentcore') && baseEndpoint.includes('/runtimes/arn:')) {
-      // ARN部分をエンコード
-      baseEndpoint = baseEndpoint.replace(
-        /\/runtimes\/(arn:[^/]+\/[^/]+)\//,
-        (_match: string, arn: string) => {
-          return `/runtimes/${encodeURIComponent(arn)}/`;
-        }
-      );
-    }
-
-    const response = await fetch(`${baseEndpoint}/ping`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
-    return response.ok;
-  } catch {
-    return false;
-  }
-};
+// Re-export from agent-client for backward compatibility
+export { getAgentConfig, testAgentConnection };
