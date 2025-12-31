@@ -26,6 +26,18 @@ export interface UserStorageProps {
    * デフォルト: ['*']（開発用）
    */
   readonly corsAllowedOrigins?: string[];
+
+  /**
+   * S3バケット削除ポリシー
+   * デフォルト: RETAIN
+   */
+  readonly removalPolicy?: cdk.RemovalPolicy;
+
+  /**
+   * S3バケット自動削除（RemovalPolicy.DESTROYの場合のみ有効）
+   * デフォルト: false
+   */
+  readonly autoDeleteObjects?: boolean;
 }
 
 /**
@@ -55,6 +67,8 @@ export class UserStorage extends Construct {
     const prefix = props?.bucketNamePrefix || 'agentcore';
     const retentionDays = props?.retentionDays || 365;
     const corsAllowedOrigins = props?.corsAllowedOrigins || ['*'];
+    const removalPolicy = props?.removalPolicy || cdk.RemovalPolicy.RETAIN;
+    const autoDeleteObjects = props?.autoDeleteObjects ?? false;
 
     // S3バケット作成
     this.bucket = new s3.Bucket(this, 'UserStorageBucket', {
@@ -77,9 +91,9 @@ export class UserStorage extends Construct {
         },
       ],
 
-      // 自動削除設定（開発環境用）
-      removalPolicy: cdk.RemovalPolicy.RETAIN, // 本番では保持
-      autoDeleteObjects: false, // 本番では無効化
+      // 削除ポリシー設定
+      removalPolicy: removalPolicy,
+      autoDeleteObjects: autoDeleteObjects,
 
       // CORS設定（フロントエンドからの直接アップロード用）
       cors: [

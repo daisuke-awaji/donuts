@@ -52,19 +52,32 @@ This project provides a complete stack for deploying AI agents powered by Amazon
 npm ci
 ```
 
-#### 2. **Bootstrap CDK (first time only)**
+#### 2. **Configure Tavily API Key (Optional - for web search tools)**
+
+Store the API key in AWS Secrets Manager for your target environment:
+
+```bash
+# For development environment (default)
+aws secretsmanager create-secret \
+  --name "agentcore/default/tavily-api-key" \
+  --secret-string "tvly-your-api-key-here" \
+  --region ap-northeast-1
+```
+
+> Get your API key from [Tavily](https://tavily.com/)
+> 
+> **Note**: For local development, you can also set `TAVILY_API_KEY` in `packages/agent/.env` as a fallback.
+
+#### 3. **Bootstrap CDK (first time only)**
 ```bash
 npx -w packages/cdk cdk bootstrap
 ```
 
-#### 3. **Deploy the stack**
+#### 4. **Deploy the stack**
 
 ```bash
 # Deploy to default region (based on AWS CLI configuration)
 npm run deploy
-
-# Deploy to Tokyo region (ap-northeast-1)
-npm run deploy:tokyo
 
 # Deploy to a specific region
 AWS_REGION=eu-west-1 AWS_DEFAULT_REGION=eu-west-1 CDK_DEFAULT_REGION=eu-west-1 npm run deploy

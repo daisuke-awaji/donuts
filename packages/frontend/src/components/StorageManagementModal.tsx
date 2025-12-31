@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   X,
   Folder,
@@ -23,10 +24,11 @@ import {
 import { useStorageStore } from '../stores/storageStore';
 import type { StorageItem, FolderNode } from '../api/storage';
 import { Modal } from './ui/Modal/Modal';
-import { generateDownloadUrl } from '../api/storage';
+import { generateDownloadUrl, downloadFolder, type DownloadProgress } from '../api/storage';
 import { Tooltip } from './ui/Tooltip/Tooltip';
 import { FolderTree } from './FolderTree';
 import { getFileIcon } from '../utils/fileIcons';
+import { DownloadProgressModal } from './ui/DownloadProgressModal';
 
 interface StorageManagementModalProps {
   isOpen: boolean;
@@ -53,15 +55,15 @@ function StorageItemComponent({
   onContextMenu,
   isDeleting,
 }: StorageItemComponentProps) {
+  const { t } = useTranslation();
+
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation(); // カードのクリックイベントを止める
 
-    let confirmMessage: string;
-    if (item.type === 'directory') {
-      confirmMessage = `ディレクトリ "${item.name}" を削除しますか？\n\n⚠️ ディレクトリ内のすべてのファイルとサブフォルダも削除されます。`;
-    } else {
-      confirmMessage = `ファイル "${item.name}" を削除しますか？`;
-    }
+    const confirmMessage =
+      item.type === 'directory'
+        ? t('storage.deleteDirectoryConfirm', { name: item.name })
+        : t('storage.deleteFileConfirm', { name: item.name });
 
     if (window.confirm(confirmMessage)) {
       onDelete(item);
@@ -141,26 +143,24 @@ function StorageItemComponent({
           <div className="text-sm font-medium text-gray-900 truncate">{item.name}</div>
           <div className="flex items-center gap-4 text-xs text-gray-500 mt-1">
             {item.type === 'file' && <span>{formatSize(item.size)}</span>}
-            <span>{formatDate(item.lastModified)}</span>
+            <span className="hidden sm:inline">{formatDate(item.lastModified)}</span>
           </div>
         </div>
 
         {/* アクション */}
-        <div className="flex items-center gap-2">
-          {item.type === 'file' && (
-            <button
-              onClick={handleDownloadClick}
-              className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-              title="ダウンロード"
-            >
-              <Download className="w-4 h-4" />
-            </button>
-          )}
+        <div className="flex items-center gap-1 sm:gap-2">
+          <button
+            onClick={handleDownloadClick}
+            className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+            title={item.type === 'directory' ? t('storage.downloadFolder') : t('storage.download')}
+          >
+            <Download className="w-4 h-4" />
+          </button>
           <button
             onClick={handleDelete}
             disabled={isDeleting}
             className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            title="削除"
+            title={t('common.delete')}
           >
             {isDeleting ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -178,6 +178,7 @@ function StorageItemComponent({
  * Storage Management Modal
  */
 export function StorageManagementModal({ isOpen, onClose }: StorageManagementModalProps) {
+  const { t } = useTranslation();
   const {
     currentPath,
     items,
@@ -219,6 +220,20 @@ export function StorageManagementModal({ isOpen, onClose }: StorageManagementMod
   const fileInputRef = useRef<HTMLInputElement>(null);
   const contextMenuRef = useRef<HTMLDivElement>(null);
   const folderContextMenuRef = useRef<HTMLDivElement>(null);
+
+  // フォルダダウンロード関連の状態
+  const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState<DownloadProgress>({
+    current: 0,
+    total: 0,
+    percentage: 0,
+    currentFile: '',
+  });
+  const [downloadStatus, setDownloadStatus] = useState<
+    'downloading' | 'success' | 'error' | 'cancelled'
+  >('downloading');
+  const [downloadError, setDownloadError] = useState<string>('');
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // URLハッシュからパスを取得
   const getPathFromHash = (): string => {
@@ -481,12 +496,18 @@ export function StorageManagementModal({ isOpen, onClose }: StorageManagementMod
 
   // ダウンロード
   const handleDownload = async (item: StorageItem) => {
-    try {
-      const downloadUrl = await generateDownloadUrl(item.path);
-      // 新しいタブでダウンロードURLを開く
-      window.open(downloadUrl, '_blank');
-    } catch (error) {
-      console.error('Download error:', error);
+    if (item.type === 'directory') {
+      // フォルダの場合はZIPダウンロード
+      await handleFolderDownload(item.path, item.name);
+    } else {
+      // ファイルの場合は署名付きURLでダウンロード
+      try {
+        const downloadUrl = await generateDownloadUrl(item.path);
+        // 新しいタブでダウンロードURLを開く
+        window.open(downloadUrl, '_blank');
+      } catch (error) {
+        console.error('Download error:', error);
+      }
     }
   };
 
@@ -544,12 +565,10 @@ export function StorageManagementModal({ isOpen, onClose }: StorageManagementMod
     if (!contextMenu) return;
     const item = items.find((i) => i.path === contextMenu.path);
     if (item) {
-      let confirmMessage: string;
-      if (item.type === 'directory') {
-        confirmMessage = `ディレクトリ "${item.name}" を削除しますか？\n\n⚠️ ディレクトリ内のすべてのファイルとサブフォルダも削除されます。`;
-      } else {
-        confirmMessage = `ファイル "${item.name}" を削除しますか？`;
-      }
+      const confirmMessage =
+        item.type === 'directory'
+          ? t('storage.deleteDirectoryConfirm', { name: item.name })
+          : t('storage.deleteFileConfirm', { name: item.name });
 
       if (window.confirm(confirmMessage)) {
         setContextMenu(null);
@@ -564,7 +583,7 @@ export function StorageManagementModal({ isOpen, onClose }: StorageManagementMod
   const handleFolderDelete = async () => {
     if (!folderContextMenu) return;
 
-    const confirmMessage = `ディレクトリ "${folderContextMenu.name}" を削除しますか？\n\n⚠️ ディレクトリ内のすべてのファイルとサブフォルダも削除されます。`;
+    const confirmMessage = t('storage.deleteDirectoryConfirm', { name: folderContextMenu.name });
 
     if (window.confirm(confirmMessage)) {
       setFolderContextMenu(null);
@@ -579,24 +598,96 @@ export function StorageManagementModal({ isOpen, onClose }: StorageManagementMod
     }
   };
 
+  // フォルダダウンロード
+  const handleFolderDownload = async (folderPath: string, folderName: string) => {
+    // モーダルを開いて進捗表示開始
+    setDownloadStatus('downloading');
+    setDownloadError('');
+    setDownloadProgress({ current: 0, total: 0, percentage: 0, currentFile: '' });
+    setIsDownloadModalOpen(true);
+
+    // AbortControllerを作成
+    abortControllerRef.current = new AbortController();
+
+    try {
+      await downloadFolder(
+        folderPath,
+        folderName,
+        (progress) => {
+          setDownloadProgress(progress);
+        },
+        abortControllerRef.current.signal
+      );
+
+      // 成功
+      setDownloadStatus('success');
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.message === 'Download cancelled') {
+          setDownloadStatus('cancelled');
+        } else {
+          setDownloadStatus('error');
+          setDownloadError(error.message);
+        }
+      } else {
+        setDownloadStatus('error');
+        setDownloadError('Unknown error occurred');
+      }
+    } finally {
+      abortControllerRef.current = null;
+    }
+  };
+
+  // ダウンロードキャンセル
+  const handleCancelDownload = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+  };
+
+  // ダウンロードモーダルを閉じる
+  const handleCloseDownloadModal = () => {
+    setIsDownloadModalOpen(false);
+    setDownloadProgress({ current: 0, total: 0, percentage: 0, currentFile: '' });
+    setDownloadError('');
+  };
+
+  // コンテキストメニューからフォルダダウンロード
+  const handleContextFolderDownload = async () => {
+    if (!contextMenu) return;
+    const item = items.find((i) => i.path === contextMenu.path);
+    if (item && item.type === 'directory') {
+      setContextMenu(null);
+      await handleFolderDownload(item.path, item.name);
+    }
+  };
+
+  // フォルダツリーのコンテキストメニューからフォルダダウンロード
+  const handleTreeFolderDownload = async () => {
+    if (!folderContextMenu) return;
+    setFolderContextMenu(null);
+    await handleFolderDownload(folderContextMenu.path, folderContextMenu.name);
+  };
+
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="xl" className="max-w-6xl h-[85vh]">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      size="xl"
+      className="md:max-w-6xl md:h-[85vh] max-w-full h-screen"
+    >
       {/* ヘッダー */}
-      <div className="border-b border-gray-200 px-6 py-4">
+      <div className="border-b border-gray-200 px-4 md:px-6 py-3 md:py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Folder className="w-5 h-5 text-amber-500" />
-            <h2 className="text-lg font-semibold text-gray-900">ファイルストレージ</h2>
+            <h2 className="text-base md:text-lg font-semibold text-gray-900">
+              {t('storage.fileStorage')}
+            </h2>
             <Tooltip
-              content={
-                <div className="text-xs leading-relaxed w-64">
-                  ユーザーごとに Amazon S3 の領域を提供しています。 AI エージェントは S3
-                  操作ツールでこの領域にアクセスできます。ディレクトリを選択している場合、AI
-                  エージェントは選択されたディレクトリを読み込みます。
-                </div>
-              }
+              content={<div className="text-xs leading-relaxed">{t('storage.description')}</div>}
               position="bottom"
-              maxWidth="280px"
+              width="480px"
             >
               <button className="w-6 h-6 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-600 transition-colors">
                 <HelpCircle className="w-4 h-4" />
@@ -613,15 +704,15 @@ export function StorageManagementModal({ isOpen, onClose }: StorageManagementMod
       </div>
 
       {/* ツールバー */}
-      <div className="px-6 py-2.5 border-b border-gray-100 bg-gray-50">
-        <div className="flex items-center gap-1.5">
+      <div className="px-4 md:px-6 py-2.5 border-b border-gray-100 bg-gray-50">
+        <div className="flex flex-wrap items-center gap-1.5">
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={isUploading}
             className="flex items-center gap-1.5 px-2 py-1.5 text-xs text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <Upload className="w-3.5 h-3.5" />
-            アップロード
+            <span className="hidden sm:inline">{t('storage.upload')}</span>
           </button>
 
           <button
@@ -629,7 +720,7 @@ export function StorageManagementModal({ isOpen, onClose }: StorageManagementMod
             className="flex items-center gap-1.5 px-2 py-1.5 text-xs text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors"
           >
             <FolderPlus className="w-3.5 h-3.5" />
-            新規フォルダ
+            <span className="hidden sm:inline">{t('storage.newFolder')}</span>
           </button>
 
           <input
@@ -643,44 +734,50 @@ export function StorageManagementModal({ isOpen, onClose }: StorageManagementMod
 
         {/* 新規ディレクトリ入力 */}
         {showNewDirectoryInput && (
-          <div className="flex items-center gap-2 mt-3">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mt-3">
             <input
               type="text"
               value={newDirectoryName}
               onChange={(e) => setNewDirectoryName(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleCreateDirectory()}
-              placeholder="フォルダ名を入力"
+              placeholder={t('storage.folderNamePlaceholder')}
               className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               autoFocus
             />
-            <button
-              onClick={handleCreateDirectory}
-              disabled={!newDirectoryName.trim()}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              作成
-            </button>
-            <button
-              onClick={() => {
-                setShowNewDirectoryInput(false);
-                setNewDirectoryName('');
-              }}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 rounded-md transition-colors"
-            >
-              キャンセル
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={handleCreateDirectory}
+                disabled={!newDirectoryName.trim()}
+                className="flex-1 sm:flex-none px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {t('storage.create')}
+              </button>
+              <button
+                onClick={() => {
+                  setShowNewDirectoryInput(false);
+                  setNewDirectoryName('');
+                }}
+                className="flex-1 sm:flex-none px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 rounded-md transition-colors"
+              >
+                {t('common.cancel')}
+              </button>
+            </div>
           </div>
         )}
 
         {/* アップロード進捗 */}
         {isUploading && (
           <div className="mt-3">
-            <div className="flex items-center justify-between text-sm text-gray-600 mb-1">
-              <span>
-                アップロード中...
-                {uploadTotal > 0 && ` (${uploadCompleted}/${uploadTotal})`}
+            <div className="flex items-center justify-between text-xs sm:text-sm text-gray-600 mb-1">
+              <span className="truncate">
+                {uploadTotal > 0
+                  ? t('storage.uploadingProgress', {
+                      completed: uploadCompleted,
+                      total: uploadTotal,
+                    })
+                  : t('storage.uploading')}
               </span>
-              <span>{uploadProgress}%</span>
+              <span className="ml-2">{uploadProgress}%</span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2">
               <div
@@ -692,13 +789,13 @@ export function StorageManagementModal({ isOpen, onClose }: StorageManagementMod
         )}
       </div>
 
-      {/* コンテンツエリア: 2カラムレイアウト */}
+      {/* コンテンツエリア: レスポンシブレイアウト */}
       <div className="flex divide-x divide-gray-200 flex-1 min-h-0">
-        {/* 左カラム: フォルダツリー */}
-        <div className="w-[240px] flex-shrink-0 overflow-y-auto bg-gray-50">
+        {/* 左カラム: フォルダツリー - デスクトップのみ表示 */}
+        <div className="hidden md:block md:w-[240px] flex-shrink-0 overflow-y-auto bg-gray-50">
           <div className="px-3 py-2">
             <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 px-2">
-              フォルダ
+              {t('storage.folders')}
             </div>
             <FolderTree
               tree={folderTree}
@@ -715,24 +812,24 @@ export function StorageManagementModal({ isOpen, onClose }: StorageManagementMod
         {/* 右カラム: ファイル一覧 */}
         <div className="flex-1 flex flex-col min-w-0">
           {/* パンくずナビゲーション */}
-          <div className="px-6 py-3 border-b border-gray-100 bg-white">
-            <div className="flex items-center gap-1 text-sm">
+          <div className="px-4 md:px-6 py-3 border-b border-gray-100 bg-white">
+            <div className="flex flex-wrap items-center gap-1 text-sm overflow-x-auto">
               <button
                 onClick={handleNavigateToRoot}
-                className="flex items-center gap-1 px-2 py-1 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors"
+                className="flex items-center gap-1 px-2 py-1 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors whitespace-nowrap"
               >
-                <Home className="w-4 h-4" />
-                <span>ルート</span>
+                <Home className="w-4 h-4 flex-shrink-0" />
+                <span>{t('storage.root')}</span>
               </button>
 
               {pathSegments.map((segment, index) => {
                 const segmentPath = '/' + pathSegments.slice(0, index + 1).join('/');
                 return (
                   <div key={segmentPath} className="flex items-center gap-1">
-                    <ChevronRight className="w-4 h-4 text-gray-400" />
+                    <ChevronRight className="w-4 h-4 text-gray-400 flex-shrink-0" />
                     <button
                       onClick={() => handleNavigate(segmentPath)}
-                      className="px-2 py-1 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors"
+                      className="px-2 py-1 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors truncate max-w-[120px] sm:max-w-none"
                     >
                       {segment}
                     </button>
@@ -744,7 +841,7 @@ export function StorageManagementModal({ isOpen, onClose }: StorageManagementMod
 
           {/* ファイルリスト */}
           <div
-            className={`flex-1 overflow-y-auto px-6 py-4 relative ${
+            className={`flex-1 overflow-y-auto px-4 md:px-6 py-4 relative ${
               isDragOver ? 'bg-blue-50' : ''
             }`}
             onDragOver={handleDragOver}
@@ -755,13 +852,13 @@ export function StorageManagementModal({ isOpen, onClose }: StorageManagementMod
             {error && (
               <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
                 <AlertCircle className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />
-                <div className="flex-1">
-                  <p className="text-sm text-red-800">{error}</p>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-red-800 break-words">{error}</p>
                   <button
                     onClick={clearError}
                     className="text-sm text-red-600 hover:text-red-800 font-medium mt-1"
                   >
-                    閉じる
+                    {t('common.close')}
                   </button>
                 </div>
               </div>
@@ -771,7 +868,7 @@ export function StorageManagementModal({ isOpen, onClose }: StorageManagementMod
             {isLoading && (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
-                <span className="ml-2 text-sm text-gray-600">読み込み中...</span>
+                <span className="ml-2 text-sm text-gray-600">{t('common.loading')}</span>
               </div>
             )}
 
@@ -781,10 +878,8 @@ export function StorageManagementModal({ isOpen, onClose }: StorageManagementMod
                 {items.length === 0 ? (
                   <div className="text-center py-12">
                     <Folder className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                    <p className="text-sm text-gray-600 mb-2">フォルダが空です</p>
-                    <p className="text-xs text-gray-500">
-                      ファイルをドラッグ&ドロップするか、アップロードボタンをクリックしてください
-                    </p>
+                    <p className="text-sm text-gray-600 mb-2">{t('storage.emptyFolder')}</p>
+                    <p className="text-xs text-gray-500">{t('storage.dragAndDropHint')}</p>
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -809,7 +904,7 @@ export function StorageManagementModal({ isOpen, onClose }: StorageManagementMod
               <div className="absolute inset-0 flex items-center justify-center bg-blue-50/90 pointer-events-none">
                 <div className="text-center">
                   <Upload className="w-12 h-12 text-blue-500 mx-auto mb-2" />
-                  <p className="text-lg font-medium text-blue-900">ファイルをドロップ</p>
+                  <p className="text-lg font-medium text-blue-900">{t('storage.dropFiles')}</p>
                 </div>
               </div>
             )}
@@ -822,17 +917,25 @@ export function StorageManagementModal({ isOpen, onClose }: StorageManagementMod
             ref={contextMenuRef}
             className="fixed bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50 min-w-[160px]"
             style={{
-              left: `${contextMenu.x}px`,
-              top: `${contextMenu.y}px`,
+              left: `${Math.min(contextMenu.x, window.innerWidth - 180)}px`,
+              top: `${Math.min(contextMenu.y, window.innerHeight - 200)}px`,
             }}
           >
-            {contextMenu.type === 'file' && (
+            {contextMenu.type === 'file' ? (
               <button
                 onClick={handleContextDownload}
                 className="w-full px-4 py-2 text-sm text-left hover:bg-gray-100 flex items-center gap-2 transition-colors"
               >
                 <Download className="w-4 h-4 text-gray-600" />
-                <span className="text-gray-900">ダウンロード</span>
+                <span className="text-gray-900">{t('storage.download')}</span>
+              </button>
+            ) : (
+              <button
+                onClick={handleContextFolderDownload}
+                className="w-full px-4 py-2 text-sm text-left hover:bg-gray-100 flex items-center gap-2 transition-colors"
+              >
+                <Download className="w-4 h-4 text-gray-600" />
+                <span className="text-gray-900">{t('storage.downloadFolder')}</span>
               </button>
             )}
             <button
@@ -840,7 +943,7 @@ export function StorageManagementModal({ isOpen, onClose }: StorageManagementMod
               className="w-full px-4 py-2 text-sm text-left hover:bg-gray-100 flex items-center gap-2 transition-colors"
             >
               <Trash2 className="w-4 h-4 text-gray-600" />
-              <span className="text-gray-900">削除</span>
+              <span className="text-gray-900">{t('common.delete')}</span>
             </button>
             <div className="border-t border-gray-200 my-1" />
             <button
@@ -850,12 +953,12 @@ export function StorageManagementModal({ isOpen, onClose }: StorageManagementMod
               {copiedPath === contextMenu.path ? (
                 <>
                   <Check className="w-4 h-4 text-green-600" />
-                  <span className="text-green-600">コピーしました</span>
+                  <span className="text-green-600">{t('storage.copied')}</span>
                 </>
               ) : (
                 <>
                   <Copy className="w-4 h-4 text-gray-600" />
-                  <span className="text-gray-900">パスをコピー</span>
+                  <span className="text-gray-900">{t('storage.copyPath')}</span>
                 </>
               )}
             </button>
@@ -868,16 +971,23 @@ export function StorageManagementModal({ isOpen, onClose }: StorageManagementMod
             ref={folderContextMenuRef}
             className="fixed bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50 min-w-[160px]"
             style={{
-              left: `${folderContextMenu.x}px`,
-              top: `${folderContextMenu.y}px`,
+              left: `${Math.min(folderContextMenu.x, window.innerWidth - 180)}px`,
+              top: `${Math.min(folderContextMenu.y, window.innerHeight - 200)}px`,
             }}
           >
+            <button
+              onClick={handleTreeFolderDownload}
+              className="w-full px-4 py-2 text-sm text-left hover:bg-gray-100 flex items-center gap-2 transition-colors"
+            >
+              <Download className="w-4 h-4 text-gray-600" />
+              <span className="text-gray-900">{t('storage.downloadFolder')}</span>
+            </button>
             <button
               onClick={handleFolderDelete}
               className="w-full px-4 py-2 text-sm text-left hover:bg-gray-100 flex items-center gap-2 transition-colors"
             >
               <Trash2 className="w-4 h-4 text-gray-600" />
-              <span className="text-gray-900">削除</span>
+              <span className="text-gray-900">{t('common.delete')}</span>
             </button>
             <div className="border-t border-gray-200 my-1" />
             <button
@@ -889,12 +999,12 @@ export function StorageManagementModal({ isOpen, onClose }: StorageManagementMod
               {copiedPath === folderContextMenu.path ? (
                 <>
                   <Check className="w-4 h-4 text-green-600" />
-                  <span className="text-green-600">コピーしました</span>
+                  <span className="text-green-600">{t('storage.copied')}</span>
                 </>
               ) : (
                 <>
                   <Copy className="w-4 h-4 text-gray-600" />
-                  <span className="text-gray-900">パスをコピー</span>
+                  <span className="text-gray-900">{t('storage.copyPath')}</span>
                 </>
               )}
             </button>
@@ -903,19 +1013,27 @@ export function StorageManagementModal({ isOpen, onClose }: StorageManagementMod
       </div>
 
       {/* フッター */}
-      <div className="border-t border-gray-200 px-6 py-4 bg-gray-50">
-        <div className="flex justify-between items-center">
-          <p className="text-xs text-gray-500">
-            {items.length} 件のアイテム • 最大ファイルサイズ: 5MB
-          </p>
+      <div className="border-t border-gray-200 px-4 md:px-6 py-3 md:py-4 bg-gray-50">
+        <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-2 sm:gap-0">
+          <p className="text-xs text-gray-500">{t('storage.itemCount', { count: items.length })}</p>
           <button
             onClick={onClose}
             className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
           >
-            閉じる
+            {t('common.close')}
           </button>
         </div>
       </div>
+
+      {/* ダウンロード進捗モーダル */}
+      <DownloadProgressModal
+        isOpen={isDownloadModalOpen}
+        onClose={handleCloseDownloadModal}
+        progress={downloadProgress}
+        status={downloadStatus}
+        errorMessage={downloadError}
+        onCancel={downloadStatus === 'downloading' ? handleCancelDownload : undefined}
+      />
     </Modal>
   );
 }

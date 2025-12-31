@@ -7,7 +7,22 @@ import * as agentcore from '@aws-cdk/aws-bedrock-agentcore-alpha';
 import * as path from 'path';
 import * as fs from 'fs';
 
+/**
+ * Tool Schema ファイルの型定義
+ * AgentCore の型と互換性を保つため unknown を使用
+ */
+interface ToolSchemaFile {
+  tools: unknown[];
+}
+
 export interface AgentCoreLambdaTargetProps {
+  /**
+   * リソース名のプレフィックス（オプション）
+   * Lambda関数名: {resourcePrefix}-{targetName}-function
+   * @default 'agentcore'
+   */
+  readonly resourcePrefix?: string;
+
   /**
    * Target の名前
    */
@@ -88,12 +103,17 @@ export class AgentCoreLambdaTarget extends Construct {
 
     // Tool Schema を読み込み
     const toolSchemaContent = this.loadToolSchema(props.toolSchemaPath);
-    this.toolSchema = agentcore.ToolSchema.fromInline(toolSchemaContent.tools);
+    // AgentCore の型と互換性を保つため any にキャスト
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    this.toolSchema = agentcore.ToolSchema.fromInline(toolSchemaContent.tools as any);
+
+    // リソースプレフィックスの取得
+    const resourcePrefix = props.resourcePrefix || 'agentcore';
 
     // Lambda 関数を作成
     this.lambdaFunction = new nodejs.NodejsFunction(this, 'Function', {
-      functionName: `agentcore-${props.targetName}-function`,
-      runtime: props.runtime || lambda.Runtime.NODEJS_20_X,
+      functionName: `${resourcePrefix}-${props.targetName}-function`,
+      runtime: props.runtime || lambda.Runtime.NODEJS_22_X,
       entry: path.join(props.lambdaCodePath, 'src', 'handler.ts'),
       handler: 'handler',
       timeout: props.timeout ? cdk.Duration.seconds(props.timeout) : cdk.Duration.seconds(30),
@@ -107,7 +127,7 @@ export class AgentCoreLambdaTarget extends Construct {
         minify: true,
         sourceMap: true,
         target: 'es2022',
-        externalModules: ['aws-sdk'],
+        externalModules: ['aws-sdk', '@aws-sdk/client-bedrock-agent-runtime'],
       },
     });
 
@@ -130,11 +150,11 @@ export class AgentCoreLambdaTarget extends Construct {
   /**
    * Tool Schema ファイルを読み込む
    */
-  private loadToolSchema(schemaPath: string): any {
+  private loadToolSchema(schemaPath: string): ToolSchemaFile {
     try {
       const fullPath = path.resolve(schemaPath);
       const schemaContent = fs.readFileSync(fullPath, 'utf8');
-      const schema = JSON.parse(schemaContent);
+      const schema = JSON.parse(schemaContent) as ToolSchemaFile;
 
       // Tool Schema の構造を検証
       if (!schema.tools || !Array.isArray(schema.tools)) {

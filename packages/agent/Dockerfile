@@ -1,8 +1,33 @@
 # AgentCore Runtime Agent Dockerfile
+# Multi-stage build for optimized image size
+
+# ========================================
+# Stage 1: Build
+# ========================================
+FROM node:20-slim AS builder
+
+WORKDIR /app
+
+# パッケージファイルをコピー
+COPY package*.json ./
+
+# 依存関係をインストール（ビルド時のみ dev dependencies も含む）
+RUN npm install
+
+# TypeScript 設定とソースコードをコピー
+COPY tsconfig.json ./
+COPY src/ ./src/
+
+# TypeScript をコンパイル
+RUN npm run build
+
+# ========================================
+# Stage 2: Production
+# ========================================
 FROM node:20-slim
 
-# curl をインストール（ヘルスチェック用）
-RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+# curl、python3、pip をインストール（ヘルスチェック用およびツール実行用）
+RUN apt-get update && apt-get install -y curl python3 python3-pip && rm -rf /var/lib/apt/lists/*
 
 # uv/uvx をインストール（Python 製 MCP サーバー用）
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
@@ -15,19 +40,12 @@ WORKDIR /app
 
 # パッケージファイルをコピー
 COPY package*.json ./
-COPY tsconfig.json ./
 
-# 依存関係をインストール（dev dependencies も含む）
-RUN npm install
-
-# ソースコードをコピー
-COPY src/ ./src/
-
-# TypeScript をコンパイル
-RUN npm run build
-
-# 本番用依存関係のみ再インストール
+# 本番用依存関係のみインストール
 RUN npm install --only=production && npm cache clean --force
+
+# ビルド済みファイルをコピー
+COPY --from=builder /app/dist ./dist
 
 # ポート 8080 を公開
 EXPOSE 8080

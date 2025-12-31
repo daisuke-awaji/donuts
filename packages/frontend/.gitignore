@@ -26,3 +26,6 @@ dist-ssr
 !eslint.config.js
 !postcss.config.js
 !tailwind.config.js
+
+# Keep custom type declarations
+!src/i18n/**/*.d.ts

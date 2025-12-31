@@ -5,6 +5,7 @@
 import { tool } from '@strands-agents/sdk';
 import { z } from 'zod';
 import { logger } from '../config/index.js';
+import { getTavilyApiKey } from './tavily-common.js';
 
 /**
  * Tavily Extract API のレスポンス型
@@ -56,11 +57,7 @@ function truncateContent(content: string, maxLength: number = 3000): string {
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function callTavilyExtractAPI(params: Record<string, any>): Promise<TavilyExtractResponse> {
-  const apiKey = process.env.TAVILY_API_KEY;
-
-  if (!apiKey) {
-    throw new Error('TAVILY_API_KEY 環境変数が設定されていません');
-  }
+  const apiKey = await getTavilyApiKey();
 
   const response = await fetch('https://api.tavily.com/extract', {
     method: 'POST',

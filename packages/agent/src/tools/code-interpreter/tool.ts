@@ -50,9 +50,8 @@ const codeInterpreterSchema = z.object({
   // 共通パラメータ
   sessionName: z
     .string()
-    .optional()
     .describe(
-      'Session name for persistent code execution environment. Auto-generated if omitted. Not used for listLocalSessions action.'
+      'Session name for the code execution environment. REQUIRED for all operations except listLocalSessions. Use initSession first to create a session, then specify that session name for subsequent operations to maintain context and file persistence.'
     ),
 
   // initSession 専用
@@ -127,7 +126,7 @@ const codeInterpreterSchema = z.object({
     .string()
     .optional()
     .describe(
-      'Absolute local filesystem path for downloads (REQUIRED for downloadFiles action). Must be an absolute path like /tmp/downloads or /Users/username/downloads.'
+      'Absolute local filesystem path for downloads (REQUIRED for downloadFiles action). Use /tmp/ws or subdirectories like /tmp/ws/downloads for automatic S3 synchronization. Files downloaded to other paths (e.g., /tmp/downloads, /Users/xxx) will NOT be synced to S3 storage.'
     ),
 });
 
@@ -203,19 +202,64 @@ OPERATION TYPES:
 
 FILE SYSTEM STRUCTURE:
 
-• Default Working Directory: /tmp/ws/
-  - All file operations should use this directory
-  - Directory must be created before use: mkdir -p /tmp/ws
-  - This directory is isolated within the sandbox session
+⚠️ CRITICAL: Two Separate File Systems
+
+CodeInterpreter uses TWO DIFFERENT file systems that DO NOT share files:
+
+1. CODE EXECUTION FILE SYSTEM (executeCode/executeCommand):
+   • Working Directory: /opt/amazon/genesis1p-tools/var
+   • Files created by Python/JavaScript code live here
+   • Files created by shell commands live here
+   • These files CANNOT be accessed by readFiles
+   
+   Access methods:
+   ✓ executeCode: Print file contents
+   ✓ executeCommand: cat filename
+   ✓ downloadFiles: Download to local filesystem
+
+2. MCP RESOURCE FILE SYSTEM (writeFiles/readFiles/listFiles):
+   • Virtual file system with URI format: file:///filename
+   • ONLY files created by writeFiles can be read by readFiles
+   • Files from executeCode are NOT visible here
+   
+   Access methods:
+   ✓ writeFiles: Create files
+   ✓ readFiles: Read files (ONLY those created by writeFiles)
+   ✓ listFiles: Browse files (ONLY shows writeFiles-created files)
+   ✓ removeFiles: Delete files
 
 • File Path Examples:
-  ✓ GOOD: "/tmp/ws/output.png"
-  ✓ GOOD: "/tmp/ws/data/results.csv"
-  ✗ BAD: "output.png" (may fail without explicit directory creation)
-  ✗ BAD: "./output.png" (relative paths can be unreliable)
+  For executeCode/executeCommand:
+    ✓ GOOD: "sales_data.csv" (relative to /opt/amazon/genesis1p-tools/var)
+    ✓ GOOD: "/opt/amazon/genesis1p-tools/var/output.png"
+  
+  For writeFiles/readFiles:
+    ✓ GOOD: "report.txt" (creates file:///report.txt)
+    ✓ GOOD: "data/results.csv" (creates file:///data/results.csv)
 
-• Important: Always create /tmp/ws/ directory first in new sessions:
-  executeCommand: "mkdir -p /tmp/ws"
+⚠️ Common Mistake:
+{
+  "action": "executeCode",
+  "code": "import pandas as pd\ndf.to_csv('data.csv')"
+}
+// Then trying to read it:
+{
+  "action": "readFiles",
+  "paths": ["data.csv"]  // ❌ FAILS: File not found!
+}
+
+✓ Correct approach - Use downloadFiles:
+{
+  "action": "downloadFiles",
+  "sourcePaths": ["data.csv"],
+  "destinationDir": "/tmp/downloads"
+}
+
+✓ Or read directly in executeCode:
+{
+  "action": "executeCode",
+  "code": "with open('data.csv', 'r') as f:\n    print(f.read())"
+}
 
 SESSION MANAGEMENT - DETAILED BEHAVIOR:
 
@@ -223,6 +267,40 @@ SESSION MANAGEMENT - DETAILED BEHAVIOR:
 • Variables may not persist between executeCode calls even within the same session
 • For reliable multi-step workflows, combine operations in single executeCode block
 • Always verify variable existence before use
+
+PACKAGE AVAILABILITY WARNING:
+
+⚠️ Common packages that are NOT pre-installed and will cause ImportError:
+• seaborn (use matplotlib.pyplot instead for statistical plots)
+• scikit-learn (install via: pip install scikit-learn)
+• tensorflow / pytorch (install via: pip install tensorflow or pip install torch)
+• plotly / altair (install via: pip install plotly or pip install altair)
+
+✓ How to install additional packages:
+{
+  "action": "executeCommand",
+  "sessionName": "your-session",
+  "command": "pip install seaborn scikit-learn"
+}
+
+✓ Alternative visualization approaches (without seaborn):
+• Histograms: plt.hist(data, bins=20)
+• Bar charts: plt.bar(categories, values)
+• Scatter plots: plt.scatter(x, y)
+• Box plots: plt.boxplot(data)
+• Heatmaps: plt.imshow(data, cmap='viridis'); plt.colorbar()
+
+Example - Creating statistical plots with matplotlib only:
+import matplotlib.pyplot as plt
+import numpy as np
+
+# Distribution plot (seaborn alternative)
+plt.figure(figsize=(10, 6))
+plt.hist(data, bins=30, alpha=0.7, edgecolor='black')
+plt.xlabel('Value')
+plt.ylabel('Frequency')
+plt.title('Distribution Plot')
+plt.savefig('/tmp/ws/distribution.png')
 
 RECOMMENDED PATTERNS:
 

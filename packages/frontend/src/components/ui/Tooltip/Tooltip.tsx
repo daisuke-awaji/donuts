@@ -3,7 +3,7 @@
  * 汎用的なツールチップコンポーネント
  */
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import type { ReactNode } from 'react';
 
 export interface TooltipProps {
@@ -13,15 +13,60 @@ export interface TooltipProps {
   content: ReactNode;
   /** ツールチップの表示位置 */
   position?: 'top' | 'bottom' | 'left' | 'right';
+  /** 固定幅（設定するとこの幅で固定表示） */
+  width?: string;
   /** 最大幅（デフォルト: 240px） */
   maxWidth?: string;
+  /** ツールチップを無効化 */
+  disabled?: boolean;
+  /** 表示遅延時間（ミリ秒、デフォルト: 200） */
+  delay?: number;
 }
 
 /**
  * ホバー時にツールチップを表示する汎用コンポーネント
  */
-export function Tooltip({ children, content, position = 'top', maxWidth = '240px' }: TooltipProps) {
+export function Tooltip({
+  children,
+  content,
+  position = 'top',
+  width,
+  maxWidth = '240px',
+  disabled = false,
+  delay = 0,
+}: TooltipProps) {
   const [isVisible, setIsVisible] = useState(false);
+  const timeoutRef = useRef<number | null>(null);
+
+  // コンポーネントアンマウント時にタイマーをクリーンアップ
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
+
+  // disabledの場合は子要素のみを返す
+  if (disabled) {
+    return <>{children}</>;
+  }
+
+  // マウスエンター時に遅延してツールチップを表示
+  const handleMouseEnter = () => {
+    timeoutRef.current = window.setTimeout(() => {
+      setIsVisible(true);
+    }, delay);
+  };
+
+  // マウスリーブ時にタイマーをクリアしてツールチップを非表示
+  const handleMouseLeave = () => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+    setIsVisible(false);
+  };
 
   // 位置に応じたスタイルクラス
   const positionClasses = {
@@ -42,8 +87,8 @@ export function Tooltip({ children, content, position = 'top', maxWidth = '240px
   return (
     <div
       className="relative inline-block"
-      onMouseEnter={() => setIsVisible(true)}
-      onMouseLeave={() => setIsVisible(false)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
       {children}
 
@@ -54,11 +99,16 @@ export function Tooltip({ children, content, position = 'top', maxWidth = '240px
             absolute z-50
             ${positionClasses[position]}
             pointer-events-none
+            animate-in fade-in-0 zoom-in-95 duration-150
           `}
-          style={{ maxWidth }}
+          style={{ width: width, maxWidth: maxWidth }}
         >
           {/* 吹き出し背景 */}
-          <div className="relative bg-gray-900 text-white text-xs rounded-lg px-3 py-2 shadow-lg">
+          <div
+            className={`relative bg-gray-800 text-white text-xs rounded-lg px-3 py-2 shadow-lg ${
+              width ? 'whitespace-normal break-words' : 'whitespace-nowrap'
+            }`}
+          >
             {content}
 
             {/* 矢印 */}

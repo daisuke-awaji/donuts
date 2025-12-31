@@ -476,25 +476,33 @@ import os
 
 results = {}
 source_paths = ${sourcePathsJson}
+cwd = os.getcwd()
 
 for path in source_paths:
     try:
-        if not os.path.exists(path):
-            results[path] = {"error": f"File not found: {path}"}
+        # 相対パスの場合、作業ディレクトリからの相対パスとして解釈
+        full_path = path if os.path.isabs(path) else os.path.join(cwd, path)
+        
+        if not os.path.exists(full_path):
+            results[path] = {"error": f"File not found: {full_path}"}
             continue
             
-        with open(path, 'rb') as f:
+        with open(full_path, 'rb') as f:
             file_data = f.read()
             results[path] = {
                 "data": base64.b64encode(file_data).decode('utf-8'),
                 "size": len(file_data)
             }
     except Exception as e:
-        results[path] = {"error": f"Failed to read file {path}: {str(e)}"}
+        results[path] = {"error": str(e)}
 
-print("__DOWNLOAD_RESULTS__")
-print(json.dumps(results))
-print("__DOWNLOAD_RESULTS_END__")
+# 結果をファイルに保存（cwdを使用）
+result_file = "__download_results__.json"
+with open(result_file, 'w') as f:
+    json.dump(results, f)
+
+# ファイルパスのみを出力
+print(result_file)
 `;
 
       // エンコードコードをサンドボックスで実行
@@ -525,65 +533,114 @@ print("__DOWNLOAD_RESULTS_END__")
         };
       }
 
-      // 実行結果からbase64エンコードされた結果を抽出
+      // 実行結果からJSONファイルのパスを取得
       const content = executionResult.content[0];
-      let outputText: string;
+      let resultFilePath: string;
 
       if (content.text) {
-        outputText = content.text;
+        // content.textがJSON配列の場合、パースしてtextフィールドを抽出
+        const outputText = content.text.trim();
+        try {
+          const parsed = JSON.parse(outputText);
+          if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].text) {
+            resultFilePath = parsed[0].text.trim();
+          } else {
+            resultFilePath = outputText;
+          }
+        } catch {
+          // JSONでない場合はそのまま使用
+          resultFilePath = outputText;
+        }
       } else {
-        outputText = JSON.stringify(content);
+        return {
+          status: 'error',
+          content: [{ text: `Unexpected response format: ${JSON.stringify(executionResult)}` }],
+        };
       }
 
-      logger.debug(`Extracted text: ${outputText.substring(0, 200)}...`);
+      logger.debug(`Result file path: ${resultFilePath}`);
 
-      // JSONリザルトをマーカー間から抽出
-      const startMarker = '__DOWNLOAD_RESULTS__';
-      const endMarker = '__DOWNLOAD_RESULTS_END__';
+      // readFiles APIを使ってJSONファイルを読み取る
+      const readAction: ReadFilesAction = {
+        action: 'readFiles',
+        sessionName: sessionName,
+        paths: [resultFilePath],
+      };
 
-      const startIdx = outputText.indexOf(startMarker);
-      const endIdx = outputText.indexOf(endMarker);
+      const readResult = await this.readFiles(readAction);
 
-      if (startIdx === -1 || endIdx === -1) {
+      if (readResult.status !== 'success') {
         return {
           status: 'error',
           content: [
             {
-              text:
-                `Could not find download results in output. ` +
-                `Start marker found: ${startIdx >= 0}, End marker found: ${endIdx >= 0}. ` +
-                `Output: ${outputText.substring(0, 1000)}...`,
+              text: `Failed to read results file ${resultFilePath}: ${JSON.stringify(readResult)}`,
             },
           ],
         };
       }
 
-      const jsonStart = startIdx + startMarker.length;
-      const resultsJson = outputText.substring(jsonStart, endIdx).trim();
-      logger.debug(`Extracted JSON: '${resultsJson}'`);
+      // JSONファイルの内容を取得
+      const fileContent = readResult.content[0];
+      let resultsJson: string;
 
-      if (!resultsJson) {
+      if (fileContent.text) {
+        // textがJSON配列文字列の場合、パースして実際のテキストを抽出
+        try {
+          const parsed = JSON.parse(fileContent.text);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const firstItem = parsed[0];
+            // resource型の場合、resource.textからデータを取得
+            if (firstItem.type === 'resource' && firstItem.resource?.text) {
+              resultsJson = firstItem.resource.text;
+            } else if (firstItem.text) {
+              resultsJson = firstItem.text;
+            } else {
+              resultsJson = fileContent.text;
+            }
+          } else {
+            resultsJson = fileContent.text;
+          }
+        } catch {
+          // JSONパースに失敗した場合はそのまま使用
+          resultsJson = fileContent.text;
+        }
+      } else {
         return {
           status: 'error',
-          content: [{ text: `Empty JSON results between markers. Full output: ${outputText}` }],
+          content: [{ text: `Failed to extract JSON content: ${JSON.stringify(readResult)}` }],
         };
       }
 
+      logger.debug(`Read JSON content (length: ${resultsJson.length})`);
+
+      // JSONをパース
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let fileResults: Record<string, any>;
       try {
         fileResults = JSON.parse(resultsJson);
+        logger.debug(`Parsed fileResults with ${Object.keys(fileResults).length} files`);
       } catch (jsonError) {
         return {
           status: 'error',
           content: [
             {
-              text:
-                `Failed to parse download results JSON: ${jsonError}. ` +
-                `JSON string: '${resultsJson}'. Full output: ${outputText}`,
+              text: `Failed to parse download results JSON: ${jsonError}. Content: ${resultsJson.substring(0, 500)}`,
             },
           ],
         };
+      }
+
+      // 一時ファイルを削除
+      try {
+        await this.removeFiles({
+          action: 'removeFiles',
+          sessionName: sessionName,
+          paths: [resultFilePath],
+        });
+        logger.debug(`Cleaned up temporary file: ${resultFilePath}`);
+      } catch (cleanupError) {
+        logger.warn(`Failed to cleanup temporary file ${resultFilePath}: ${cleanupError}`);
       }
 
       // 各ファイル結果を処理

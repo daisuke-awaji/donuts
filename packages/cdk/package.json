@@ -8,11 +8,22 @@
   "scripts": {
     "build": "tsc",
     "watch": "tsc -w",
+    "lint": "eslint bin lib",
+    "lint:fix": "eslint bin lib --fix",
     "test": "jest --passWithNoTests",
     "cdk": "cd ../.. && cdk",
     "synth": "cd ../.. && cdk synth",
-    "deploy": "cd ../.. && cdk deploy",
-    "diff": "cd ../.. && cdk diff"
+    "deploy": "cd ../.. && cdk deploy --require-approval never",
+    "deploy:dev": "cd ../.. && cdk deploy -c env=dev --require-approval never",
+    "deploy:stg": "cd ../.. && cdk deploy -c env=stg --require-approval never",
+    "deploy:prd": "cd ../.. && cdk deploy -c env=prd --require-approval never",
+    "diff": "cd ../.. && cdk diff",
+    "diff:dev": "cd ../.. && cdk diff -c env=dev",
+    "diff:stg": "cd ../.. && cdk diff -c env=stg",
+    "diff:prd": "cd ../.. && cdk diff -c env=prd",
+    "destroy": "cd ../.. && cdk destroy",
+    "destroy:dev": "cd ../.. && cdk destroy -c env=dev",
+    "destroy:stg": "cd ../.. && cdk destroy -c env=stg"
   },
   "devDependencies": {
     "@types/jest": "^29.5.5",
@@ -26,6 +37,6 @@
     "@aws-cdk/aws-bedrock-alpha": "2.232.2-alpha.0",
     "aws-cdk-lib": "2.232.2",
     "constructs": "^10.0.0",
-    "deploy-time-build": "^0.4.4"
+    "deploy-time-build": "^0.4.5"
   }
 }

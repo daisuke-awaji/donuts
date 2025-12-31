@@ -1,16 +1,19 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useChatStore } from '../stores/chatStore';
 import { useSelectedAgent } from '../stores/agentStore';
 import { useSessionStore } from '../stores/sessionStore';
 import { Message } from './Message';
 import { MessageSkeleton } from './MessageSkeleton';
+import { translateIfKey } from '../utils/agent-translation';
 
 interface MessageListProps {
   onScenarioClick?: (prompt: string) => void;
 }
 
 export const MessageList: React.FC<MessageListProps> = ({ onScenarioClick }) => {
+  const { t } = useTranslation();
   const { sessionId } = useParams<{ sessionId?: string }>();
   const { messages, error } = useChatStore();
   const { isLoadingEvents } = useSessionStore();
@@ -24,8 +27,8 @@ export const MessageList: React.FC<MessageListProps> = ({ onScenarioClick }) => 
     const container = containerRef.current;
     if (!container) return;
 
-    // スクロール位置が最下部から100px以内なら自動スクロールを有効化
-    const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+    // スクロール位置が最下部から10px以内なら自動スクロールを有効化
+    const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 10;
     setShouldAutoScroll(isAtBottom);
   };
 
@@ -53,7 +56,7 @@ export const MessageList: React.FC<MessageListProps> = ({ onScenarioClick }) => 
                 </svg>
               </div>
               <div className="ml-3">
-                <h3 className="text-sm font-medium text-red-800">エラーが発生しました</h3>
+                <h3 className="text-sm font-medium text-red-800">{t('common.error')}</h3>
                 <p className="mt-1 text-sm text-red-700">{error}</p>
               </div>
             </div>
@@ -73,8 +76,12 @@ export const MessageList: React.FC<MessageListProps> = ({ onScenarioClick }) => 
               </svg>
             </div>
 
-            <h3 className="text-2xl font-semibold text-gray-900 mb-2">{selectedAgent.name}</h3>
-            <p className="text-gray-600 max-w-md mx-auto mb-8">{selectedAgent.description}</p>
+            <h3 className="text-2xl font-semibold text-gray-900 mb-2">
+              {translateIfKey(selectedAgent.name, t)}
+            </h3>
+            <p className="text-gray-600 max-w-md mx-auto mb-8">
+              {translateIfKey(selectedAgent.description, t)}
+            </p>
 
             {/* シナリオボタン（グリッド形式） */}
             {selectedAgent.scenarios.length > 0 && (
@@ -82,10 +89,10 @@ export const MessageList: React.FC<MessageListProps> = ({ onScenarioClick }) => 
                 {selectedAgent.scenarios.map((scenario) => (
                   <button
                     key={scenario.id}
-                    onClick={() => onScenarioClick?.(scenario.prompt)}
+                    onClick={() => onScenarioClick?.(translateIfKey(scenario.prompt, t))}
                     className="px-4 py-3 text-left text-sm text-gray-700 bg-white hover:bg-gray-50 rounded-xl border border-gray-200 transition-colors"
                   >
-                    {scenario.title}
+                    {translateIfKey(scenario.title, t)}
                   </button>
                 ))}
               </div>

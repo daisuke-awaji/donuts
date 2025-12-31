@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { Bot, Menu } from 'lucide-react';
 import * as icons from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useSelectedAgent } from '../stores/agentStore';
 import { useUIStore } from '../stores/uiStore';
 import { MessageList } from './MessageList';
 import { MessageInput } from './MessageInput';
 import { AgentSelectorModal } from './AgentSelectorModal';
 import type { Agent } from '../types/agent';
+import { translateIfKey } from '../utils/agent-translation';
 
 interface ChatContainerProps {
   sessionId: string | null;
@@ -15,6 +17,7 @@ interface ChatContainerProps {
 }
 
 export const ChatContainer: React.FC<ChatContainerProps> = ({ sessionId, onCreateSession }) => {
+  const { t } = useTranslation();
   const selectedAgent = useSelectedAgent();
   const { isMobileView, toggleSidebar } = useUIStore();
   const [isAgentModalOpen, setIsAgentModalOpen] = useState(false);
@@ -68,7 +71,7 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({ sessionId, onCreat
                 return <AgentIcon className="w-6 h-6 text-gray-700" />;
               })()}
               <h1 className="text-lg font-semibold text-gray-900">
-                {selectedAgent ? selectedAgent.name : '汎用アシスタント'}
+                {selectedAgent ? translateIfKey(selectedAgent.name, t) : '汎用アシスタント'}
               </h1>
             </button>
           </div>

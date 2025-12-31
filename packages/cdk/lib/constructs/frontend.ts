@@ -3,10 +3,20 @@ import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
 import * as origins from 'aws-cdk-lib/aws-cloudfront-origins';
 import * as iam from 'aws-cdk-lib/aws-iam';
+import * as route53 from 'aws-cdk-lib/aws-route53';
+import * as route53Targets from 'aws-cdk-lib/aws-route53-targets';
+import * as acm from 'aws-cdk-lib/aws-certificatemanager';
 import { NodejsBuild } from 'deploy-time-build';
 import { Construct } from 'constructs';
 
 export interface FrontendProps {
+  /**
+   * リソース名のプレフィックス（オプション）
+   * S3バケット名: {resourcePrefix}-frontend-{ACCOUNT}-{REGION}
+   * @default 'agentcore'
+   */
+  readonly resourcePrefix?: string;
+
   /**
    * Cognito User Pool ID for frontend configuration
    */
@@ -31,6 +41,21 @@ export interface FrontendProps {
    * AWS Region
    */
   awsRegion: string;
+
+  /**
+   * Custom domain configuration (optional)
+   */
+  customDomain?: {
+    /**
+     * Hostname (e.g., 'genai')
+     */
+    hostName: string;
+
+    /**
+     * Domain name (e.g., 'example.com')
+     */
+    domainName: string;
+  };
 }
 
 export class Frontend extends Construct {
@@ -41,9 +66,38 @@ export class Frontend extends Construct {
   constructor(scope: Construct, id: string, props: FrontendProps) {
     super(scope, id);
 
+    // リソースプレフィックスの取得
+    const resourcePrefix = props.resourcePrefix || 'agentcore';
+
+    // カスタムドメインの処理
+    let certificate: acm.ICertificate | undefined;
+    let domainNames: string[] | undefined;
+    let hostedZone: route53.IHostedZone | undefined;
+    let fullDomainName: string | undefined;
+
+    if (props.customDomain) {
+      const { hostName, domainName } = props.customDomain;
+      fullDomainName = `${hostName}.${domainName}`;
+
+      // Route53 ホストゾーンの参照（ドメイン名から自動検索）
+      hostedZone = route53.HostedZone.fromLookup(this, 'HostedZone', {
+        domainName: domainName,
+      });
+
+      // ACM 証明書の作成（CloudFront用にus-east-1で作成）
+      // DnsValidatedCertificate を使用することで、us-east-1 に証明書を作成し、DNS 検証も自動で行う
+      certificate = new acm.DnsValidatedCertificate(this, 'Certificate', {
+        domainName: fullDomainName,
+        hostedZone: hostedZone,
+        region: 'us-east-1', // CloudFront requires certificate in us-east-1
+      });
+
+      domainNames = [fullDomainName];
+    }
+
     // S3 Bucket for Frontend Static Website
     this.s3Bucket = new s3.Bucket(this, 'AgentCoreFrontendBucket', {
-      bucketName: `agentcore-frontend-${cdk.Aws.ACCOUNT_ID}-${cdk.Aws.REGION}`,
+      bucketName: `${resourcePrefix}-frontend-${cdk.Aws.ACCOUNT_ID}-${cdk.Aws.REGION}`,
       publicReadAccess: false,
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       removalPolicy: cdk.RemovalPolicy.DESTROY, // For demo purposes
@@ -55,7 +109,7 @@ export class Frontend extends Construct {
       this,
       'FrontendResponseHeadersPolicy',
       {
-        responseHeadersPolicyName: `agentcore-security-headers-${cdk.Aws.ACCOUNT_ID}-${cdk.Aws.REGION}`,
+        responseHeadersPolicyName: `${resourcePrefix}-security-headers-${cdk.Aws.ACCOUNT_ID}-${cdk.Aws.REGION}`,
         comment: 'Security headers policy for AgentCore Frontend',
         // Security headers
         securityHeadersBehavior: {
@@ -84,7 +138,7 @@ export class Frontend extends Construct {
 
     // Cache Policy for static assets (JS, CSS, fonts, images)
     const staticAssetsCachePolicy = new cloudfront.CachePolicy(this, 'StaticAssetsCachePolicy', {
-      cachePolicyName: `agentcore-static-assets-${cdk.Aws.ACCOUNT_ID}-${cdk.Aws.REGION}`,
+      cachePolicyName: `${resourcePrefix}-static-assets-${cdk.Aws.ACCOUNT_ID}-${cdk.Aws.REGION}`,
       comment: 'Cache policy for static assets with long TTL',
       defaultTtl: cdk.Duration.days(365),
       maxTtl: cdk.Duration.days(365),
@@ -98,7 +152,7 @@ export class Frontend extends Construct {
 
     // Origin Access Control (OAC) を明示的に作成
     const originAccessControl = new cloudfront.S3OriginAccessControl(this, 'FrontendOAC', {
-      originAccessControlName: `agentcore-frontend-oac-${cdk.Aws.ACCOUNT_ID}-${cdk.Aws.REGION}`,
+      originAccessControlName: `${resourcePrefix}-frontend-oac-${cdk.Aws.ACCOUNT_ID}-${cdk.Aws.REGION}`,
       signing: cloudfront.Signing.SIGV4_NO_OVERRIDE,
     });
 
@@ -145,8 +199,22 @@ export class Frontend extends Construct {
           },
         ],
         priceClass: cloudfront.PriceClass.PRICE_CLASS_100,
+        // カスタムドメイン設定
+        domainNames: domainNames,
+        certificate: certificate,
       }
     );
+
+    // Route53 Aレコードの作成（カスタムドメインが設定されている場合）
+    if (hostedZone && fullDomainName) {
+      new route53.ARecord(this, 'AliasRecord', {
+        zone: hostedZone,
+        recordName: fullDomainName,
+        target: route53.RecordTarget.fromAlias(
+          new route53Targets.CloudFrontTarget(this.cloudFrontDistribution)
+        ),
+      });
+    }
 
     // Frontend Build and Deployment using deploy-time-build
     const frontendBuild = new NodejsBuild(this, 'FrontendBuild', {
@@ -167,6 +235,7 @@ export class Frontend extends Construct {
       outputSourceDirectory: 'dist',
       destinationBucket: this.s3Bucket,
       distribution: this.cloudFrontDistribution,
+      nodejsVersion: 22,
     });
 
     // NodejsBuild に CloudWatch Logs への権限を追加
@@ -180,6 +249,8 @@ export class Frontend extends Construct {
     });
 
     // Set website URL for easy access
-    this.websiteUrl = `https://${this.cloudFrontDistribution.distributionDomainName}`;
+    this.websiteUrl = fullDomainName
+      ? `https://${fullDomainName}`
+      : `https://${this.cloudFrontDistribution.distributionDomainName}`;
   }
 }

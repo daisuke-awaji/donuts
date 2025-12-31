@@ -68,10 +68,10 @@ export interface AgentCoreRuntimeProps {
   };
 
   /**
-   * Tavily Search API Key（オプション）
-   * Web検索ツールを使用するために必要
+   * Tavily API Key Secret Name (Secrets Manager)（オプション）
+   * 設定されている場合、ランタイムは Secrets Manager から API キーを取得
    */
-  readonly tavilyApiKey?: string;
+  readonly tavilyApiKeySecretName?: string;
 
   /**
    * User Storage バケット名（オプション）
@@ -148,9 +148,9 @@ export class AgentCoreRuntime extends Construct {
       environmentVariables.AGENTCORE_MEMORY_ID = props.memory.memoryId;
     }
 
-    // Tavily Search API Key の設定
-    if (props.tavilyApiKey) {
-      environmentVariables.TAVILY_API_KEY = props.tavilyApiKey;
+    // Tavily API Key Secret Name の設定
+    if (props.tavilyApiKeySecretName) {
+      environmentVariables.TAVILY_API_KEY_SECRET_NAME = props.tavilyApiKeySecretName;
     }
 
     // User Storage バケット名の設定
@@ -268,6 +268,20 @@ export class AgentCoreRuntime extends Construct {
         ],
       })
     );
+
+    // Secrets Manager アクセス権限（Tavily API Key）
+    if (props.tavilyApiKeySecretName) {
+      this.runtime.addToRolePolicy(
+        new iam.PolicyStatement({
+          sid: 'SecretsManagerTavilyApiKeyAccess',
+          effect: iam.Effect.ALLOW,
+          actions: ['secretsmanager:GetSecretValue'],
+          resources: [
+            `arn:aws:secretsmanager:${region}:${account}:secret:${props.tavilyApiKeySecretName}*`,
+          ],
+        })
+      );
+    }
 
     // プロパティを設定
     this.runtimeArn = this.runtime.agentRuntimeArn;

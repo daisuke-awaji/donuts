@@ -35,6 +35,11 @@ export interface BackendApiProps {
   readonly userStorageBucketName?: string;
 
   /**
+   * Agents Table テーブル名
+   */
+  readonly agentsTableName?: string;
+
+  /**
    * CORS許可オリジン
    */
   readonly corsAllowedOrigins?: string[];
@@ -193,6 +198,7 @@ export class BackendApi extends Construct {
         AGENTCORE_GATEWAY_ENDPOINT: props.agentcoreGatewayEndpoint,
         AGENTCORE_MEMORY_ID: props.agentcoreMemoryId || '',
         USER_STORAGE_BUCKET_NAME: props.userStorageBucketName || '',
+        AGENTS_TABLE_NAME: props.agentsTableName || '',
 
         // Lambda Web Adapter 設定（既にDockerfileで設定されているが念のため）
         AWS_LWA_PORT: '8080',

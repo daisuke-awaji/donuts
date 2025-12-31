@@ -4,37 +4,44 @@ import { AgentCoreGateway } from './constructs/agentcore-gateway';
 import { AgentCoreLambdaTarget } from './constructs/agentcore-lambda-target';
 import { AgentCoreMemory } from './constructs/agentcore-memory';
 import { AgentCoreRuntime } from './constructs/agentcore-runtime';
+import { AgentsTable } from './constructs/agents-table';
 import { BackendApi } from './constructs/backend-api';
 import { CognitoAuth } from './constructs/cognito-auth';
 import { Frontend } from './constructs/frontend';
 import { UserStorage } from './constructs/user-storage';
+import { EnvironmentConfig } from '../config';
 
 export interface AgentCoreStackProps extends cdk.StackProps {
   /**
-   * Gateway の名前 (オプション)
-   * デフォルト: 'default-gateway'
+   * Environment configuration
+   */
+  readonly envConfig: EnvironmentConfig;
+
+  /**
+   * Gateway name (optional)
+   * Default: 'default-gateway'
    */
   readonly gatewayName?: string;
 
   /**
-   * Gateway の説明 (オプション)
+   * Gateway description (optional)
    */
   readonly gatewayDescription?: string;
 
   /**
-   * 認証タイプ (オプション)
-   * デフォルト: cognito
+   * Authentication type (optional)
+   * Default: cognito
    */
   readonly authType?: 'cognito' | 'iam' | 'jwt';
 
   /**
-   * Runtime の認証タイプ (オプション)
-   * デフォルト: jwt (Gateway と同じ Cognito を使用)
+   * Runtime authentication type (optional)
+   * Default: jwt (uses same Cognito as Gateway)
    */
   readonly runtimeAuthType?: 'iam' | 'jwt';
 
   /**
-   * JWTの設定 (authType が 'jwt' の場合に必要)
+   * JWT configuration (required when authType is 'jwt')
    */
   readonly jwtConfig?: {
     readonly discoveryUrl: string;
@@ -43,126 +50,140 @@ export interface AgentCoreStackProps extends cdk.StackProps {
   };
 
   /**
-   * Memory の名前 (オプション)
-   * デフォルト: '{gatewayName}-memory'
+   * Memory name (optional)
+   * Default: '{gatewayName}-memory'
    */
   readonly memoryName?: string;
 
   /**
-   * Memory で組み込み戦略を使用するかどうか (オプション)
-   * デフォルト: true (Summarization, Semantic, UserPreference)
+   * Whether to use built-in memory strategies (optional)
+   * Default: true (Summarization, Semantic, UserPreference)
    */
   readonly useBuiltInMemoryStrategies?: boolean;
 
   /**
-   * Memory の有効期限（日数） (オプション)
-   * デフォルト: 90日
+   * Memory expiration period in days (optional)
+   * Default: 90 days
    */
   readonly memoryExpirationDays?: number;
 
   /**
-   * Tavily Search API Key（オプション）
-   * Web検索ツールを使用するために必要
+   * Tavily API Key Secret Name (Secrets Manager) (optional)
+   * When set, runtime will retrieve API key from Secrets Manager
    */
-  readonly tavilyApiKey?: string;
+  readonly tavilyApiKeySecretName?: string;
 }
 
 /**
  * Amazon Bedrock AgentCore Stack
  *
- * AgentCore Gateway とその他の関連リソースをデプロイするためのCDKスタック
+ * CDK stack for deploying AgentCore Gateway and related resources
  */
 export class AgentCoreStack extends cdk.Stack {
   /**
-   * 作成された Cognito 認証システム
+   * Created Cognito authentication system
    */
   public readonly cognitoAuth: CognitoAuth;
 
   /**
-   * 作成された AgentCore Gateway
+   * Created AgentCore Gateway
    */
   public readonly gateway: AgentCoreGateway;
 
   /**
-   * 作成された Utility Tools Lambda Target
+   * Created Utility Tools Lambda Target
    */
   public readonly echoToolTarget: AgentCoreLambdaTarget;
 
   /**
-   * 作成された AgentCore Runtime
+   * Created AgentCore Runtime
    */
   public readonly agentRuntime: AgentCoreRuntime;
 
   /**
-   * 作成された Backend API
+   * Created Backend API
    */
   public readonly backendApi: BackendApi;
 
   /**
-   * 作成された Frontend
+   * Created Frontend
    */
   public readonly frontend: Frontend;
 
   /**
-   * 作成された AgentCore Memory
+   * Created AgentCore Memory
    */
   public readonly memory: AgentCoreMemory;
 
   /**
-   * 作成された User Storage
+   * Created User Storage
    */
   public readonly userStorage: UserStorage;
 
-  constructor(scope: Construct, id: string, props?: AgentCoreStackProps) {
+  /**
+   * Created Agents Table
+   */
+  public readonly agentsTable: AgentsTable;
+
+  constructor(scope: Construct, id: string, props: AgentCoreStackProps) {
     super(scope, id, props);
 
-    // Gateway名の設定
-    const gatewayName = props?.gatewayName || 'default-gateway';
+    if (!props.envConfig) {
+      throw new Error('envConfig is required');
+    }
 
-    // 1. Cognito 認証システムの作成（Gateway と Runtime で共有）
+    const envConfig = props.envConfig;
+
+    // Configure resource prefix (from environment config, can be overridden by props.gatewayName)
+    const resourcePrefix = props.gatewayName || envConfig.resourcePrefix;
+
+    // 1. Create Cognito authentication system (shared by Gateway and Runtime)
     this.cognitoAuth = new CognitoAuth(this, 'CognitoAuth', {
-      userPoolName: `${gatewayName}-user-pool`,
-      appClientName: `${gatewayName}-client`,
-      deletionProtection: false, // 開発環境用
+      userPoolName: `${resourcePrefix}-user-pool`,
+      appClientName: `${resourcePrefix}-client`,
+      deletionProtection: envConfig.cognitoDeletionProtection,
       userPoolConfig: {
-        selfSignUpEnabled: true, // セルフサインアップを有効化
+        selfSignUpEnabled: true, // Enable self sign-up
         autoVerify: {
-          email: true, // メール自動検証を有効化
+          email: true, // Enable automatic email verification
         },
       },
+      allowedSignUpEmailDomains: envConfig.allowedSignUpEmailDomains,
+      testUser: envConfig.testUser, // Add test user configuration
     });
 
-    // 2. AgentCore Gateway の作成
+    // 2. Create AgentCore Gateway
     this.gateway = new AgentCoreGateway(this, 'AgentCoreGateway', {
-      gatewayName: gatewayName,
-      description: props?.gatewayDescription || `AgentCore Gateway - ${gatewayName}`,
+      gatewayName: resourcePrefix,
+      description: props?.gatewayDescription || `AgentCore Gateway - ${resourcePrefix}`,
       authType: props?.authType || 'cognito',
       cognitoAuth: this.cognitoAuth,
       jwtConfig: props?.jwtConfig,
       mcpConfig: {
         instructions:
-          'このGatewayを使用してAgentCoreツールと外部サービス間の統合を行います。Utility ツール（Echo/Ping等）が利用可能です。',
+          'Use this Gateway to integrate AgentCore tools with external services. Utility tools (Echo/Ping, etc.) are available.',
       },
     });
 
-    // Utility Tools Lambda Target の作成
+    // Create Utility Tools Lambda Target
     this.echoToolTarget = new AgentCoreLambdaTarget(this, 'EchoToolTarget', {
+      resourcePrefix: resourcePrefix,
       targetName: 'utility-tools',
-      description: 'Utility ツールを提供するLambda関数',
+      description: 'Lambda function providing utility tools',
       lambdaCodePath: 'packages/lambda-tools/tools/utility-tools',
       toolSchemaPath: 'packages/lambda-tools/tools/utility-tools/tool-schema.json',
       timeout: 30,
       memorySize: 256,
-      enableKnowledgeBaseAccess: true, // Knowledge Base への Retrieve 権限を有効化
+      enableKnowledgeBaseAccess: true, // Enable Retrieve permissions for Knowledge Base
       environment: {
         LOG_LEVEL: 'INFO',
       },
     });
 
-    // Gateway に Lambda Target を追加
+    // Add Lambda Target to Gateway
     this.echoToolTarget.addToGateway(this.gateway.gateway, 'EchoToolGatewayTarget');
 
-    // CloudFormation出力
+    // CloudFormation outputs
     new cdk.CfnOutput(this, 'GatewayArn', {
       value: this.gateway.gatewayArn,
       description: 'AgentCore Gateway ARN',
@@ -203,78 +224,95 @@ export class AgentCoreStack extends cdk.Stack {
       exportName: `${id}-UtilityToolsLambdaName`,
     });
 
-    // 3. AgentCore Memory の作成
-    const memoryName = props?.memoryName || `${gatewayName.replace(/-/g, '_')}_memory`;
+    // 3. Create AgentCore Memory
+    const memoryName = props?.memoryName || `${resourcePrefix.replace(/-/g, '_')}_memory`;
     const useBuiltInStrategies = props?.useBuiltInMemoryStrategies ?? true;
-    const expirationDays = props?.memoryExpirationDays || 90;
+    const expirationDays = props?.memoryExpirationDays || envConfig.memoryExpirationDays;
 
     this.memory = new AgentCoreMemory(this, 'AgentCoreMemory', {
       memoryName: memoryName,
-      description: `AgentCore Memory for ${gatewayName} - 会話履歴の永続化とコンテキスト管理`,
+      description: `AgentCore Memory for ${resourcePrefix} - Conversation history persistence and context management`,
       expirationDuration: cdk.Duration.days(expirationDays),
       useBuiltInStrategies: useBuiltInStrategies,
       tags: {
         Project: 'AgentCore',
         Component: 'Memory',
-        Gateway: gatewayName,
+        Gateway: resourcePrefix,
+        Environment: envConfig.env,
       },
     });
 
-    // 4. User Storage の作成
+    // 4. Create User Storage
     this.userStorage = new UserStorage(this, 'UserStorage', {
-      bucketNamePrefix: gatewayName,
+      bucketNamePrefix: envConfig.userStorageBucketPrefix || resourcePrefix,
       retentionDays: 365,
-      corsAllowedOrigins: ['*'], // 開発用、本番では具体的なオリジンを設定
+      corsAllowedOrigins: envConfig.corsAllowedOrigins,
+      removalPolicy: envConfig.s3RemovalPolicy,
+      autoDeleteObjects: envConfig.s3AutoDeleteObjects,
     });
 
-    // 5. AgentCore Runtime の作成（開発用に一時的にワイルドカード設定）
+    // 5. Create Agents Table
+    this.agentsTable = new AgentsTable(this, 'AgentsTable', {
+      tableNamePrefix: resourcePrefix,
+      removalPolicy: envConfig.s3RemovalPolicy, // Use same removal policy as S3
+      pointInTimeRecovery: true,
+    });
+
+    // 6. Create AgentCore Runtime
     this.agentRuntime = new AgentCoreRuntime(this, 'AgentCoreRuntime', {
-      runtimeName: 'StrandsAgentsTS',
-      description: 'TypeScript版Strands Agent Runtime',
+      runtimeName: envConfig.runtimeName,
+      description: `TypeScript-based Strands Agent Runtime - ${resourcePrefix}`,
       region: this.region,
       authType: props?.runtimeAuthType || 'jwt',
       cognitoAuth: this.cognitoAuth,
-      gateway: this.gateway, // JWT伝播用のGatewayエンドポイント設定
-      corsAllowedOrigins: '*', // 開発用に全オリジン許可（本番では具体的なURLを設定）
+      gateway: this.gateway, // Gateway endpoint configuration for JWT propagation
+      corsAllowedOrigins: envConfig.corsAllowedOrigins.join(','),
       memory: {
         memoryId: this.memory.memoryId,
         enabled: true,
       },
-      tavilyApiKey: props?.tavilyApiKey, // Tavily Search API Key を渡す
-      userStorageBucketName: this.userStorage.bucketName, // User Storage バケット名を渡す
+      tavilyApiKeySecretName: props?.tavilyApiKeySecretName, // Pass Tavily API Key Secret Name
+      userStorageBucketName: this.userStorage.bucketName, // Pass User Storage bucket name
     });
 
-    // Runtime に Memory アクセス権限を付与
+    // Grant Memory access permissions to Runtime
     this.memory.grantAgentCoreAccess(this.agentRuntime.runtime);
 
-    // Runtime に User Storage アクセス権限を付与
+    // Grant User Storage full access to Runtime
     this.userStorage.grantFullAccess(this.agentRuntime.runtime);
 
-    // 6. Backend API の作成（Lambda Web Adapter）
+    // 7. Create Backend API (Lambda Web Adapter)
     this.backendApi = new BackendApi(this, 'BackendApi', {
-      apiName: `${gatewayName}-backend-api`,
+      apiName: envConfig.backendApiName || `${resourcePrefix}-backend-api`,
       cognitoAuth: this.cognitoAuth,
       agentcoreGatewayEndpoint: `https://${this.gateway.gatewayId}.gateway.bedrock-agentcore.${this.region}.amazonaws.com/mcp`,
       agentcoreMemoryId: this.memory.memoryId,
-      corsAllowedOrigins: ['*'], // 開発用、本番では具体的なオリジンを設定
-      timeout: 30, // API Gateway の制限
-      memorySize: 1024, // Express アプリに十分なメモリ
-      userStorageBucketName: this.userStorage.bucketName, // User Storage バケット名を追加
+      corsAllowedOrigins: envConfig.corsAllowedOrigins,
+      timeout: 30,
+      memorySize: 1024,
+      userStorageBucketName: this.userStorage.bucketName,
+      agentsTableName: this.agentsTable.tableName,
+      logRetention: envConfig.logRetentionDays,
     });
 
-    // Backend API に User Storage アクセス権限を付与
+    // Grant User Storage full access to Backend API
     this.userStorage.grantFullAccess(this.backendApi.lambdaFunction);
 
-    // 7. Frontend の作成
+    // Grant Agents Table read/write access to Backend API
+    this.agentsTable.grantReadWrite(this.backendApi.lambdaFunction);
+
+    // 8. Create Frontend
     this.frontend = new Frontend(this, 'Frontend', {
+      resourcePrefix: envConfig.frontendBucketPrefix || resourcePrefix,
       userPoolId: this.cognitoAuth.userPoolId,
       userPoolClientId: this.cognitoAuth.clientId,
       runtimeEndpoint: `https://bedrock-agentcore.${this.region}.amazonaws.com/runtimes/${this.agentRuntime.runtimeArn}/invocations?qualifier=DEFAULT`,
       awsRegion: this.region,
-      backendApiUrl: this.backendApi.apiUrl, // Backend API URL を追加
+      backendApiUrl: this.backendApi.apiUrl, // Add Backend API URL
+      customDomain: envConfig.customDomain, // Add custom domain configuration
     });
 
-    // 8. CloudFormation 追加出力（認証関連）
+    // 9. Additional CloudFormation outputs (authentication related)
     new cdk.CfnOutput(this, 'GatewayMcpEndpoint', {
       value: `https://${this.gateway.gatewayId}.gateway.bedrock-agentcore.${this.region}.amazonaws.com/mcp`,
       description: 'AgentCore Gateway MCP Endpoint',
@@ -294,24 +332,24 @@ export class AgentCoreStack extends cdk.Stack {
     });
 
     new cdk.CfnOutput(this, 'AuthenticationSummary', {
-      value: `Gateway: JWT認証, Runtime: JWT認証 (共通Cognito User Pool: ${this.cognitoAuth.userPoolId})`,
-      description: '認証設定サマリー',
+      value: `Gateway: JWT authentication, Runtime: JWT authentication (Shared Cognito User Pool: ${this.cognitoAuth.userPoolId})`,
+      description: 'Authentication configuration summary',
     });
 
     new cdk.CfnOutput(this, 'CorsConfiguration', {
-      value: `CORS設定: 許可オリジン="*" (開発用)、Frontend URL="${this.frontend.websiteUrl}"`,
-      description: 'CORS設定サマリー',
+      value: `CORS configuration: Allowed origins="*" (development), Frontend URL="${this.frontend.websiteUrl}"`,
+      description: 'CORS configuration summary',
     });
 
-    // テスト用ユーザー作成のヘルパー出力
+    // Helper outputs for creating test users
     new cdk.CfnOutput(this, 'CreateTestUserCommand', {
       value: `aws cognito-idp admin-create-user --user-pool-id ${this.cognitoAuth.userPoolId} --username testuser --message-action SUPPRESS --region ${this.region}`,
-      description: 'テストユーザー作成コマンド例',
+      description: 'Example command to create test user',
     });
 
     new cdk.CfnOutput(this, 'SetUserPasswordCommand', {
       value: `aws cognito-idp admin-set-user-password --user-pool-id ${this.cognitoAuth.userPoolId} --username testuser --password YourPassword123! --permanent --region ${this.region}`,
-      description: 'ユーザーパスワード設定コマンド例',
+      description: 'Example command to set user password',
     });
 
     new cdk.CfnOutput(this, 'AgentRuntimeArn', {
@@ -326,7 +364,7 @@ export class AgentCoreStack extends cdk.Stack {
       exportName: `${id}-AgentRuntimeId`,
     });
 
-    // Memory 関連の出力
+    // Memory-related outputs
     new cdk.CfnOutput(this, 'MemoryId', {
       value: this.memory.memoryId,
       description: 'AgentCore Memory ID',
@@ -346,11 +384,11 @@ export class AgentCoreStack extends cdk.Stack {
     });
 
     new cdk.CfnOutput(this, 'MemoryConfiguration', {
-      value: `Memory: ${this.memory.memoryName} (${this.memory.memoryId}) - 会話履歴永続化機能有効`,
-      description: 'AgentCore Memory 設定サマリー',
+      value: `Memory: ${this.memory.memoryName} (${this.memory.memoryId}) - Conversation history persistence enabled`,
+      description: 'AgentCore Memory configuration summary',
     });
 
-    // Backend API 関連の出力
+    // Backend API-related outputs
     new cdk.CfnOutput(this, 'BackendApiUrl', {
       value: this.backendApi.apiUrl,
       description: 'Backend API Endpoint URL',
@@ -371,10 +409,10 @@ export class AgentCoreStack extends cdk.Stack {
 
     new cdk.CfnOutput(this, 'BackendApiConfiguration', {
       value: `Backend API: ${this.backendApi.apiUrl} (Lambda Web Adapter + Express.js)`,
-      description: 'Backend API 設定サマリー',
+      description: 'Backend API configuration summary',
     });
 
-    // User Storage 関連の出力
+    // User Storage-related outputs
     new cdk.CfnOutput(this, 'UserStorageBucketName', {
       value: this.userStorage.bucketName,
       description: 'User Storage S3 Bucket Name',
@@ -388,15 +426,34 @@ export class AgentCoreStack extends cdk.Stack {
     });
 
     new cdk.CfnOutput(this, 'UserStorageConfiguration', {
-      value: `User Storage: ${this.userStorage.bucketName} - ユーザーファイルストレージ`,
-      description: 'User Storage 設定サマリー',
+      value: `User Storage: ${this.userStorage.bucketName} - User file storage`,
+      description: 'User Storage configuration summary',
     });
 
-    // タグの追加
+    // Agents Table-related outputs
+    new cdk.CfnOutput(this, 'AgentsTableName', {
+      value: this.agentsTable.tableName,
+      description: 'Agents DynamoDB Table Name',
+      exportName: `${id}-AgentsTableName`,
+    });
+
+    new cdk.CfnOutput(this, 'AgentsTableArn', {
+      value: this.agentsTable.tableArn,
+      description: 'Agents DynamoDB Table ARN',
+      exportName: `${id}-AgentsTableArn`,
+    });
+
+    new cdk.CfnOutput(this, 'AgentsTableConfiguration', {
+      value: `Agents Table: ${this.agentsTable.tableName} - User agent storage`,
+      description: 'Agents Table configuration summary',
+    });
+
+    // Add tags
     cdk.Tags.of(this).add('Project', 'AgentCore');
     cdk.Tags.of(this).add('Component', 'Gateway');
     cdk.Tags.of(this).add('Memory', 'Enabled');
     cdk.Tags.of(this).add('BackendApi', 'Enabled');
     cdk.Tags.of(this).add('UserStorage', 'Enabled');
+    cdk.Tags.of(this).add('AgentsTable', 'Enabled');
   }
 }

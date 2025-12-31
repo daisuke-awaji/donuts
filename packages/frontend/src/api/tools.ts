@@ -377,59 +377,6 @@ export const LOCAL_TOOLS: MCPTool[] = [
     },
   },
   {
-    name: 's3_download_file',
-    description:
-      'ユーザーのS3ストレージからファイルをダウンロードまたは読み取ります。テキストファイルの場合は内容を直接取得し、大きなファイルやバイナリファイルの場合は署名付きダウンロードURLを生成します。',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        path: {
-          type: 'string',
-          description: 'ダウンロード・読み取りするファイルのパス（必須）',
-        },
-        returnContent: {
-          type: 'boolean',
-          default: true,
-          description:
-            'テキストファイルの内容を直接返すか（デフォルト: true）。falseの場合は常に署名付きURLを返す',
-        },
-        maxContentLength: {
-          type: 'number',
-          minimum: 1024,
-          maximum: 1048576,
-          default: 512000,
-          description: '内容を取得する場合の最大サイズ（バイト）。デフォルト: 500KB、最大: 1MB',
-        },
-      },
-      required: ['path'],
-    },
-  },
-  {
-    name: 's3_upload_file',
-    description:
-      'ユーザーのS3ストレージにテキストコンテンツをファイルとしてアップロードします。コード、ドキュメント、設定ファイルなどを保存できます。注意: 日本語や非ASCII文字を含むファイルをアップロードする際は、contentTypeにcharsetを指定してください（例: "text/plain; charset=utf-8"）。',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        path: {
-          type: 'string',
-          description:
-            'アップロード先のファイルパス（必須）。例: "/notes/memo.txt", "/code/sample.py"',
-        },
-        content: {
-          type: 'string',
-          description: 'ファイルの内容（必須）。テキストベースのコンテンツ',
-        },
-        contentType: {
-          type: 'string',
-          description:
-            'MIMEタイプ（オプション）。指定しない場合はファイル名から自動推測。例: "text/plain", "application/json"',
-        },
-      },
-      required: ['path', 'content'],
-    },
-  },
-  {
     name: 's3_get_presigned_urls',
     description:
       'ユーザーのS3ストレージ内のファイルに対する署名付きURLを一括で生成します。ダウンロード用またはアップロード用のURLを取得できます。複数のファイルを一度に処理できます。',
@@ -469,50 +416,27 @@ export const LOCAL_TOOLS: MCPTool[] = [
     },
   },
   {
-    name: 's3_sync_folder',
+    name: 'file_editor',
     description:
-      'S3ストレージからフォルダ全体をローカル環境（Agent実行コンテナ）にダウンロードします。aws s3 syncコマンド相当の機能を提供し、複数ファイルを一括で同期できます。',
+      'ファイルを編集または新規作成します。ファイルの移動や名前変更にはexecute_commandツールでmvコマンドを使用してください。使用前にcatコマンドでファイル内容を確認し、新規ファイルの場合はlsコマンドでディレクトリを確認してください。oldStringで指定したテキストをnewStringで置換します。oldStringはファイル内で一意である必要があり、空白やインデントも含めて完全に一致する必要があります。一度に1箇所のみ変更可能で、複数箇所を変更する場合は複数回呼び出してください。',
     inputSchema: {
       type: 'object',
       properties: {
-        s3Path: {
+        filePath: {
           type: 'string',
-          description: 'S3上のフォルダパス（例: "/project/data"）',
+          description: '編集対象ファイルの絶対パス（相対パスは使用不可）',
         },
-        localPath: {
+        oldString: {
           type: 'string',
-          description: 'ローカルの保存先パス（/tmp/ws配下のみ、例: "/tmp/ws/data"）',
+          description:
+            '置換対象のテキスト。ファイル内で一意である必要があり、空白やインデントも含めて完全に一致する必要があります。新規ファイルを作成する場合は空文字列を指定してください。',
         },
-        recursive: {
-          type: 'boolean',
-          default: true,
-          description: 'サブディレクトリも含めて同期するか（デフォルト: true）',
-        },
-        overwrite: {
-          type: 'boolean',
-          default: false,
-          description: '既存ファイルを上書きするか（デフォルト: false）',
-        },
-        maxConcurrency: {
-          type: 'number',
-          minimum: 1,
-          maximum: 10,
-          default: 5,
-          description: '並列ダウンロード数（1-10、デフォルト: 5）',
-        },
-        maxFiles: {
-          type: 'number',
-          minimum: 1,
-          maximum: 1000,
-          default: 100,
-          description: '最大ダウンロードファイル数（1-1000、デフォルト: 100）',
-        },
-        filePattern: {
+        newString: {
           type: 'string',
-          description: 'ファイル名フィルタ（globパターン、例: "*.txt", "data_*.json"）',
+          description: '置換後のテキスト。新規ファイル作成時はこの内容がファイルに書き込まれます。',
         },
       },
-      required: ['s3Path', 'localPath'],
+      required: ['filePath', 'oldString', 'newString'],
     },
   },
 ];
