@@ -14,6 +14,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { pipeline } from 'stream/promises';
 import * as crypto from 'crypto';
+import { SyncIgnorePattern } from './sync-ignore-pattern.js';
 
 const s3Client = new S3Client({ region: process.env.AWS_REGION });
 
@@ -109,6 +110,7 @@ export interface SyncResult {
   success: boolean;
   downloadedFiles?: number;
   uploadedFiles?: number;
+  ignoredFiles?: number;
   errors?: string[];
   duration?: number;
 }
@@ -124,6 +126,7 @@ export class WorkspaceSync {
   private storagePath: string;
   private bucketName: string;
   private fileSnapshot: Map<string, FileInfo> = new Map();
+  private ignorePattern: SyncIgnorePattern;
 
   constructor(userId: string, storagePath: string) {
     this.userId = userId;
@@ -132,6 +135,9 @@ export class WorkspaceSync {
 
     // ワークスペースディレクトリ
     this.workspaceDir = WORKSPACE_DIRECTORY;
+
+    // デフォルトの除外パターンで初期化
+    this.ignorePattern = new SyncIgnorePattern();
 
     if (!this.bucketName) {
       logger.warn('[WORKSPACE_SYNC] USER_STORAGE_BUCKET_NAME not configured');
@@ -152,7 +158,8 @@ export class WorkspaceSync {
 
     logger.info('[WORKSPACE_SYNC] Starting initial sync (non-blocking)...');
 
-    this.syncPromise = this.syncFromS3()
+    this.syncPromise = this.loadSyncIgnoreFile()
+      .then(() => this.syncFromS3())
       .then(() => {
         this.syncComplete = true;
         logger.info('[WORKSPACE_SYNC] Initial sync completed');
@@ -161,6 +168,35 @@ export class WorkspaceSync {
         logger.error('[WORKSPACE_SYNC] Initial sync failed:', err);
         this.syncComplete = true; // Mark as complete even on failure
       });
+  }
+
+  /**
+   * S3から.syncignoreファイルを読み込み
+   */
+  private async loadSyncIgnoreFile(): Promise<void> {
+    try {
+      const syncIgnoreKey = `users/${this.userId}/.syncignore`;
+      logger.info(`[WORKSPACE_SYNC] Loading .syncignore from S3: ${syncIgnoreKey}`);
+
+      const command = new GetObjectCommand({
+        Bucket: this.bucketName,
+        Key: syncIgnoreKey,
+      });
+
+      const response = await s3Client.send(command);
+      if (response.Body) {
+        const content = await response.Body.transformToString('utf-8');
+        this.ignorePattern = SyncIgnorePattern.fromSyncIgnoreContent(content);
+        logger.info('[WORKSPACE_SYNC] Custom .syncignore loaded successfully');
+      }
+    } catch (error) {
+      // .syncignore が存在しない場合はデフォルトパターンを使用
+      if ((error as { name?: string }).name === 'NoSuchKey') {
+        logger.info('[WORKSPACE_SYNC] No custom .syncignore found, using default patterns');
+      } else {
+        logger.warn('[WORKSPACE_SYNC] Failed to load .syncignore, using default patterns:', error);
+      }
+    }
   }
 
   /**
@@ -190,6 +226,7 @@ export class WorkspaceSync {
   private async syncFromS3(): Promise<void> {
     const startTime = Date.now();
     let downloadedFiles = 0;
+    let ignoredFiles = 0;
     const errors: string[] = [];
 
     try {
@@ -223,6 +260,13 @@ export class WorkspaceSync {
             try {
               // 相対パスを取得
               const relativePath = item.Key.replace(s3Prefix, '');
+
+              // 除外パターンにマッチするかチェック
+              if (this.ignorePattern.shouldIgnore(relativePath)) {
+                ignoredFiles++;
+                continue;
+              }
+
               const localPath = path.join(this.workspaceDir, relativePath);
 
               // ファイルをダウンロード
@@ -250,7 +294,9 @@ export class WorkspaceSync {
       } while (continuationToken);
 
       const duration = Date.now() - startTime;
-      logger.info(`[WORKSPACE_SYNC] Download complete: ${downloadedFiles} files in ${duration}ms`);
+      logger.info(
+        `[WORKSPACE_SYNC] Download complete: ${downloadedFiles} files downloaded, ${ignoredFiles} files ignored in ${duration}ms`
+      );
 
       if (errors.length > 0) {
         logger.warn(`[WORKSPACE_SYNC] Download completed with ${errors.length} errors`);
@@ -272,6 +318,7 @@ export class WorkspaceSync {
 
     const startTime = Date.now();
     let uploadedFiles = 0;
+    let ignoredFiles = 0;
     const errors: string[] = [];
 
     try {
@@ -294,6 +341,12 @@ export class WorkspaceSync {
       const uploadTasks: UploadTask[] = [];
 
       for (const [relativePath, currentInfo] of currentFiles.entries()) {
+        // 除外パターンにマッチするかチェック
+        if (this.ignorePattern.shouldIgnore(relativePath)) {
+          ignoredFiles++;
+          continue;
+        }
+
         const previousInfo = this.fileSnapshot.get(relativePath);
 
         // 新規ファイルまたは変更されたファイル
@@ -314,10 +367,13 @@ export class WorkspaceSync {
       }
 
       if (uploadTasks.length === 0) {
-        logger.info('[WORKSPACE_SYNC] No files to upload');
+        logger.info(
+          `[WORKSPACE_SYNC] No files to upload (${ignoredFiles} files ignored by patterns)`
+        );
         return {
           success: true,
           uploadedFiles: 0,
+          ignoredFiles,
           duration: Date.now() - startTime,
         };
       }
@@ -351,11 +407,14 @@ export class WorkspaceSync {
       }
 
       const duration = Date.now() - startTime;
-      logger.info(`[WORKSPACE_SYNC] Upload complete: ${uploadedFiles} files in ${duration}ms`);
+      logger.info(
+        `[WORKSPACE_SYNC] Upload complete: ${uploadedFiles} files uploaded, ${ignoredFiles} files ignored in ${duration}ms`
+      );
 
       return {
         success: errors.length === 0,
         uploadedFiles,
+        ignoredFiles,
         errors: errors.length > 0 ? errors : undefined,
         duration,
       };
@@ -484,5 +543,12 @@ export class WorkspaceSync {
   private getS3Key(relativePath: string): string {
     const prefix = this.getS3Prefix();
     return `${prefix}${relativePath}`;
+  }
+
+  /**
+   * 現在の除外パターンを取得（デバッグ用）
+   */
+  getIgnorePatterns(): { ignore: string[]; negate: string[] } {
+    return this.ignorePattern.getPatterns();
   }
 }
