@@ -25,13 +25,7 @@ export function generateDefaultContext(
     - Image: ![alt](https://xxx.s3.us-east-1.amazonaws.com/<presignedUrl>)`;
 
   // S3関連ツールが有効かどうかをチェック
-  const s3ToolNames = [
-    's3_list_files',
-    's3_download_file',
-    's3_upload_file',
-    's3_get_presigned_urls',
-    's3_sync_folder',
-  ];
+  const s3ToolNames = ['s3_list_files', 's3_download_file', 's3_upload_file', 's3_sync_folder'];
   const enabledS3Tools = tools.filter((tool) => s3ToolNames.includes(tool.name));
   const hasS3Tools = enabledS3Tools.length > 0;
 

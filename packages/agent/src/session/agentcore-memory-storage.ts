@@ -8,7 +8,7 @@ import {
   DeleteEventCommand,
   type PayloadType,
 } from '@aws-sdk/client-bedrock-agentcore';
-import type { Message } from '@strands-agents/sdk';
+import { Message } from '@strands-agents/sdk';
 import type { SessionConfig, SessionStorage } from './types.js';
 import {
   messageToAgentCorePayload,
@@ -72,13 +72,10 @@ export class AgentCoreMemoryStorage implements SessionStorage {
 
       for (const event of sortedEvents) {
         if (event.payload && event.payload.length > 0) {
-          for (const payloadItem of event.payload) {
-            // conversational または blob payload の場合を処理
-            if ('conversational' in payloadItem || 'blob' in payloadItem) {
-              const agentCorePayload = payloadItem as AgentCorePayload;
-              const message = agentCorePayloadToMessage(agentCorePayload);
-              messages.push(message);
-            }
+          // 1つのイベント内の複数のpayloadを統合して1つのメッセージにする
+          const consolidatedMessage = this.consolidateEventPayloads(event.payload);
+          if (consolidatedMessage) {
+            messages.push(consolidatedMessage);
           }
         }
       }
@@ -235,6 +232,55 @@ export class AgentCoreMemoryStorage implements SessionStorage {
       });
       throw error;
     }
+  }
+
+  /**
+   * イベント内の複数のpayloadを統合して1つのメッセージにする
+   * @param payloads イベント内のpayload配列
+   * @returns 統合されたMessage、または統合できない場合はnull
+   * @private
+   */
+  private consolidateEventPayloads(payloads: PayloadType[]): Message | null {
+    if (payloads.length === 0) return null;
+
+    // 各payloadをメッセージに変換
+    const messages: Message[] = [];
+    for (const payloadItem of payloads) {
+      if ('conversational' in payloadItem || 'blob' in payloadItem) {
+        const agentCorePayload = payloadItem as AgentCorePayload;
+        const message = agentCorePayloadToMessage(agentCorePayload);
+        messages.push(message);
+      }
+    }
+
+    if (messages.length === 0) return null;
+    if (messages.length === 1) return messages[0];
+
+    // 複数のメッセージを統合
+    // 同じロールのメッセージのcontentを結合する
+    const firstMessage = messages[0];
+    const role = firstMessage.role;
+
+    // 全てのメッセージが同じロールであることを確認
+    const allSameRole = messages.every((msg) => msg.role === role);
+    if (!allSameRole) {
+      logger.warn('[AgentCoreMemoryStorage] Event contains mixed roles, using first message only');
+      return firstMessage;
+    }
+
+    // 全てのcontentを結合
+    const consolidatedContent = messages.flatMap((msg) => msg.content);
+
+    logger.info('[AgentCoreMemoryStorage] Consolidated event payloads:', {
+      role,
+      payloadCount: payloads.length,
+      contentBlockCount: consolidatedContent.length,
+    });
+
+    return new Message({
+      role,
+      content: consolidatedContent,
+    });
   }
 
   /**
