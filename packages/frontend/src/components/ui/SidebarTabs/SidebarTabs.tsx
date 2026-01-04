@@ -11,8 +11,8 @@ export function SidebarTabs<T extends string>({
   className = '',
 }: SidebarTabsProps<T>) {
   return (
-    <div className={`w-48 border-r border-gray-200 flex-shrink-0 ${className}`}>
-      <nav className="p-4 space-y-1">
+    <div className={`w-16 md:w-48 border-r border-gray-200 flex-shrink-0 ${className}`}>
+      <nav className="p-2 md:p-4 space-y-1">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -21,12 +21,13 @@ export function SidebarTabs<T extends string>({
               key={tab.id}
               type="button"
               onClick={() => onTabChange(tab.id)}
-              className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+              className={`w-full flex items-center md:space-x-3 justify-center md:justify-start px-2 md:px-3 py-2 rounded-lg text-sm transition-colors ${
                 isActive ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700 hover:bg-gray-50'
               }`}
+              title={tab.label}
             >
               <Icon className="w-5 h-5 flex-shrink-0" />
-              <span>{tab.label}</span>
+              <span className="hidden md:inline">{tab.label}</span>
             </button>
           );
         })}
