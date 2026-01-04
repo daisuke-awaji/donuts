@@ -48,6 +48,14 @@ export default defineConfig([
               /^[!"#$%&'()*+,\-./:;<=>?@[\\\]^_`{|}~]+$/,
               // 単一の大文字定数
               /^[A-Z_]+$/,
+              // キーボードキー名（英語）
+              /^(Enter|Shift|Ctrl|Alt|Tab|Escape|Backspace|Delete|Space|Command|Option|Meta|Return)$/i,
+              // キーボード記号（Unicode）
+              /^[⌘⇧⌃⌥⎋↵↩⇥⌫⌦]+$/,
+              // プラス記号単体（キーボードショートカット表記用）
+              /^\+$/,
+              // 全角括弧（キーボードショートカット表記用）
+              /^[（）]+$/,
             ],
           },
           'should-validate-template': true,

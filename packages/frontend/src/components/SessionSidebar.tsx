@@ -176,7 +176,9 @@ export function SessionSidebar() {
     return null;
   }
 
-  // モバイル時は常に展開状態、デスクトップ時は現在の状態に従う
+  // モバイル時は常に展開状態（オーバーレイ形式なので内部は展開表示）
+  // ナローデスクトップ時は現在の状態に従う（自動折りたたみ推奨だが手動で開くことも可）
+  // ワイドデスクトップ時は現在の状態に従う
   const shouldShowExpanded = isMobileView || isSidebarOpen;
 
   return (

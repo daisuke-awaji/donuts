@@ -78,6 +78,7 @@ auth:
   backToSignUp: サインアップに戻る
   forgotPassword:
     title: パスワードを忘れた方
+    link: パスワードを忘れた方はこちら
     description: パスワードをリセットするため、確認コードをメールアドレスに送信します
     sendCode: 確認コードを送信
     sendingCode: 送信中...
@@ -112,6 +113,7 @@ navigation:
   searchTools: ツールを検索
   searchAgents: エージェントを検索
   manageAgents: エージェント管理
+  myAgents: マイエージェント
   events: イベント連携
   settings: 設定
   userMenu: ユーザーメニュー

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Bot, Menu } from 'lucide-react';
+import { Bot } from 'lucide-react';
 import * as icons from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -19,7 +19,7 @@ interface ChatContainerProps {
 export const ChatContainer: React.FC<ChatContainerProps> = ({ sessionId, onCreateSession }) => {
   const { t } = useTranslation();
   const selectedAgent = useSelectedAgent();
-  const { isMobileView, toggleSidebar } = useUIStore();
+  const { isMobileView } = useUIStore();
   const [isAgentModalOpen, setIsAgentModalOpen] = useState(false);
   const [selectedScenarioPrompt, setSelectedScenarioPrompt] = useState<string | null>(null);
 
@@ -39,27 +39,15 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({ sessionId, onCreat
 
   // Agent選択処理
   const handleAgentSelect = (agent: Agent | null) => {
-    // Agent選択は AgentStore で管理されているのでここでは何もしない
     console.log('Agent selected:', agent?.name || 'None');
   };
 
   return (
     <div className="chat-container">
-      {/* ヘッダー */}
-      <header className="flex items-center justify-between p-4 bg-white">
-        <div className="flex items-center">
-          {/* モバイル時のハンバーガーメニュー */}
-          {isMobileView && (
-            <button
-              onClick={toggleSidebar}
-              className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors mr-2"
-              title="サイドバーを開く"
-            >
-              <Menu className="w-5 h-5" />
-            </button>
-          )}
-
-          <div>
+      {/* ヘッダー - デスクトップ時のみ表示 */}
+      {!isMobileView && (
+        <header className="flex items-center justify-between p-4 bg-white">
+          <div className="flex items-center">
             <button
               onClick={() => setIsAgentModalOpen(true)}
               className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50 transition-colors group"
@@ -75,8 +63,8 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({ sessionId, onCreat
               </h1>
             </button>
           </div>
-        </div>
-      </header>
+        </header>
+      )}
 
       {/* メッセージリスト */}
       <MessageList onScenarioClick={handleScenarioClick} />

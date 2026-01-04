@@ -18,6 +18,11 @@ interface UIState {
   isMobileView: boolean;
 
   /**
+   * ナローデスクトップ表示かどうか（768px以上1024px未満）
+   */
+  isNarrowDesktop: boolean;
+
+  /**
    * サイドバーの開閉を切り替える
    */
   toggleSidebar: () => void;
@@ -33,6 +38,12 @@ interface UIState {
    * @param isMobile モバイル表示状態
    */
   setMobileView: (isMobile: boolean) => void;
+
+  /**
+   * ナローデスクトップ表示状態を設定する
+   * @param isNarrow ナローデスクトップ表示状態
+   */
+  setNarrowDesktop: (isNarrow: boolean) => void;
 }
 
 /**
@@ -47,23 +58,28 @@ export const useUIStore = create<UIState>()(
       // デフォルトはデスクトップ表示
       isMobileView: false,
 
+      // デフォルトはワイドデスクトップ
+      isNarrowDesktop: false,
+
       toggleSidebar: () =>
         set((state) => {
           const newState = !state.isSidebarOpen;
-          console.log(`🔀 サイドバー切り替え: ${newState ? '開く' : '閉じる'}`);
           return { isSidebarOpen: newState };
         }),
 
       setSidebarOpen: (isOpen) =>
         set(() => {
-          console.log(`📐 サイドバー状態設定: ${isOpen ? '開く' : '閉じる'}`);
           return { isSidebarOpen: isOpen };
         }),
 
       setMobileView: (isMobile) =>
         set(() => {
-          console.log(`📱 モバイル表示状態: ${isMobile ? 'モバイル' : 'デスクトップ'}`);
           return { isMobileView: isMobile };
+        }),
+
+      setNarrowDesktop: (isNarrow) =>
+        set(() => {
+          return { isNarrowDesktop: isNarrow };
         }),
     }),
     {

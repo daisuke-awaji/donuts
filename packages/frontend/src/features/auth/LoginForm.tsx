@@ -208,7 +208,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
                 onClick={onSwitchToForgotPassword}
                 className="text-gray-600 hover:text-indigo-600 transition-colors"
               >
-                パスワードを忘れた方はこちら
+                {t('auth.forgotPassword.link')}
               </button>
             </p>
           )}

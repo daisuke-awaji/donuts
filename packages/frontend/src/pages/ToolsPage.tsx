@@ -9,6 +9,7 @@ import { Wrench, Search, Loader2, AlertCircle, XCircle, RefreshCw } from 'lucide
 import { useAuthStore } from '../stores/authStore';
 import { useToolStore } from '../stores/toolStore';
 import { LoadingIndicator } from '../components/ui/LoadingIndicator';
+import { PageHeader } from '../components/ui/PageHeader';
 import { getToolIcon } from '../utils/toolIcons';
 import type { MCPTool } from '../api/tools';
 
@@ -188,12 +189,10 @@ export function ToolsPage() {
   return (
     <>
       {/* ヘッダー */}
-      <div className="border-b border-gray-200 bg-white px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Wrench className="w-6 h-6 text-gray-700" />
-            <h1 className="text-xl font-semibold text-gray-900">{t('tool.availableTools')}</h1>
-          </div>
+      <PageHeader
+        icon={Wrench}
+        title={t('tool.availableTools')}
+        actions={
           <button
             onClick={handleRefresh}
             disabled={currentLoading}
@@ -202,8 +201,8 @@ export function ToolsPage() {
           >
             <RefreshCw className={`w-4 h-4 ${currentLoading ? 'animate-spin' : ''}`} />
           </button>
-        </div>
-      </div>
+        }
+      />
 
       {/* メインコンテンツ */}
       <div className="flex-1 overflow-y-auto p-6">

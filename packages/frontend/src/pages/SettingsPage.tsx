@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Settings, Brain, HelpCircle, Languages, ChevronDown, Check } from 'lucide-react';
 import { useMemoryStore } from '../stores/memoryStore';
 import { useSettingsStore } from '../stores/settingsStore';
+import { PageHeader } from '../components/ui/PageHeader';
 import { MemoryManagementModal } from '../components/MemoryManagementModal';
 
 /**
@@ -47,13 +48,7 @@ export function SettingsPage() {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* ヘッダー */}
-      <header className="border-b border-gray-200 bg-white px-6 py-4">
-        <div className="flex items-center gap-3">
-          <Settings className="w-6 h-6 text-gray-700" />
-          <h1 className="text-xl font-semibold text-gray-900">{t('settings.title')}</h1>
-        </div>
-      </header>
+      <PageHeader icon={Settings} title={t('settings.title')} />
 
       {/* メインコンテンツ */}
       <main className="flex-1 overflow-y-auto p-6">

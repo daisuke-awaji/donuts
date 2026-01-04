@@ -6,6 +6,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { CalendarRange, Construction } from 'lucide-react';
+import { PageHeader } from '../components/ui/PageHeader';
 
 /**
  * イベント連携ページメインコンポーネント
@@ -20,15 +21,7 @@ export function EventsPage() {
 
   return (
     <>
-      {/* ヘッダー */}
-      <div className="border-b border-gray-200 bg-white px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <CalendarRange className="w-6 h-6 text-gray-700" />
-            <h1 className="text-xl font-semibold text-gray-900">{t('events.title')}</h1>
-          </div>
-        </div>
-      </div>
+      <PageHeader icon={CalendarRange} title={t('events.title')} />
 
       {/* メインコンテンツ */}
       <div className="flex-1 overflow-y-auto p-6">

@@ -11,6 +11,7 @@ import type { LucideIcon } from 'lucide-react';
 import { useSharedAgentStore } from '../stores/sharedAgentStore';
 import { SharedAgentDetailModal } from '../components/SharedAgentDetailModal';
 import { LoadingIndicator } from '../components/ui/LoadingIndicator';
+import { PageHeader } from '../components/ui/PageHeader';
 import type { Agent } from '../types/agent';
 import { DEFAULT_AGENTS } from '../types/agent';
 import { translateIfKey } from '../utils/agent-translation';
@@ -89,14 +90,7 @@ export function AgentDirectoryPage() {
   return (
     <>
       {/* ヘッダー */}
-      <div className="border-b border-gray-200 bg-white px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Users className="w-6 h-6 text-gray-700" />
-            <h1 className="text-xl font-semibold text-gray-900">{t('navigation.searchAgents')}</h1>
-          </div>
-        </div>
-      </div>
+      <PageHeader icon={Users} title={t('navigation.searchAgents')} />
 
       {/* メインコンテンツ */}
       <div className="flex-1 overflow-y-auto p-6">
