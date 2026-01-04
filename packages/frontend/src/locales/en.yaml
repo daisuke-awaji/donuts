@@ -5,6 +5,7 @@ common:
   loading: Loading...
   error: An error occurred
   save: Save
+  saving: Saving...
   cancel: Cancel
   delete: Delete
   close: Close
@@ -15,13 +16,25 @@ common:
   search: Search
   filter: Filter
   clear: Clear
+  clearStorage: Clear
+  copy: Copy
+  copyToClipboard: Copy to clipboard
+  noFolders: No folders
+  inputParameters: Input Parameters
+  unsupportedContentType: 'Unsupported content type: {{type}}'
   yes: Yes
   no: No
   back: Back
+  backArrow: ←
   next: Next
   renderingDiagram: Rendering diagram...
   diagramLoading: Mermaid diagram loading...
   characters: '{{count}} characters'
+  charactersWithStatus: '{{count}} characters • {{status}}'
+  iconsCount: '{{count}} icons'
+  noIconsFound: 'No icons found matching "{{query}}"'
+  searchIconsPlaceholder: Search icons...
+  clickToSelectIcon: Click to select an icon
   success: Success
   errorStatus: Error
 
@@ -133,8 +146,12 @@ agent:
   scenarioLabel: Scenario
   selectAgent: Select Agent
   createAgent: Create Agent
+  createNewAgent: Create New Agent
   editAgent: Edit Agent
   deleteAgent: Delete Agent
+  deleteAgentConfirmTitle: Confirm Agent Deletion
+  deleteAgentConfirmMessage: 'Delete "{{name}}"? This action cannot be undone.'
+  clearStorageConfirm: Clear agent data in localStorage? Default agents will be recreated.
   noAgentsTitle: No Agents Available
   noAgentsDescription: Create your first Agent
   createAgentButton: Create an Agent
@@ -208,6 +225,15 @@ agentDirectory:
   itemsDisplayed: items displayed
   hasMore: more available
   allLoaded: all loaded
+  addToMyAgents: Add to My Agents
+  addingToMyAgents: Adding to My Agents...
+  unshare: Unshare
+  unsharing: Unsharing...
+  addSuccess: Agent added to My Agents!
+  addFailed: Failed to add agent
+  unshareSuccess: Agent unshared
+  unshareFailed: Failed to unshare agent
+  userIdNotFound: Agent user ID not found
 
 # Tools
 tool:
@@ -223,6 +249,10 @@ tool:
   required: required
   showDetails: Show Details
   hideDetails: Hide Details
+  errorResult: Error Result JSON
+  executionResult: Execution Result JSON
+  jsonResponse: JSON Response
+  textResult: Text Result
   searchPlaceholder: Search tools in natural language... (e.g. 'echo text')
   searching: Searching tools...
   loadingTools: Loading tools...
@@ -276,26 +306,42 @@ tool:
 # Storage
 storage:
   title: Storage Management
+  fileStorage: File Storage
   loadingImage: Loading image...
   failedToLoadImage: Failed to load image
   failedToLoad: Failed to load
+  description: We provide Amazon S3 storage space for each user. It automatically syncs with the AI agent's workspace (/tmp/ws), so files created or edited by the agent are saved in this space. When you select a directory, files in that directory are loaded into the agent's workspace.
   currentPath: Current Path
   uploadFile: Upload File
+  upload: Upload
   uploadFolder: Upload Folder
+  newFolder: New Folder
   download: Download
   downloadFolder: Download Folder
   createFolder: Create Folder
+  create: Create
   rename: Rename
   move: Move
+  copyPath: Copy Path
+  copied: Copied
   size: Size
   lastModified: Last Modified
   type: Type
   folder: Folder
+  folders: Folders
+  root: Root
   file: File
   uploading: Uploading...
+  uploadingProgress: 'Uploading... ({{completed}}/{{total}})'
   uploadSuccess: Upload Successful
   uploadError: Upload Error
   deleteConfirm: Are you sure you want to delete?
+  deleteDirectoryConfirm: 'Delete directory "{{name}}"? All files and subfolders in the directory will also be deleted.'
+  deleteFileConfirm: 'Delete file "{{name}}"?'
+  emptyFolder: Folder is empty
+  dragAndDropHint: Drag and drop files or click the upload button
+  dropFiles: Drop files
+  folderNamePlaceholder: Enter folder name
   itemCount: '{{count}} items • Max file size: 5MB'
 
   # Folder download progress

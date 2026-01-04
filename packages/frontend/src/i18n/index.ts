@@ -32,6 +32,27 @@ i18n
       escapeValue: false, // React already escapes by default
     },
 
+    // 不足している翻訳キーを検出（開発モードのみ）
+    saveMissing: import.meta.env.DEV,
+
+    // 不足キーが見つかった場合のハンドラー
+    missingKeyHandler: (lngs, ns, key, fallbackValue) => {
+      if (import.meta.env.DEV) {
+        console.warn(
+          `%c[i18n] Translation key not found: "${key}"`,
+          'color: #ff9800; font-weight: bold',
+          {
+            languages: lngs,
+            namespace: ns,
+            fallbackValue,
+          }
+        );
+      }
+    },
+
+    // 不足キーの場合にキー名をそのまま表示（デフォルト動作を明示）
+    returnEmptyString: false,
+
     detection: {
       // 言語検出の優先順位
       order: ['localStorage', 'navigator'],
