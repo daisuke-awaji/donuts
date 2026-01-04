@@ -66,7 +66,7 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({ sessionId, onCreat
         </header>
       )}
 
-      {/* メッセージリスト */}
+      {/* メッセージリスト - pb-32で入力フォーム領域を確保 */}
       <MessageList onScenarioClick={handleScenarioClick} />
 
       {/* メッセージ入力 */}

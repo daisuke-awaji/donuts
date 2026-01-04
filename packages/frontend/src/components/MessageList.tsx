@@ -41,7 +41,7 @@ export const MessageList: React.FC<MessageListProps> = ({ onScenarioClick }) => 
 
   return (
     <div ref={containerRef} onScroll={handleScroll} className="flex-1 overflow-y-auto bg-white">
-      <div className="max-w-4xl mx-auto p-4">
+      <div className="max-w-4xl mx-auto p-4 pb-32">
         {/* エラー表示 */}
         {error && (
           <div className="mb-6 bg-red-50 border border-red-200 rounded-2xl p-4">

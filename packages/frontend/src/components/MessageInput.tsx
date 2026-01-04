@@ -121,7 +121,10 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   };
 
   return (
-    <div className="bg-white p-4">
+    <div
+      className="sticky bottom-0 left-0 right-0 z-40 bg-white p-4"
+      style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
+    >
       {/* ストレージパス表示 */}
       <div className="max-w-4xl mx-auto mb-2">
         <StoragePathDisplay onClick={() => setIsStorageModalOpen(true)} />
