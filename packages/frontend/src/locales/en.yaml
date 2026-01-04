@@ -540,6 +540,32 @@ defaultAgents:
         title: Concept Art
         prompt: "Please visualize the following concept:\n\nConcept: \nIdea to express: \nStyle: (e.g., futuristic, retro, fantasy, etc.)\nKey elements: \nSize: 1024x1024"
 
+  slideshowVideoCreator:
+    name: Slideshow Video Creator
+    description: Create narrated videos from images with Japanese subtitles and voice. Supports PDF to video conversion
+    scenarios:
+      basicVideo:
+        title: Create Basic Video
+        prompt: "Please create a video from the following images:\n\nImage folder/files: \nDisplay time per image: (default: 1 second)\n\nWill create a basic video without subtitles or audio."
+      subtitledVideo:
+        title: Add Subtitles
+        prompt: "Please add Japanese subtitles to the video:\n\nVideo file: \nSubtitle texts (one per image): \n1. \n2. \n3. \n\nSubtitles will be displayed at the bottom center with black background."
+      narratedVideo:
+        title: Add Narration
+        prompt: "Please add narration audio to the video:\n\nVideo file: \nNarration texts (one per image): \n1. \n2. \n3. \n\nWill generate Japanese TTS audio and merge with video."
+      fullPackage:
+        title: Complete Video with Subtitles & Audio
+        prompt: "Please create a complete video with both subtitles and narration:\n\nImage folder/files: \nSubtitle/Narration texts: \n1. \n2. \n3. \n\nWill create a fully narrated video with Japanese subtitles."
+      pdfToVideo:
+        title: PDF to Video
+        prompt: "Please convert a PDF (PowerPoint export) to a narrated video:\n\nPDF file: \nNarration texts for each page: \n1. \n2. \n3. \n\nWill convert PDF pages to images, then create video with subtitles and narration."
+      customSettings:
+        title: Custom Settings
+        prompt: "Please create a video with custom settings:\n\nImage folder/files: \nDisplay time per image: \nSubtitle position: (top/bottom/custom)\nFont size: \nOther settings: \n\nWill create a customized video based on your specifications."
+      presentationVideo:
+        title: Presentation Video
+        prompt: "Please create a presentation-style video:\n\nSlide images/PDF: \nPresentation script: \nBackground music: (optional)\n\nWill create a professional presentation video with narration."
+
   kamishibaiMaster:
     name: Kamishibai Master
     description: A specialist in creating Kamishibai (Japanese picture stories) that delight 3-year-olds - even preschool teachers bow to their expertise!

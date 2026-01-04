@@ -96,9 +96,9 @@ export const executeCommandTool = tool({
     timeout: z
       .number()
       .min(1000)
-      .max(60000)
-      .default(30000)
-      .describe('Timeout in milliseconds (default: 30s, max: 60s)'),
+      .max(600000)
+      .default(120000)
+      .describe('Timeout in milliseconds (default: 120s, max: 600s)'),
   }),
   callback: async (input) => {
     const { command, workingDirectory, timeout } = input;

@@ -313,6 +313,8 @@ export const s3ListFilesTool = tool({
 
       let output = `S3 Storage - File List\n`;
       output += `Path: ${path}\n`;
+      output += `Bucket: ${bucketName}\n`;
+      output += `Prefix: ${prefix}\n`;
       output += `Mode: ${recursive ? 'Recursive' : 'Current directory only'}\n`;
       output += `Total: ${items.length} items\n`;
       if (includePresignedUrls) {
