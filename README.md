@@ -1,3 +1,7 @@
+<p align="center">
+  <sub><sup>🔬 This is an experimental repository for personal use and learning purposes.</sup></sub>
+</p>
+
 # Fullstack AgentCore
 
 A full-stack AI agent system built with Amazon Bedrock AgentCore, providing a production-ready platform for deploying generative AI applications.
@@ -99,7 +103,6 @@ After deployment, the CloudFormation stack outputs will include the Frontend URL
 
 ## 📖 Documentation
 
-- [🔧 Local Development Guide](docs/DEVELOPMENT.md) - For developers
 - [💻 Local Development Setup](docs/local-development-setup.md) - Environment setup automation
 - [🔐 JWT Authentication System](docs/jwt-authentication.md) - Authentication details
 - [📊 Architecture Diagram](docs/fullstack-agentcore-architecture.drawio.png)

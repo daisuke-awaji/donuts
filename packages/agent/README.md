@@ -1,63 +1,63 @@
 # AgentCore Runtime Agent
 
-TypeScript 版 Strands Agent を Amazon Bedrock AgentCore Runtime で動作させるためのパッケージです。
+A package for running TypeScript-based Strands Agent on Amazon Bedrock AgentCore Runtime.
 
-## 特徴
+## Features
 
-- 🤖 **Strands AI Agent**: AI エージェント
-- 🚀 **AgentCore Runtime 対応**: `/ping` と `/invocations` エンドポイント実装
-- 🐳 **Docker 対応**: コンテナ化された実行環境
-- 🔐 **AWS 認証**: ローカル開発時の認証情報マウント対応
+- 🤖 **Strands AI Agent**: AI agent implementation
+- 🚀 **AgentCore Runtime Compatible**: Implements `/ping` and `/invocations` endpoints
+- 🐳 **Docker Support**: Containerized execution environment
+- 🔐 **AWS Authentication**: Supports credential mounting for local development
 
-## クイックスタート
+## Quick Start
 
-### 前提条件
+### Prerequisites
 
-- Node.js 18 以上
+- Node.js 18 or later
 - Docker & Docker Compose
-- AWS CLI 設定済み（`aws configure` または SSO）
+- AWS CLI configured (`aws configure` or SSO)
 
-### 1. ローカル開発（Node.js）
+### 1. Local Development (Node.js)
 
 ```bash
-# 依存関係をインストール
+# Install dependencies
 npm install
 
-# TypeScriptをコンパイル
+# Compile TypeScript
 npm run build
 
-# 開発サーバー起動
+# Start development server
 npm run dev
 ```
 
-### 2. Docker 開発環境（推奨）
+### 2. Docker Development Environment (Recommended)
 
 ```bash
-# AWS認証情報付きでDocker Compose起動
+# Start Docker Compose with AWS credentials
 npm run docker:dev
 
-# バックグラウンドで起動
+# Start in background
 npm run docker:dev:detach
 
-# ログを確認
+# View logs
 npm run docker:logs
 
-# ヘルスチェック
+# Health check
 npm run docker:test
 
-# 停止
+# Stop
 npm run docker:stop
 ```
 
-## API エンドポイント
+## API Endpoints
 
-### ヘルスチェック
+### Health Check
 
 ```bash
 curl http://localhost:8080/ping
 ```
 
-**レスポンス例:**
+**Response Example:**
 
 ```json
 {
@@ -66,15 +66,15 @@ curl http://localhost:8080/ping
 }
 ```
 
-### Agent 呼び出し
+### Agent Invocation
 
 ```bash
-echo -n "東京の天気を教えて" | curl -X POST http://localhost:8080/invocations \
+echo -n "Tell me the weather in Tokyo" | curl -X POST http://localhost:8080/invocations \
   -H "Content-Type: application/octet-stream" \
   --data-binary @-
 ```
 
-**レスポンス例:**
+**Response Example:**
 
 ```json
 {
@@ -87,7 +87,7 @@ echo -n "東京の天気を教えて" | curl -X POST http://localhost:8080/invoc
       "content": [
         {
           "type": "textBlock",
-          "text": "東京の天気情報:\n気温: 22°C\n天候: 晴れ\n湿度: 65%\n風速: 5 km/h"
+          "text": "Tokyo Weather Information:\nTemperature: 22°C\nConditions: Sunny\nHumidity: 65%\nWind Speed: 5 km/h"
         }
       ]
     }
@@ -95,33 +95,33 @@ echo -n "東京の天気を教えて" | curl -X POST http://localhost:8080/invoc
 }
 ```
 
-## 利用可能なツール
+## Available Tools
 
-### ローカルツール
+### Local Tools
 
-`./src/tools` 配下のツールが利用できます。
+Tools under `./src/tools` are available.
 
-### MCP サーバー統合
+### MCP Server Integration
 
-このエージェントは **Model Context Protocol (MCP)** をサポートしており、以下の3つの方法でツールを拡張できます：
+This agent supports **Model Context Protocol (MCP)** and can be extended with tools in three ways:
 
-1. **AgentCore Gateway 経由** - リモート MCP サーバー（自動）
-2. **ローカル stdio MCP サーバー** - コマンドラインツール
-3. **リモート HTTP/SSE MCP サーバー** - Web API
+1. **Via AgentCore Gateway** - Remote MCP servers (automatic)
+2. **Local stdio MCP Servers** - Command-line tools
+3. **Remote HTTP/SSE MCP Servers** - Web APIs
 
-#### mcp.json 設定ファイル
+#### mcp.json Configuration File
 
-ローカル MCP サーバーを使用するには、プロジェクトルートに `mcp.json` ファイルを作成します：
+To use local MCP servers, create an `mcp.json` file in the project root:
 
 ```bash
-# サンプルファイルをコピー
+# Copy sample file
 cp mcp.json.example mcp.json
 
-# 必要に応じて編集
+# Edit as needed
 vi mcp.json
 ```
 
-#### 設定例
+#### Configuration Examples
 
 ```json
 {
@@ -154,17 +154,17 @@ vi mcp.json
 }
 ```
 
-#### トランスポート種別
+#### Transport Types
 
-| トランスポート | 説明 | 用途 |
-|--------------|------|------|
-| `stdio` | ローカルプロセスとの通信 | CLI ツール、Docker コンテナ |
-| `http` | Streamable HTTP 経由 | リモート Web API |
-| `sse` | Server-Sent Events 経由 | リアルタイム通信 |
+| Transport | Description | Use Case |
+|-----------|-------------|----------|
+| `stdio` | Communication with local process | CLI tools, Docker containers |
+| `http` | Via Streamable HTTP | Remote Web APIs |
+| `sse` | Via Server-Sent Events | Real-time communication |
 
-#### 環境変数の展開
+#### Environment Variable Expansion
 
-`${VAR_NAME}` 形式で環境変数を参照できます：
+You can reference environment variables using `${VAR_NAME}` format:
 
 ```json
 {
@@ -175,9 +175,9 @@ vi mcp.json
 }
 ```
 
-#### MCP サーバーの有効化/無効化
+#### Enabling/Disabling MCP Servers
 
-各サーバーは `enabled` フィールドで制御できます（デフォルト: `true`）：
+Each server can be controlled with the `enabled` field (default: `true`):
 
 ```json
 {
@@ -185,51 +185,51 @@ vi mcp.json
     "transport": "stdio",
     "command": "uvx",
     "args": ["awslabs.aws-documentation-mcp-server@latest"],
-    "enabled": true  // このサーバーを有効化
+    "enabled": true  // Enable this server
   },
   "filesystem": {
     "transport": "stdio",
     "command": "npx",
     "args": ["-y", "@modelcontextprotocol/server-filesystem", "/tmp"],
-    "enabled": false  // このサーバーを無効化
+    "enabled": false  // Disable this server
   }
 }
 ```
 
-#### 設定ファイルのパス指定
+#### Specifying Config File Path
 
-デフォルトでは `./mcp.json` を読み込みますが、環境変数で変更可能です：
+By default, `./mcp.json` is loaded, but can be changed with an environment variable:
 
 ```bash
 export MCP_CONFIG_PATH=/path/to/custom-mcp.json
 npm run dev
 ```
 
-#### 人気のある MCP サーバー
+#### Popular MCP Servers
 
 - **AWS Documentation**: `awslabs.aws-documentation-mcp-server@latest`
 - **GitHub**: `ghcr.io/github/github-mcp-server`
 - **Filesystem**: `@modelcontextprotocol/server-filesystem`
 - **Tavily Search**: `tavily-mcp@0.1.2`
 
-詳細は [MCP サーバーリスト](https://github.com/modelcontextprotocol/servers) を参照してください。
+See [MCP Server List](https://github.com/modelcontextprotocol/servers) for more details.
 
-## AWS 認証設定
+## AWS Authentication Setup
 
-### ⚠️ 重要な制限事項
+### ⚠️ Important Limitations
 
-**Docker 環境での`credential_process`制限**：
+**`credential_process` Limitations in Docker Environment**:
 
-- 一部の認証ツールを使用した`credential_process`は、Docker コンテナ内では動作しない場合があります
-- この制限は技術的な仕様であり、本実装の問題ではありません
-- **AgentCore Runtime 本番環境では、IAM ロールが自動設定されるため、この問題は発生しません**
+- `credential_process` using certain authentication tools may not work inside Docker containers
+- This is a technical limitation, not an issue with this implementation
+- **In AgentCore Runtime production environment, IAM roles are automatically configured, so this issue does not occur**
 
-### 方法 1: .env.local ファイル（推奨）
+### Method 1: .env.local File (Recommended)
 
-ローカル環境変数ファイルを使用して認証情報を設定：
+Set authentication credentials using a local environment variable file:
 
 ```bash
-# .env.local ファイルを作成
+# Create .env.local file
 cat > .env.local << EOF
 AWS_ACCESS_KEY_ID=your_access_key
 AWS_SECRET_ACCESS_KEY=your_secret_key
@@ -237,93 +237,93 @@ AWS_SESSION_TOKEN=your_session_token
 AWS_REGION=us-west-2
 EOF
 
-# Docker起動
+# Start Docker
 npm run docker:dev:aws
 ```
 
-### 方法 2: ローカルスクリプト（isengardcli 用）
+### Method 2: Local Script (for isengardcli)
 
-Amazon 社内ユーザー向けの isengardcli 便利スクリプト：
+Convenience script for Amazon internal users with isengardcli:
 
 ```bash
-# テンプレートをコピー
+# Copy template
 cp scripts/get-aws-credentials.local.sh.example scripts/get-aws-credentials.local.sh
 
-# 必要に応じてメールアドレス・ロールを編集
+# Edit email and role as needed
 vi scripts/get-aws-credentials.local.sh
 
-# Docker起動
+# Start Docker
 npm run docker:dev:aws
 ```
 
-**特徴:**
+**Features:**
 
-- isengardcli から自動で認証情報を取得
-- `.env.local`ファイルに保存
-- 有効期限の表示
-- エラーハンドリング付き
+- Automatically retrieves credentials from isengardcli
+- Saves to `.env.local` file
+- Displays expiration time
+- Includes error handling
 
-### 方法 3: 環境変数による直接設定
+### Method 3: Direct Environment Variable Setup
 
 ```bash
-# 認証情報を直接設定
+# Set credentials directly
 export AWS_ACCESS_KEY_ID="your_access_key"
 export AWS_SECRET_ACCESS_KEY="your_secret_key"
-export AWS_SESSION_TOKEN="your_session_token"  # 必要な場合
+export AWS_SESSION_TOKEN="your_session_token"  # If needed
 export AWS_REGION="us-west-2"
 
-# Docker起動
+# Start Docker
 npm run docker:dev
 ```
 
-### 方法 4: AWS SSO（標準的な認証の場合）
+### Method 4: AWS SSO (for standard authentication)
 
 ```bash
-# AWS SSOログイン
+# AWS SSO login
 aws sso login
 
-# 一時認証情報を.env.localに出力
+# Output temporary credentials to .env.local
 aws sts get-session-token --duration-seconds 3600 --output json | \
   jq -r '"AWS_ACCESS_KEY_ID=" + .Credentials.AccessKeyId,
          "AWS_SECRET_ACCESS_KEY=" + .Credentials.SecretAccessKey,
          "AWS_SESSION_TOKEN=" + .Credentials.SessionToken,
          "AWS_REGION=us-west-2"' > .env.local
 
-# Docker Compose起動
+# Start Docker Compose
 npm run docker:dev:aws
 ```
 
-### 本番環境での注意
+### Production Environment Notes
 
-**AgentCore Runtime**では：
+**In AgentCore Runtime**:
 
-- ✅ IAM ロールが自動的に設定されます
-- ✅ Bedrock、CloudWatch Logs へのアクセス権限が自動付与されます
-- ✅ 認証情報の手動設定は不要です
-- ✅ この認証問題は発生しません
+- ✅ IAM roles are automatically configured
+- ✅ Access permissions to Bedrock and CloudWatch Logs are automatically granted
+- ✅ Manual credential setup is not required
+- ✅ This authentication issue does not occur
 
-**ローカル開発**では：
+**In Local Development**:
 
-- ⚠️ `credential_process`の制限があります
-- 💡 上記の代替方法をご利用ください
+- ⚠️ `credential_process` limitations exist
+- 💡 Please use the alternative methods above
 
-## ワークスペース同期
+## Workspace Synchronization
 
-AgentCore Runtime は起動時に S3 からユーザーのファイルをダウンロードし、終了時にアップロードします。
+AgentCore Runtime downloads user files from S3 on startup and uploads them on shutdown.
 
-### .syncignore による除外設定
+### Exclusion Settings with .syncignore
 
-`.gitignore` スタイルのパターンマッチングで、同期対象外のファイルを指定できます。
+You can specify files to exclude from synchronization using `.gitignore`-style pattern matching.
 
-#### 使い方
+#### Usage
 
-ワークスペースのルートディレクトリに `.syncignore` ファイルを作成：
+Create a `.syncignore` file in the workspace root directory:
 
 ```bash
 # .syncignore
-# コメント行
+# Comment lines
 
-# カスタムパターン
+# Custom patterns
 secrets/
 *.key
 *.pem
@@ -331,19 +331,19 @@ test-data/
 *.zip
 ```
 
-#### デフォルト除外パターン
+#### Default Exclusion Patterns
 
-`.syncignore` ファイルがなくても、以下は自動的に除外されます：
+Even without a `.syncignore` file, the following are automatically excluded:
 
 ```
-# システムファイル
+# System files
 .DS_Store
 Thumbs.db
 *.swp
 *.swo
 *~
 
-# ビルド成果物
+# Build artifacts
 node_modules/
 __pycache__/
 *.pyc
@@ -352,143 +352,143 @@ build/
 dist/
 target/
 
-# IDE設定
+# IDE settings
 .idea/
 .vscode/
 *.iml
 
-# ログファイル
+# Log files
 *.log
 logs/
 
-# 一時ファイル
+# Temporary files
 *.tmp
 *.temp
 .cache/
 
-# .syncignore自体
+# .syncignore itself
 .syncignore
 ```
 
-#### パターン記法
+#### Pattern Notation
 
-| パターン | 説明 | 例 |
-|---------|------|-----|
-| `*.ext` | 拡張子マッチ | `*.log` → すべての.logファイル |
-| `dir/` | ディレクトリ除外 | `secrets/` → secretsディレクトリ全体 |
-| `*pattern*` | 部分マッチ | `*-old.*` → -old.を含むファイル |
-| `!pattern` | 否定（例外指定） | `!important.log` → このファイルは除外しない |
+| Pattern | Description | Example |
+|---------|-------------|---------|
+| `*.ext` | Extension match | `*.log` → All .log files |
+| `dir/` | Directory exclusion | `secrets/` → Entire secrets directory |
+| `*pattern*` | Partial match | `*-old.*` → Files containing -old. |
+| `!pattern` | Negation (exception) | `!important.log` → Don't exclude this file |
 
-#### 動作仕様
+#### Behavior Specification
 
-- **ダウンロード時**: S3からダウンロードする際に除外パターンを適用
-- **アップロード時**: ローカルからS3へアップロードする際に除外パターンを適用
-- **カスタムパターン読込**: S3から`.syncignore`をダウンロード後、カスタムパターンを読み込む
+- **On Download**: Applies exclusion patterns when downloading from S3
+- **On Upload**: Applies exclusion patterns when uploading from local to S3
+- **Custom Pattern Loading**: Loads custom patterns after downloading `.syncignore` from S3
 
-#### 使用例
+#### Usage Example
 
 ```bash
-# プロジェクトルートに.syncignoreを作成
+# Create .syncignore in project root
 cat > .syncignore << EOF
-# 機密情報
+# Sensitive information
 credentials/
 *.env
 *.pem
 
-# 大容量ファイル
+# Large files
 *.mp4
 *.zip
 data/large-dataset/
 
-# テストデータ
+# Test data
 test-fixtures/
 mock-data/
 EOF
 ```
 
-## 環境変数
+## Environment Variables
 
-| 変数名       | デフォルト値 | 説明                  |
-| ------------ | ------------ | --------------------- |
-| `PORT`       | 8080         | HTTP サーバーのポート |
-| `AWS_REGION` | us-east-1    | AWS リージョン        |
-| `NODE_ENV`   | development  | Node.js 環境          |
-| `LOG_LEVEL`  | info         | ログレベル            |
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `PORT` | 8080 | HTTP server port |
+| `AWS_REGION` | us-east-1 | AWS region |
+| `NODE_ENV` | development | Node.js environment |
+| `LOG_LEVEL` | info | Log level |
 
-## デプロイ
+## Deployment
 
-### AgentCore Runtime へのデプロイ
+### Deploy to AgentCore Runtime
 
 ```bash
-# CDKスタックをデプロイ
+# Deploy CDK stack
 cd ../cdk
 npx cdk deploy
 
-# 出力されるRuntime IDを確認
+# Check output Runtime ID
 # AgentCoreStack.AgentRuntimeId = StrandsAgentsTS-XXXXXXXXXX
 ```
 
-### Agent Sandbox でのテスト
+### Test in Agent Sandbox
 
-1. AWS コンソール → Amazon Bedrock → Agent Sandbox
-2. Runtime ID: `StrandsAgentsTS-XXXXXXXXXX` を選択
-3. "東京の天気を教えて" などでテスト
+1. AWS Console → Amazon Bedrock → Agent Sandbox
+2. Select Runtime ID: `StrandsAgentsTS-XXXXXXXXXX`
+3. Test with "Tell me the weather in Tokyo"
 
-## トラブルシューティング
+## Troubleshooting
 
-### AWS 認証エラー
+### AWS Authentication Error
 
 ```
 Could not load credentials from any providers
 ```
 
-**解決方法:**
+**Resolution:**
 
-- AWS CLI が設定されているか確認: `aws configure list`
-- SSO の場合: `aws sso login`
-- Docker volume マウントが正しいか確認
+- Verify AWS CLI is configured: `aws configure list`
+- For SSO: `aws sso login`
+- Check Docker volume mount is correct
 
-### Docker 起動エラー
+### Docker Startup Error
 
 ```bash
-# コンテナを完全に削除して再起動
+# Completely remove container and restart
 docker-compose down --volumes
 npm run docker:dev
 ```
 
-### ポート競合エラー
+### Port Conflict Error
 
 ```bash
-# ポート8080が使用中の場合
+# If port 8080 is in use
 docker-compose down
 lsof -ti:8080 | xargs kill -9
 npm run docker:dev
 ```
 
-## 開発
+## Development
 
-### ファイル構成
+### File Structure
 
 ```
 packages/agent/
 ├── src/
-│   ├── index.ts          # HTTPサーバー
-│   ├── agent.ts          # Strands Agent定義
+│   ├── index.ts          # HTTP server
+│   ├── agent.ts          # Strands Agent definition
 │   └── tools/
-│       └── weather.ts    # 天気ツール
-├── Dockerfile            # Dockerイメージ設定
-├── docker-compose.yml    # 開発環境設定
+│       └── weather.ts    # Weather tool
+├── Dockerfile            # Docker image configuration
+├── docker-compose.yml    # Development environment setup
 └── package.json          # npm scripts
 ```
 
-### カスタムツールの追加
+### Adding Custom Tools
 
-1. `src/tools/` にツールファイルを作成
-2. `src/agent.ts` でツールを追加
-3. `npm run build` でビルド
-4. `npm run docker:dev` で動作確認
+1. Create tool file in `src/tools/`
+2. Add tool in `src/agent.ts`
+3. Build with `npm run build`
+4. Test with `npm run docker:dev`
 
-例:
+Example:
 
 ```typescript
 import { tool } from "@strands-agents/sdk";
@@ -496,16 +496,16 @@ import { z } from "zod";
 
 export const myCustomTool = tool({
   name: "my_custom_tool",
-  description: "カスタムツールの説明",
+  description: "Description of custom tool",
   inputSchema: z.object({
-    input: z.string().describe("入力パラメータ"),
+    input: z.string().describe("Input parameter"),
   }),
   callback: (input) => {
-    return `カスタムツールの結果: ${input.input}`;
+    return `Custom tool result: ${input.input}`;
   },
 });
 ```
 
-## ライセンス
+## License
 
 MIT

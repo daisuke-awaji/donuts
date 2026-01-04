@@ -1,16 +1,16 @@
-# ローカル開発環境セットアップガイド
+# Local Development Setup Guide
 
-## 概要
+## Overview
 
-このプロジェクトでは、CloudFormation スタックの出力から環境変数を自動取得し、`.env` ファイルを生成する仕組みを実装しています。これにより、開発者は手動で環境変数を設定する手間を省き、デプロイ後すぐにローカル開発を開始できます。
+This project implements a mechanism to automatically retrieve environment variables from CloudFormation stack outputs and generate `.env` files. This allows developers to start local development immediately after deployment without manually setting up environment variables.
 
-## 🎯 開発パターン
+## 🎯 Development Patterns
 
-### パターンA: ローカル開発モード（デフォルト）
+### Pattern A: Local Development Mode (Default)
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│ ローカル                                                      │
+│ Local                                                         │
 │  ┌─────────┐     ┌─────────┐     ┌─────────┐                │
 │  │Frontend │ ──▶ │Backend  │ ──▶ │Agent    │                │
 │  │:5173    │     │:3000    │     │:8080    │                │
@@ -20,67 +20,67 @@
                         │               │
                         ▼               ▼
               ┌─────────────────────────────────┐
-              │ クラウド (AWS)                   │
-              │  - Cognito (認証)               │
-              │  - AgentCore Gateway/Memory    │
-              │  - S3 (User Storage)           │
+              │ Cloud (AWS)                     │
+              │  - Cognito (Authentication)     │
+              │  - AgentCore Gateway/Memory     │
+              │  - S3 (User Storage)            │
               └─────────────────────────────────┘
 ```
 
-**特徴:**
-- Frontend は `localhost:3000` (Backend) と `localhost:8080` (Agent) に接続
-- Backend/Agent は AWS リソース（Cognito, Memory, Gateway, S3）に接続
-- ホットリロードが効き、開発サイクルが速い
-- デバッグしやすく、Lambda 呼び出しコストがかからない
+**Features:**
+- Frontend connects to `localhost:3000` (Backend) and `localhost:8080` (Agent)
+- Backend/Agent connect to AWS resources (Cognito, Memory, Gateway, S3)
+- Hot reload enabled for fast development cycle
+- Easy debugging and no Lambda invocation costs
 
-## 🚀 クイックスタート
+## 🚀 Quick Start
 
-### 1. CDK スタックをデプロイ
+### 1. Deploy CDK Stack
 
 ```bash
 npm run deploy
 ```
 
-### 2. 環境変数を自動セットアップ
+### 2. Auto-setup Environment Variables
 
 ```bash
 npm run setup-env
 ```
 
-このコマンドは以下を実行します：
-- CloudFormation スタック出力を取得
-- 各パッケージの `.env` ファイルを自動生成
+This command:
+- Retrieves CloudFormation stack outputs
+- Auto-generates `.env` files for each package
   - `packages/frontend/.env`
   - `packages/backend/.env`
   - `packages/agent/.env`
 
-### 3. 全サービスを起動
+### 3. Start All Services
 
 ```bash
 npm run dev
 ```
 
-または個別に起動：
+Or start individually:
 
 ```bash
-npm run dev:frontend   # Frontend のみ
-npm run dev:backend    # Backend のみ
-npm run dev:agent      # Agent のみ
+npm run dev:frontend   # Frontend only
+npm run dev:backend    # Backend only
+npm run dev:agent      # Agent only
 ```
 
-## 📝 setup-env の詳細
+## 📝 setup-env Details
 
-### 実行方法
+### Execution
 
 ```bash
-# デフォルト（AgentCoreStack）
+# Default (AgentCoreStack)
 npm run setup-env
 
-# カスタムスタック名を指定
+# Specify custom stack name
 STACK_NAME=MyCustomStack npm run setup-env
 ```
 
-### 生成される環境変数
+### Generated Environment Variables
 
 #### Frontend (packages/frontend/.env)
 
@@ -90,32 +90,32 @@ VITE_COGNITO_USER_POOL_ID=us-east-1_xxxxxxxxx
 VITE_COGNITO_CLIENT_ID=xxxxxxxxxxxxxxxxxxxx
 VITE_AWS_REGION=us-east-1
 
-# Backend API Configuration (ローカル開発モード)
+# Backend API Configuration (Local Development Mode)
 VITE_BACKEND_URL=http://localhost:3000
 
-# Agent API Configuration (ローカル開発モード)
+# Agent API Configuration (Local Development Mode)
 VITE_AGENT_ENDPOINT=http://localhost:8080/invocations
 ```
 
 #### Backend (packages/backend/.env)
 
 ```bash
-# サーバー設定
+# Server Configuration
 PORT=3000
 NODE_ENV=development
 
-# CORS設定
+# CORS Configuration
 CORS_ALLOWED_ORIGINS=*
 
-# JWT / JWKS 設定
+# JWT / JWKS Configuration
 COGNITO_USER_POOL_ID=us-east-1_xxxxxxxxx
 COGNITO_REGION=us-east-1
 
-# AgentCore Memory 設定
+# AgentCore Memory Configuration
 AGENTCORE_MEMORY_ID=memory-id
 AGENTCORE_GATEWAY_ENDPOINT=https://xxx.gateway.bedrock-agentcore.us-east-1.amazonaws.com/mcp
 
-# User Storage 設定
+# User Storage Configuration
 USER_STORAGE_BUCKET_NAME=bucket-name
 ```
 
@@ -139,161 +139,161 @@ PORT=8080
 NODE_ENV=development
 ```
 
-### スクリプトの仕組み
+### How the Script Works
 
-`scripts/setup-env.ts` は以下の処理を行います：
+`scripts/setup-env.ts` performs the following:
 
-1. **スタック名の決定**
-   - 環境変数 `STACK_NAME` または デフォルト値 `AgentCoreStack` を使用
+1. **Determine Stack Name**
+   - Uses environment variable `STACK_NAME` or default value `AgentCoreStack`
 
-2. **CloudFormation 出力の取得**
-   - AWS SDK を使用して `DescribeStacks` API を呼び出し
-   - 必要な Output 値を抽出
+2. **Retrieve CloudFormation Outputs**
+   - Calls `DescribeStacks` API using AWS SDK
+   - Extracts required Output values
 
-3. **`.env` ファイルの生成**
-   - 各パッケージ用の環境変数を作成
-   - ファイルに書き込み
+3. **Generate `.env` Files**
+   - Creates environment variables for each package
+   - Writes to files
 
-4. **エラーハンドリング**
-   - スタックが見つからない場合のエラーメッセージ
-   - AWS 認証エラーの検出と対処法の表示
-   - 必須 Output が欠けている場合の警告
+4. **Error Handling**
+   - Error message when stack is not found
+   - Detects AWS authentication errors and shows resolution steps
+   - Warns when required Outputs are missing
 
-## 🔧 トラブルシューティング
+## 🔧 Troubleshooting
 
-### エラー: スタックが見つかりません
+### Error: Stack Not Found
 
 ```bash
-❌ スタック出力の取得に失敗しました: Stack with id AgentCoreStack does not exist
+❌ Failed to retrieve stack outputs: Stack with id AgentCoreStack does not exist
 ```
 
-**解決方法:**
-1. スタック名が正しいか確認
-2. スタックがデプロイされているか確認
-3. AWS 認証情報が設定されているか確認
+**Resolution:**
+1. Verify stack name is correct
+2. Confirm stack is deployed
+3. Check AWS credentials are configured
 
 ```bash
-# スタック一覧を確認
+# Check stack list
 aws cloudformation list-stacks --stack-status-filter CREATE_COMPLETE UPDATE_COMPLETE
 
-# 正しいスタック名を指定
+# Specify correct stack name
 STACK_NAME=YourActualStackName npm run setup-env
 ```
 
-### エラー: AWS 認証情報がありません
+### Error: Missing AWS Credentials
 
 ```bash
-❌ スタック出力の取得に失敗しました: Missing credentials in config
+❌ Failed to retrieve stack outputs: Missing credentials in config
 ```
 
-**解決方法:**
+**Resolution:**
 
 ```bash
-# AWS CLI を設定
+# Configure AWS CLI
 aws configure
 
-# または環境変数で指定
+# Or specify with environment variables
 export AWS_ACCESS_KEY_ID=your_access_key
 export AWS_SECRET_ACCESS_KEY=your_secret_key
 export AWS_REGION=us-east-1
 ```
 
-### 警告: 一部の出力が見つかりません
+### Warning: Some Outputs Not Found
 
 ```bash
-⚠️  警告: 以下の出力が見つかりません:
+⚠️  Warning: The following outputs were not found:
   - UserPoolId
   - UserPoolClientId
 ```
 
-**原因:**
-CDK スタックがこれらの Output を出力していない
+**Cause:**
+CDK stack is not outputting these values
 
-**解決方法:**
-1. CDK スタックを最新バージョンに更新
-2. 再デプロイ: `npm run deploy`
-3. `setup-env` を再実行
+**Resolution:**
+1. Update CDK stack to latest version
+2. Redeploy: `npm run deploy`
+3. Re-run `setup-env`
 
-## 📋 CDK Output 一覧
+## 📋 CDK Output List
 
-以下の CloudFormation Output が `setup-env` で使用されます：
+The following CloudFormation Outputs are used by `setup-env`:
 
-| Output Key | 用途 | 必須 |
-|-----------|------|------|
-| `Region` | AWS リージョン | ✅ |
+| Output Key | Purpose | Required |
+|-----------|---------|----------|
+| `Region` | AWS Region | ✅ |
 | `UserPoolId` | Cognito User Pool ID | ✅ |
 | `UserPoolClientId` | Cognito Client ID | ✅ |
 | `MemoryId` | AgentCore Memory ID | ✅ |
-| `GatewayMcpEndpoint` | AgentCore Gateway エンドポイント | ✅ |
-| `UserStorageBucketName` | S3 バケット名 | ✅ |
+| `GatewayMcpEndpoint` | AgentCore Gateway Endpoint | ✅ |
+| `UserStorageBucketName` | S3 Bucket Name | ✅ |
 | `BackendApiUrl` | Backend API URL | ❌ |
-| `RuntimeInvocationEndpoint` | Runtime エンドポイント | ❌ |
+| `RuntimeInvocationEndpoint` | Runtime Endpoint | ❌ |
 
-## 🎨 カスタマイズ
+## 🎨 Customization
 
-### クラウド接続モードへの切り替え
+### Switching to Cloud Connection Mode
 
-生成された `.env` ファイルを編集して、クラウドリソースに直接接続できます：
+Edit generated `.env` files to connect directly to cloud resources:
 
 ```bash
-# packages/frontend/.env を編集
-# コメントアウトされている行を有効化
+# Edit packages/frontend/.env
+# Uncomment the commented lines
 VITE_BACKEND_URL=https://xxx.execute-api.us-east-1.amazonaws.com
 VITE_AGENT_ENDPOINT=https://bedrock-agentcore.us-east-1.amazonaws.com/runtimes/.../invocations
 ```
 
-### 環境変数の追加
+### Adding Environment Variables
 
-`scripts/setup-env.ts` を編集して、新しい環境変数を追加できます：
+Edit `scripts/setup-env.ts` to add new environment variables:
 
 ```typescript
 interface StackOutputs {
   Region?: string;
   UserPoolId?: string;
-  // ... 既存の定義
-  YourNewOutput?: string;  // 新しい Output を追加
+  // ... existing definitions
+  YourNewOutput?: string;  // Add new Output
 }
 
 function createFrontendEnv(outputs: StackOutputs): string {
   return `
-# 既存の環境変数
+# Existing environment variables
 ...
 
-# 新しい環境変数
+# New environment variable
 VITE_YOUR_NEW_VAR=${outputs.YourNewOutput || ''}
 `;
 }
 ```
 
-## 🔗 関連ドキュメント
+## 🔗 Related Documentation
 
-- [README.md](../README.md) - プロジェクト概要
-- [jwt-authentication.md](./jwt-authentication.md) - JWT 認証システム
-- [packages/agent/README.md](../packages/agent/README.md) - Agent 実装詳細
-- [packages/backend/README.md](../packages/backend/README.md) - Backend API 詳細
-- [packages/frontend/README.md](../packages/frontend/README.md) - Frontend 実装詳細
+- [README.md](../README.md) - Project Overview
+- [jwt-authentication.md](./jwt-authentication.md) - JWT Authentication System
+- [packages/agent/README.md](../packages/agent/README.md) - Agent Implementation Details
+- [packages/backend/README.md](../packages/backend/README.md) - Backend API Details
+- [packages/frontend/README.md](../packages/frontend/README.md) - Frontend Implementation Details
 
-## 💡 ベストプラクティス
+## 💡 Best Practices
 
-1. **デプロイ後は必ず `setup-env` を実行**
+1. **Always Run `setup-env` After Deployment**
    ```bash
    npm run deploy && npm run setup-env
    ```
 
-2. **`.env` ファイルはコミットしない**
-   - 既に `.gitignore` に含まれています
-   - 機密情報を含むため、Git にコミットしないでください
+2. **Do Not Commit `.env` Files**
+   - Already included in `.gitignore`
+   - Contains sensitive information, do not commit to Git
 
-3. **定期的に環境変数を更新**
-   - スタックを更新した後は `setup-env` を再実行
+3. **Regularly Update Environment Variables**
+   - Re-run `setup-env` after stack updates
    ```bash
    npm run deploy && npm run setup-env && npm run dev
    ```
 
-4. **スタック名を統一**
-   - チーム全体で同じスタック名を使用
-   - または `.env` で `STACK_NAME` を定義
+4. **Standardize Stack Names**
+   - Use the same stack name across the team
+   - Or define `STACK_NAME` in `.env`
 
-5. **エラーログを確認**
-   - `setup-env` が失敗した場合、エラーメッセージを確認
-   - 必要に応じて AWS CLI でスタック状態を確認
+5. **Check Error Logs**
+   - Review error messages if `setup-env` fails
+   - Check stack status with AWS CLI if needed

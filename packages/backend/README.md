@@ -1,37 +1,37 @@
 # Backend API Server
 
-JWT認証対応のExpress APIサーバーです。Amazon Cognito User PoolのJWKS検証をサポートし、API Gateway + Lambdaデプロイメントに対応しています。
+Express API server with JWT authentication support. Supports Amazon Cognito User Pool JWKS verification and is compatible with API Gateway + Lambda deployment.
 
-## 📋 目次
+## 📋 Table of Contents
 
-- [機能](#-機能)
-- [API エンドポイント](#-api-エンドポイント)
-- [セットアップ](#-セットアップ)
-- [開発環境](#-開発環境)
-- [Docker 使用方法](#-docker-使用方法)
-- [環境変数](#-環境変数)
-- [JWT認証](#-jwt認証)
-- [デプロイメント](#-デプロイメント)
+- [Features](#-features)
+- [API Endpoints](#-api-endpoints)
+- [Setup](#-setup)
+- [Development Environment](#-development-environment)
+- [Docker Usage](#-docker-usage)
+- [Environment Variables](#-environment-variables)
+- [JWT Authentication](#-jwt-authentication)
+- [Deployment](#-deployment)
 
-## 🚀 機能
+## 🚀 Features
 
-- **JWT認証**: Amazon Cognito User Pool JWKS検証
-- **Express API**: RESTful APIサーバー
-- **CORS対応**: フロントエンド連携
-- **TypeScript**: 型安全な実装
-- **Docker対応**: コンテナ化された実行環境
-- **ヘルスチェック**: API Gateway / Lambda 対応
-- **開発モード**: JWKS検証のスキップ機能
+- **JWT Authentication**: Amazon Cognito User Pool JWKS verification
+- **Express API**: RESTful API server
+- **CORS Support**: Frontend integration
+- **TypeScript**: Type-safe implementation
+- **Docker Support**: Containerized execution environment
+- **Health Check**: API Gateway / Lambda compatible
+- **Development Mode**: JWKS verification skip feature
 
-## 🔌 API エンドポイント
+## 🔌 API Endpoints
 
-### ヘルスチェック（認証不要）
+### Health Check (No Authentication Required)
 
 ```bash
 GET /ping
 ```
 
-**レスポンス例:**
+**Response Example:**
 ```json
 {
   "status": "healthy",
@@ -47,14 +47,14 @@ GET /ping
 }
 ```
 
-### ユーザー情報取得（認証必要）
+### Get User Information (Authentication Required)
 
 ```bash
 GET /me
 Authorization: Bearer <jwt_token>
 ```
 
-**レスポンス例:**
+**Response Example:**
 ```json
 {
   "authenticated": true,
@@ -82,135 +82,135 @@ Authorization: Bearer <jwt_token>
 }
 ```
 
-### API情報（認証不要）
+### API Information (No Authentication Required)
 
 ```bash
 GET /
 ```
 
-API仕様とドキュメント情報を返します。
+Returns API specifications and documentation information.
 
-## 🛠 セットアップ
+## 🛠 Setup
 
-### 依存関係のインストール
+### Install Dependencies
 
 ```bash
-# プロジェクトルートから
+# From project root
 npm install
 
-# または backend ディレクトリで直接
+# Or directly in backend directory
 cd packages/backend
 npm install
 ```
 
-### 環境変数の設定
+### Configure Environment Variables
 
 ```bash
-# .env.example をコピーして .env を作成
+# Copy .env.example to create .env
 cp .env.example .env
 
-# .env ファイルを編集して必要な環境変数を設定
+# Edit .env file to set required environment variables
 ```
 
-## 👨‍💻 開発環境
+## 👨‍💻 Development Environment
 
-### 開発サーバーの起動
+### Start Development Server
 
 ```bash
-# ルートから（推奨）
+# From root (recommended)
 npm run backend:dev
 
-# または backend ディレクトリから直接
+# Or directly from backend directory
 cd packages/backend
 npm run dev
 ```
 
-### ビルド
+### Build
 
 ```bash
-# TypeScript コンパイル
+# TypeScript compilation
 npm run build
 
-# 本番サーバー起動
+# Start production server
 npm start
 ```
 
-### 利用可能なスクリプト
+### Available Scripts
 
 ```bash
-npm run dev          # 開発サーバー（ホットリロード）
-npm run build        # TypeScript ビルド
-npm run start        # 本番サーバー起動
-npm run clean        # ビルド結果削除
+npm run dev          # Development server (hot reload)
+npm run build        # TypeScript build
+npm run start        # Start production server
+npm run clean        # Delete build artifacts
 ```
 
-## 🐳 Docker 使用方法
+## 🐳 Docker Usage
 
-### Docker イメージのビルド
+### Build Docker Image
 
 ```bash
-# 単体でビルド
+# Build standalone
 docker build -t agentcore-backend .
 
-# Docker Compose でビルド＆起動
+# Build & start with Docker Compose
 docker-compose up --build
 
-# バックグラウンドで起動
+# Start in background
 docker-compose up -d --build
 ```
 
-### Docker 管理コマンド
+### Docker Management Commands
 
 ```bash
-# ログを確認
+# View logs
 docker-compose logs -f
 
-# コンテナを停止
+# Stop containers
 docker-compose down
 
-# ヘルスチェック
+# Health check
 docker-compose exec agentcore-backend curl http://localhost:3000/ping
 ```
 
-### 利用可能な Docker スクリプト
+### Available Docker Scripts
 
 ```bash
-npm run docker:build       # イメージビルド
-npm run docker:run         # シンプル起動
-npm run docker:dev         # compose で開発環境起動
-npm run docker:dev:detach  # バックグラウンド起動
-npm run docker:stop        # compose 停止
-npm run docker:logs        # ログ確認
-npm run docker:test        # ヘルスチェック
+npm run docker:build       # Build image
+npm run docker:run         # Simple startup
+npm run docker:dev         # Start development environment with compose
+npm run docker:dev:detach  # Background startup
+npm run docker:stop        # Stop compose
+npm run docker:logs        # View logs
+npm run docker:test        # Health check
 ```
 
-## ⚙️ 環境変数
+## ⚙️ Environment Variables
 
-| 変数名 | 必須 | デフォルト | 説明 |
-|--------|------|-----------|------|
-| `PORT` | ❌ | `3000` | サーバーポート |
-| `NODE_ENV` | ❌ | `development` | 実行環境 |
-| `CORS_ALLOWED_ORIGINS` | ❌ | `*` | CORS許可オリジン |
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `PORT` | ❌ | `3000` | Server port |
+| `NODE_ENV` | ❌ | `development` | Execution environment |
+| `CORS_ALLOWED_ORIGINS` | ❌ | `*` | CORS allowed origins |
 | `COGNITO_USER_POOL_ID` | ⚠️ | - | Cognito User Pool ID |
-| `COGNITO_REGION` | ⚠️ | - | AWS リージョン |
-| `JWKS_URI` | ⚠️ | - | JWKS エンドポイント URL |
-| `JWT_ISSUER` | ❌ | - | JWT Issuer（オプション） |
-| `JWT_AUDIENCE` | ❌ | - | JWT Audience（オプション） |
+| `COGNITO_REGION` | ⚠️ | - | AWS Region |
+| `JWKS_URI` | ⚠️ | - | JWKS endpoint URL |
+| `JWT_ISSUER` | ❌ | - | JWT Issuer (optional) |
+| `JWT_AUDIENCE` | ❌ | - | JWT Audience (optional) |
 
-⚠️ = 本番環境では必須
+⚠️ = Required in production environment
 
-### 環境設定のパターン
+### Environment Configuration Patterns
 
-#### パターン1: 開発環境（JWT検証なし）
+#### Pattern 1: Development Environment (No JWT Verification)
 
 ```env
 PORT=3000
 NODE_ENV=development
 CORS_ALLOWED_ORIGINS=*
-# JWT設定は未設定 → デコードのみ実行
+# JWT settings not configured → Decode only
 ```
 
-#### パターン2: 本番相当（JWT検証あり）
+#### Pattern 2: Production Equivalent (With JWT Verification)
 
 ```env
 PORT=3000
@@ -220,15 +220,15 @@ COGNITO_USER_POOL_ID=ap-northeast-1_xxxxxxxxx
 COGNITO_REGION=ap-northeast-1
 ```
 
-## 🔐 JWT認証
+## 🔐 JWT Authentication
 
-### サポートするトークン形式
+### Supported Token Formats
 
 - **Authorization Header**: `Bearer <jwt_token>`
-- **トークンタイプ**: Cognito Access Token / ID Token
-- **署名アルゴリズム**: RS256
+- **Token Types**: Cognito Access Token / ID Token
+- **Signature Algorithm**: RS256
 
-### 検証フロー
+### Verification Flow
 
 ```mermaid
 sequenceDiagram
@@ -246,13 +246,13 @@ sequenceDiagram
     A-->>C: Return authenticated response
 ```
 
-### 開発環境での動作
+### Development Environment Behavior
 
-- **JWKS設定あり**: 完全なJWT検証を実行
-- **JWKS設定なし**: デコードのみ実行（検証スキップ）
-- **本番環境**: 必ずJWKS検証を実行
+- **With JWKS Configuration**: Executes full JWT verification
+- **Without JWKS Configuration**: Decode only (skip verification)
+- **Production Environment**: Always execute JWKS verification
 
-### JWT ペイロード例
+### JWT Payload Example
 
 ```json
 {
@@ -269,67 +269,67 @@ sequenceDiagram
 }
 ```
 
-## 🚀 デプロイメント
+## 🚀 Deployment
 
 ### API Gateway + Lambda
 
-このBackend APIは将来的にAWS API Gateway + Lambdaでデプロイする予定で設計されています。
+This Backend API is designed for future deployment with AWS API Gateway + Lambda.
 
-- **ヘルスチェック**: `/ping` エンドポイント
-- **CORS**: プリフライト対応
-- **エラーハンドリング**: 標準的なHTTPステータスコード
-- **JWT検証**: Cognito User Pool統合
+- **Health Check**: `/ping` endpoint
+- **CORS**: Preflight support
+- **Error Handling**: Standard HTTP status codes
+- **JWT Verification**: Cognito User Pool integration
 
-### 本番環境チェックリスト
+### Production Environment Checklist
 
-- [ ] `NODE_ENV=production` に設定
-- [ ] Cognito User Pool の設定完了
-- [ ] JWKS URI の設定完了
-- [ ] CORS オリジンの適切な設定
-- [ ] ログ監視の設定
-- [ ] ヘルスチェックの確認
+- [ ] Set `NODE_ENV=production`
+- [ ] Complete Cognito User Pool configuration
+- [ ] Complete JWKS URI configuration
+- [ ] Appropriate CORS origin settings
+- [ ] Configure log monitoring
+- [ ] Verify health check
 
-## 🧪 テスト
+## 🧪 Testing
 
-### ローカルテスト
+### Local Testing
 
 ```bash
-# サーバー起動
+# Start server
 npm run dev
 
-# ヘルスチェック
+# Health check
 curl http://localhost:3000/ping
 
-# JWT認証テスト（要トークン）
+# JWT authentication test (requires token)
 curl -H "Authorization: Bearer <your_jwt_token>" http://localhost:3000/me
 ```
 
-### Docker環境テスト
+### Docker Environment Testing
 
 ```bash
-# Docker で起動
+# Start with Docker
 docker-compose up -d
 
-# ヘルスチェック
+# Health check
 npm run docker:test
 ```
 
-## 📝 ログ
+## 📝 Logging
 
-各エンドポイントへのアクセスは詳細にログ出力されます：
+Detailed logs are output for each endpoint access:
 
 ```
-🔐 JWT認証開始 (req_1703057520123_abc123): { method: 'GET', path: '/me', ... }
-✅ JWT認証成功 (req_1703057520123_abc123): { userId: '...', username: '...' }
-👤 /me リクエスト成功 (req_1703057520123_abc123): { userId: '...', ... }
+🔐 JWT authentication started (req_1703057520123_abc123): { method: 'GET', path: '/me', ... }
+✅ JWT authentication successful (req_1703057520123_abc123): { userId: '...', username: '...' }
+👤 /me request successful (req_1703057520123_abc123): { userId: '...', ... }
 ```
 
 ## 🤝 Contributing
 
-1. feature ブランチを作成
-2. 変更を実装
-3. テストの実行
-4. プルリクエストを作成
+1. Create feature branch
+2. Implement changes
+3. Run tests
+4. Create pull request
 
 ## 📄 License
 
