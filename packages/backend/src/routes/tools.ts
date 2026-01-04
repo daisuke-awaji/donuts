@@ -7,6 +7,7 @@ import express, { Response } from 'express';
 import { jwtAuthMiddleware, AuthenticatedRequest, getCurrentAuth } from '../middleware/auth.js';
 import { gatewayService } from '../services/agentcore-gateway.js';
 import { fetchToolsFromMCPConfig, MCPConfig } from '../mcp/index.js';
+import { BUILTIN_TOOLS } from '../data/builtin-tools.js';
 
 const router = express.Router();
 
@@ -38,19 +39,22 @@ router.get('/', jwtAuthMiddleware, async (req: AuthenticatedRequest, res: Respon
     // Fetch tool list from Gateway (authentication required, pagination supported)
     const result = await gatewayService.listTools(idToken, cursor);
 
+    // Include builtin tools only in the first page (when cursor is not present)
+    const tools = cursor ? result.tools : [...BUILTIN_TOOLS, ...result.tools];
+
     const response = {
-      tools: result.tools,
+      tools,
       nextCursor: result.nextCursor,
       metadata: {
         requestId: auth.requestId,
         timestamp: new Date().toISOString(),
         actorId: auth.userId,
-        count: result.tools.length,
+        count: tools.length,
       },
     };
 
     console.log(
-      `✅ Tool list retrieval completed (${auth.requestId}): ${result.tools.length} items`,
+      `✅ Tool list retrieval completed (${auth.requestId}): ${tools.length} items (builtin: ${cursor ? 0 : BUILTIN_TOOLS.length}, gateway: ${result.tools.length})`,
       result.nextCursor ? { nextCursor: 'present' } : { nextCursor: 'none' }
     );
 
@@ -105,8 +109,20 @@ router.post('/search', jwtAuthMiddleware, async (req: AuthenticatedRequest, res:
       query: query.trim(),
     });
 
-    // Execute semantic search on Gateway
-    const tools = await gatewayService.searchTools(query.trim(), idToken);
+    const trimmedQuery = query.trim().toLowerCase();
+
+    // Search in builtin tools (local search)
+    const builtinResults = BUILTIN_TOOLS.filter(
+      (tool) =>
+        tool.name.toLowerCase().includes(trimmedQuery) ||
+        (tool.description && tool.description.toLowerCase().includes(trimmedQuery))
+    );
+
+    // Execute semantic search on Gateway for MCP tools
+    const gatewayResults = await gatewayService.searchTools(query.trim(), idToken);
+
+    // Combine builtin and gateway results
+    const tools = [...builtinResults, ...gatewayResults];
 
     const response = {
       tools,
@@ -120,7 +136,7 @@ router.post('/search', jwtAuthMiddleware, async (req: AuthenticatedRequest, res:
     };
 
     console.log(
-      `✅ Tool search completed (${auth.requestId}): ${tools.length} items (query: "${query.trim()}")`
+      `✅ Tool search completed (${auth.requestId}): ${tools.length} items (builtin: ${builtinResults.length}, gateway: ${gatewayResults.length}, query: "${query.trim()}")`
     );
 
     res.status(200).json(response);

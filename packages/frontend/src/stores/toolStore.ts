@@ -1,38 +1,38 @@
 /**
- * ツール状態管理ストア
- * AgentCore Gateway のツール一覧・検索状態を管理
+ * Tool State Management Store
+ * Manages tool list and search state from AgentCore Gateway
  */
 
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import type { MCPTool } from '../api/tools';
-import { fetchTools, searchTools, checkGatewayHealth, LOCAL_TOOLS } from '../api/tools';
+import { fetchTools, searchTools, checkGatewayHealth } from '../api/tools';
 
 /**
- * ツールストアの状態型定義
+ * Tool store state type definition
  */
 export interface ToolStoreState {
-  // ツールリスト
+  // Tool list
   tools: MCPTool[];
   isLoading: boolean;
   error: string | null;
   lastFetchTime: string | null;
-  nextCursor: string | null; // ページネーション用
+  nextCursor: string | null; // For pagination
 
-  // 検索機能
+  // Search functionality
   searchQuery: string;
   searchResults: MCPTool[];
   isSearching: boolean;
   searchError: string | null;
 
-  // Gateway 接続状態
+  // Gateway connection status
   gatewayHealthy: boolean;
   gatewayStatus: 'unknown' | 'healthy' | 'unhealthy';
 
-  // アクション
+  // Actions
   loadTools: () => Promise<void>;
-  loadMoreTools: () => Promise<void>; // 追加ページ読み込み
-  loadAllTools: () => Promise<void>; // 全ツール読み込み（ツール選択用）
+  loadMoreTools: () => Promise<void>; // Load additional pages
+  loadAllTools: () => Promise<void>; // Load all tools (for tool selection)
   searchToolsWithQuery: (query: string) => Promise<void>;
   clearSearch: () => void;
   setSearchQuery: (query: string) => void;
@@ -41,17 +41,17 @@ export interface ToolStoreState {
 }
 
 /**
- * ツール管理ストア
+ * Tool management store
  */
 export const useToolStore = create<ToolStoreState>()(
   devtools(
     (set, get) => ({
-      // 初期状態
+      // Initial state
       tools: [],
       isLoading: false,
       error: null,
       lastFetchTime: null,
-      nextCursor: null, // 追加
+      nextCursor: null,
 
       searchQuery: '',
       searchResults: [],
@@ -62,14 +62,14 @@ export const useToolStore = create<ToolStoreState>()(
       gatewayStatus: 'unknown',
 
       /**
-       * ツール一覧を読み込み（最初のページ）
+       * Load tool list (first page)
        */
       loadTools: async () => {
         const currentState = get();
 
-        // 既に読み込み中の場合は重複実行を避ける
+        // Avoid duplicate execution if already loading
         if (currentState.isLoading) {
-          console.log('🔧 ツール一覧読み込み中のため、重複実行をスキップ');
+          console.log('🔧 Tool list already loading, skipping duplicate execution');
           return;
         }
 
@@ -77,19 +77,16 @@ export const useToolStore = create<ToolStoreState>()(
           isLoading: true,
           error: null,
           gatewayStatus: 'unknown',
-          nextCursor: null, // リセット
+          nextCursor: null,
         });
 
         try {
-          console.log('🔧 ツール一覧読み込み開始');
+          console.log('🔧 Tool list loading started');
 
           const result = await fetchTools();
 
-          // ローカルツール + MCPツールを結合
-          const allTools = [...LOCAL_TOOLS, ...result.tools];
-
           set({
-            tools: allTools,
+            tools: result.tools,
             nextCursor: result.nextCursor || null,
             isLoading: false,
             error: null,
@@ -99,14 +96,13 @@ export const useToolStore = create<ToolStoreState>()(
           });
 
           console.log(
-            `✅ ツール一覧読み込み完了: ${allTools.length}件 (ローカル: ${LOCAL_TOOLS.length}件, MCP: ${result.tools.length}件)`,
-            result.nextCursor ? { nextCursor: 'あり' } : { nextCursor: 'なし' }
+            `✅ Tool list loading completed: ${result.tools.length} items`,
+            result.nextCursor ? { nextCursor: 'present' } : { nextCursor: 'none' }
           );
         } catch (error) {
-          const errorMessage =
-            error instanceof Error ? error.message : 'ツール一覧の読み込みに失敗しました';
+          const errorMessage = error instanceof Error ? error.message : 'Failed to load tool list';
 
-          console.error('💥 ツール一覧読み込みエラー:', error);
+          console.error('💥 Tool list loading error:', error);
 
           set({
             tools: [],
@@ -121,13 +117,13 @@ export const useToolStore = create<ToolStoreState>()(
       },
 
       /**
-       * 追加ページを読み込み
+       * Load additional page
        */
       loadMoreTools: async () => {
         const currentState = get();
 
         if (currentState.isLoading || !currentState.nextCursor) {
-          console.log('🔧 追加読み込み不可: 読み込み中またはnextCursorなし');
+          console.log('🔧 Cannot load more: loading in progress or no nextCursor');
           return;
         }
 
@@ -137,12 +133,12 @@ export const useToolStore = create<ToolStoreState>()(
         });
 
         try {
-          console.log('🔧 追加ツール読み込み開始', { cursor: currentState.nextCursor });
+          console.log('🔧 Loading additional tools started', { cursor: currentState.nextCursor });
 
           const result = await fetchTools(currentState.nextCursor);
 
           set({
-            tools: [...currentState.tools, ...result.tools], // 既存のツールに追加
+            tools: [...currentState.tools, ...result.tools], // Add to existing tools
             nextCursor: result.nextCursor || null,
             isLoading: false,
             error: null,
@@ -152,14 +148,14 @@ export const useToolStore = create<ToolStoreState>()(
           });
 
           console.log(
-            `✅ 追加ツール読み込み完了: +${result.tools.length}件 (合計: ${currentState.tools.length + result.tools.length}件)`,
-            result.nextCursor ? { nextCursor: 'あり' } : { nextCursor: 'なし' }
+            `✅ Additional tools loading completed: +${result.tools.length} items (total: ${currentState.tools.length + result.tools.length} items)`,
+            result.nextCursor ? { nextCursor: 'present' } : { nextCursor: 'none' }
           );
         } catch (error) {
           const errorMessage =
-            error instanceof Error ? error.message : '追加ツールの読み込みに失敗しました';
+            error instanceof Error ? error.message : 'Failed to load additional tools';
 
-          console.error('💥 追加ツール読み込みエラー:', error);
+          console.error('💥 Additional tools loading error:', error);
 
           set({
             isLoading: false,
@@ -171,15 +167,15 @@ export const useToolStore = create<ToolStoreState>()(
       },
 
       /**
-       * 全ツール読み込み（ツール選択用）
-       * nextCursorがある限り自動的に全ページを読み込む
+       * Load all tools (for tool selection)
+       * Automatically loads all pages while nextCursor exists
        */
       loadAllTools: async () => {
         const currentState = get();
 
-        // 既に読み込み中の場合は重複実行を避ける
+        // Avoid duplicate execution if already loading
         if (currentState.isLoading) {
-          console.log('🔧 全ツール読み込み中のため、重複実行をスキップ');
+          console.log('🔧 All tools already loading, skipping duplicate execution');
           return;
         }
 
@@ -190,29 +186,26 @@ export const useToolStore = create<ToolStoreState>()(
         });
 
         try {
-          console.log('🔧 全ツール読み込み開始');
+          console.log('🔧 Loading all tools started');
 
-          let mcpTools: MCPTool[] = [];
+          let allTools: MCPTool[] = [];
           let cursor: string | undefined = undefined;
 
-          // nextCursorがある限り繰り返し読み込み（MCPツールのみ）
+          // Repeat loading while nextCursor exists
           do {
             const result = await fetchTools(cursor);
-            mcpTools = [...mcpTools, ...result.tools];
+            allTools = [...allTools, ...result.tools];
             cursor = result.nextCursor;
 
             console.log(
-              `📄 MCP ページ読み込み: +${result.tools.length}件 (合計: ${mcpTools.length}件)`,
-              cursor ? { nextCursor: 'あり' } : { nextCursor: 'なし' }
+              `📄 Page loaded: +${result.tools.length} items (total: ${allTools.length} items)`,
+              cursor ? { nextCursor: 'present' } : { nextCursor: 'none' }
             );
           } while (cursor);
 
-          // ローカルツール + MCPツールを結合
-          const allTools = [...LOCAL_TOOLS, ...mcpTools];
-
           set({
             tools: allTools,
-            nextCursor: null, // 全て読み込み済みなのでnull
+            nextCursor: null, // null as all loaded
             isLoading: false,
             error: null,
             lastFetchTime: new Date().toISOString(),
@@ -220,14 +213,11 @@ export const useToolStore = create<ToolStoreState>()(
             gatewayStatus: 'healthy',
           });
 
-          console.log(
-            `✅ 全ツール読み込み完了: ${allTools.length}件 (ローカル: ${LOCAL_TOOLS.length}件, MCP: ${mcpTools.length}件)`
-          );
+          console.log(`✅ All tools loading completed: ${allTools.length} items`);
         } catch (error) {
-          const errorMessage =
-            error instanceof Error ? error.message : '全ツールの読み込みに失敗しました';
+          const errorMessage = error instanceof Error ? error.message : 'Failed to load all tools';
 
-          console.error('💥 全ツール読み込みエラー:', error);
+          console.error('💥 All tools loading error:', error);
 
           set({
             tools: [],
@@ -242,14 +232,14 @@ export const useToolStore = create<ToolStoreState>()(
       },
 
       /**
-       * ツール検索を実行
+       * Execute tool search
        */
       searchToolsWithQuery: async (query: string) => {
         if (!query || query.trim().length === 0) {
           set({
             searchQuery: '',
             searchResults: [],
-            searchError: '検索クエリを入力してください',
+            searchError: 'Please enter a search query',
           });
           return;
         }
@@ -264,24 +254,13 @@ export const useToolStore = create<ToolStoreState>()(
         });
 
         try {
-          console.log(`🔍 ツール検索実行: "${trimmedQuery}"`);
+          console.log(`🔍 Tool search started: "${trimmedQuery}"`);
 
-          // ローカルツールから検索
-          const localSearchResults = LOCAL_TOOLS.filter(
-            (tool) =>
-              tool.name.toLowerCase().includes(trimmedQuery.toLowerCase()) ||
-              (tool.description &&
-                tool.description.toLowerCase().includes(trimmedQuery.toLowerCase()))
-          );
-
-          // MCPツールから検索
-          const mcpSearchResults = await searchTools(trimmedQuery);
-
-          // ローカル + MCP の検索結果を結合
-          const allSearchResults = [...localSearchResults, ...mcpSearchResults];
+          // Search via Backend API (builtin tools + MCP tools)
+          const searchResults = await searchTools(trimmedQuery);
 
           set({
-            searchResults: allSearchResults,
+            searchResults,
             isSearching: false,
             searchError: null,
             gatewayHealthy: true,
@@ -289,12 +268,12 @@ export const useToolStore = create<ToolStoreState>()(
           });
 
           console.log(
-            `✅ ツール検索完了: ${allSearchResults.length}件 (ローカル: ${localSearchResults.length}件, MCP: ${mcpSearchResults.length}件, クエリ: "${trimmedQuery}")`
+            `✅ Tool search completed: ${searchResults.length} items (query: "${trimmedQuery}")`
           );
         } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : 'ツール検索に失敗しました';
+          const errorMessage = error instanceof Error ? error.message : 'Tool search failed';
 
-          console.error('💥 ツール検索エラー:', error);
+          console.error('💥 Tool search error:', error);
 
           set({
             searchResults: [],
@@ -307,10 +286,10 @@ export const useToolStore = create<ToolStoreState>()(
       },
 
       /**
-       * 検索状態をクリア
+       * Clear search state
        */
       clearSearch: () => {
-        console.log('🧹 検索状態をクリア');
+        console.log('🧹 Clearing search state');
         set({
           searchQuery: '',
           searchResults: [],
@@ -320,7 +299,7 @@ export const useToolStore = create<ToolStoreState>()(
       },
 
       /**
-       * 検索クエリを設定
+       * Set search query
        */
       setSearchQuery: (query: string) => {
         set({
@@ -329,11 +308,11 @@ export const useToolStore = create<ToolStoreState>()(
       },
 
       /**
-       * Gateway の接続状態を確認
+       * Check Gateway connection status
        */
       checkGateway: async () => {
         try {
-          console.log('💓 Gateway 接続状態確認開始');
+          console.log('💓 Gateway connection check started');
 
           const healthResponse = await checkGatewayHealth();
 
@@ -342,9 +321,9 @@ export const useToolStore = create<ToolStoreState>()(
             gatewayStatus: healthResponse.status,
           });
 
-          console.log(`✅ Gateway 接続状態確認完了: ${healthResponse.status}`);
+          console.log(`✅ Gateway connection check completed: ${healthResponse.status}`);
         } catch (error) {
-          console.error('💥 Gateway 接続状態確認エラー:', error);
+          console.error('💥 Gateway connection check error:', error);
 
           set({
             gatewayHealthy: false,
@@ -354,7 +333,7 @@ export const useToolStore = create<ToolStoreState>()(
       },
 
       /**
-       * エラー状態をクリア
+       * Clear error state
        */
       clearError: () => {
         set({
@@ -365,7 +344,7 @@ export const useToolStore = create<ToolStoreState>()(
     }),
     {
       name: 'tool-store',
-      // 開発時のみ有効
+      // Enable only in development
       enabled: import.meta.env.DEV,
     }
   )
