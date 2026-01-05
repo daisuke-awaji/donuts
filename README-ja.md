@@ -12,11 +12,11 @@ FullStack AgentCoreは、チームがAIエージェントを作成、カスタ�
   <table>
     <tr>
       <td width="50%">
-        <img src="./docs/assets/agentchat.geeawa.net_chat.png" alt="チャットインターフェース" width="100%">
+        <img src="./docs/assets/agentchat.geeawa.net_chat.png" alt="チャットインターフェース" width="100%" style="border: 1px solid #333; border-radius: 4px;">
         <p align="center"><b>直感的なチャットインターフェース</b><br/>シンプルで使いやすいインターフェースで専門的なAIエージェントと対話</p>
       </td>
       <td width="50%">
-        <img src="./docs/assets/agentchat.geeawa.net_chat_share_agent.png" alt="エージェント共有" width="100%">
+        <img src="./docs/assets/agentchat.geeawa.net_chat_share_agent.png" alt="エージェント共有" width="100%" style="border: 1px solid #333; border-radius: 4px;">
         <p align="center"><b>組織全体でのエージェント共有</b><br/>チーム内でAIエージェントを発見・共有</p>
       </td>
     </tr>
@@ -37,7 +37,7 @@ FullStack AgentCoreは、チームがAIエージェントを作成、カスタ�
 このプロジェクトは、Amazon Bedrockを活用したAIエージェントをデプロイするための完全なスタックを提供します。
 
 <div align="center">
-  <img src="./docs/fullstack-agentcore-architecture.drawio.png" alt="アーキテクチャ図" width="80%">
+  <img src="./docs/fullstack-agentcore-architecture.drawio.png" alt="アーキテクチャ図" width="80%" style="border: 1px solid #333; border-radius: 4px;">
 </div>
 
 | コンポーネント | 技術スタック | ポート | 役割 | AWSサービス |

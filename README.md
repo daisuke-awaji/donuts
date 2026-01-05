@@ -12,11 +12,11 @@ FullStack AgentCore is an enterprise-ready multi-agent platform that enables tea
   <table>
     <tr>
       <td width="50%">
-        <img src="./docs/assets/agentchat.geeawa.net_chat.png" alt="Chat Interface" width="100%">
+        <img src="./docs/assets/agentchat.geeawa.net_chat.png" alt="Chat Interface" width="100%" style="border: 1px solid #333; border-radius: 4px;">
         <p align="center"><b>Intuitive Chat Interface</b><br/>Interact with specialized AI agents through a clean, user-friendly interface</p>
       </td>
       <td width="50%">
-        <img src="./docs/assets/agentchat.geeawa.net_chat_share_agent.png" alt="Agent Sharing" width="100%">
+        <img src="./docs/assets/agentchat.geeawa.net_chat_share_agent.png" alt="Agent Sharing" width="100%" style="border: 1px solid #333; border-radius: 4px;">
         <p align="center"><b>Organization-Wide Agent Sharing</b><br/>Discover and share AI agents across your team</p>
       </td>
     </tr>
@@ -37,7 +37,7 @@ FullStack AgentCore is an enterprise-ready multi-agent platform that enables tea
 This project provides a complete stack for deploying AI agents powered by Amazon Bedrock.
 
 <div align="center">
-  <img src="./docs/fullstack-agentcore-architecture.drawio.png" alt="Architecture Diagram" width="80%">
+  <img src="./docs/fullstack-agentcore-architecture.drawio.png" alt="Architecture Diagram" width="80%" style="border: 1px solid #333; border-radius: 4px;">
 </div>
 
 
