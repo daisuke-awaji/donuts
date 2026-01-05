@@ -6,13 +6,17 @@
 import toast from 'react-hot-toast';
 import { ApiError, AuthenticationError } from '../api/client/base-client';
 
-let authStore: any = null;
+interface AuthStore {
+  logout: () => Promise<void>;
+}
+
+let authStore: AuthStore | null = null;
 
 /**
  * Initialize error handler with auth store
  * @param store - Auth store instance
  */
-export function initializeErrorHandler(store: any): void {
+export function initializeErrorHandler(store: AuthStore): void {
   authStore = store;
 }
 
