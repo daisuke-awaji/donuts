@@ -182,8 +182,16 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
     try {
       console.log('🔧 AgentStore初期化開始...');
 
-      // APIからAgent一覧を取得
-      const agents = await agentsApi.listAgents();
+      // まずAPIからAgent一覧を取得
+      let agents = await agentsApi.listAgents();
+
+      // エージェントが0件の場合のみ初期化APIを呼び出し
+      if (agents.length === 0) {
+        console.log('📝 初回ログイン検出 - デフォルトエージェントを初期化...');
+        const result = await agentsApi.initializeAgents();
+        agents = result.agents;
+        console.log(`✨ デフォルトエージェント作成完了: ${agents.length}件`);
+      }
 
       // 保存されている選択AgentIDを取得
       const selectedAgentId = loadSelectedAgentIdFromStorage();

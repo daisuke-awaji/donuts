@@ -148,3 +148,15 @@ export async function cloneSharedAgent(userId: string, agentId: string): Promise
 
   return parseAgentDates(data.agent);
 }
+
+/**
+ * Initialize default agents for first-time users
+ * Creates default agents if user has no agents yet
+ */
+export async function initializeAgents(): Promise<InitializeAgentsResponse> {
+  const data = await backendPost<InitializeAgentsResponse>('/agents/initialize');
+  return {
+    ...data,
+    agents: data.agents.map(parseAgentDates),
+  };
+}
