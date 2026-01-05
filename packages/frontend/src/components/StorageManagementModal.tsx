@@ -433,27 +433,34 @@ export function StorageManagementModal({ isOpen, onClose }: StorageManagementMod
     const allFiles: Array<{ file: File; relativePath: string }> = [];
     const allDirectories: string[] = [];
 
+    // 【重要】DataTransferItemListは同期的にしかアクセスできないため、
+    // 最初にすべてのエントリを同期的に取得する
+    const entries: FileSystemEntry[] = [];
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
       if (item.kind === 'file') {
         const entry = item.webkitGetAsEntry();
-
         if (entry) {
-          if (entry.isFile) {
-            // ファイルの場合
-            const fileEntry = entry as FileSystemFileEntry;
-            const file = await new Promise<File>((resolve, reject) => {
-              fileEntry.file(resolve, reject);
-            });
-            allFiles.push({ file, relativePath: file.name });
-          } else if (entry.isDirectory) {
-            // ディレクトリの場合、再帰的に読み取り
-            const dirEntry = entry as FileSystemDirectoryEntry;
-            const result = await readDirectoryEntry(dirEntry, entry.name);
-            allFiles.push(...result.files);
-            allDirectories.push(...result.directories);
-          }
+          entries.push(entry);
         }
+      }
+    }
+
+    // エントリを取得した後で、非同期処理を実行
+    for (const entry of entries) {
+      if (entry.isFile) {
+        // ファイルの場合
+        const fileEntry = entry as FileSystemFileEntry;
+        const file = await new Promise<File>((resolve, reject) => {
+          fileEntry.file(resolve, reject);
+        });
+        allFiles.push({ file, relativePath: file.name });
+      } else if (entry.isDirectory) {
+        // ディレクトリの場合、再帰的に読み取り
+        const dirEntry = entry as FileSystemDirectoryEntry;
+        const result = await readDirectoryEntry(dirEntry, entry.name);
+        allFiles.push(...result.files);
+        allDirectories.push(...result.directories);
       }
     }
 
