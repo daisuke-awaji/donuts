@@ -13,6 +13,7 @@ import { ToolResultBlock } from './ToolResultBlock';
 import { MermaidDiagram } from './MermaidDiagram';
 import { S3FileLink } from './S3FileLink';
 import { S3Image } from './S3Image';
+import { S3Video } from './S3Video';
 
 interface MessageProps {
   message: MessageType;
@@ -32,6 +33,13 @@ export const Message: React.FC<MessageProps> = ({ message }) => {
     return href.startsWith('/') && !href.startsWith('//') && !href.startsWith('/api/');
   };
 
+  // Check if a path is a video file
+  const isVideoFile = (path: string): boolean => {
+    const videoExtensions = ['.mp4', '.webm', '.mov', '.avi', '.mkv', '.m4v'];
+    const lowerPath = path.toLowerCase();
+    return videoExtensions.some((ext) => lowerPath.endsWith(ext));
+  };
+
   // Markdownカスタムコンポーネント（メモ化で参照を安定させる）
   const markdownComponents = useMemo(
     () => ({
@@ -39,6 +47,14 @@ export const Message: React.FC<MessageProps> = ({ message }) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       a: ({ href, children, ...props }: any) => {
         if (href && isStoragePath(href)) {
+          // Check if it's a video file and display inline
+          if (isVideoFile(href)) {
+            return (
+              <div className="my-4">
+                <S3Video path={href} className="max-w-full" />
+              </div>
+            );
+          }
           return <S3FileLink path={href}>{children}</S3FileLink>;
         }
         // Regular link
@@ -48,10 +64,18 @@ export const Message: React.FC<MessageProps> = ({ message }) => {
           </a>
         );
       },
-      // Custom image renderer for S3 images
+      // Custom image renderer for S3 images and videos
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       img: ({ src, alt, ...props }: any) => {
         if (src && isStoragePath(src)) {
+          // Check if it's a video file and display inline
+          if (isVideoFile(src)) {
+            return (
+              <div className="my-4">
+                <S3Video path={src} className="max-w-full" />
+              </div>
+            );
+          }
           return <S3Image path={src} alt={alt || ''} className="max-w-full rounded-lg" />;
         }
         // Regular image
@@ -123,6 +147,31 @@ export const Message: React.FC<MessageProps> = ({ message }) => {
           {children}
         </blockquote>
       ),
+      // 段落: ブロック要素（動画など）が含まれる場合はdivを使用
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      p: ({ children, ...props }: any) => {
+        // Check if any child contains a div (which happens when S3Video is rendered)
+        const childArray = React.Children.toArray(children);
+        const hasBlockElement = childArray.some((child) => {
+          if (React.isValidElement(child)) {
+            // Check if the element has a div in its structure
+            const elementType = child.type;
+            // S3Video and S3Image components return div elements
+            if (typeof elementType === 'function') {
+              // This is a component, we assume it might contain block elements
+              return true;
+            }
+          }
+          return false;
+        });
+
+        // If there's a block element, use div instead of p to avoid nesting errors
+        if (hasBlockElement) {
+          return <div {...props}>{children}</div>;
+        }
+
+        return <p {...props}>{children}</p>;
+      },
     }),
     []
   ); // 依存配列を空にして、コンポーネントの生存期間中は同じ参照を保持

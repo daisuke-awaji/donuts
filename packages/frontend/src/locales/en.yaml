@@ -313,6 +313,9 @@ storage:
   fileStorage: File Storage
   loadingImage: Loading image...
   failedToLoadImage: Failed to load image
+  loadingVideo: Loading video...
+  failedToLoadVideo: Failed to load video
+  videoNotSupported: Your browser does not support the video tag
   failedToLoad: Failed to load
   description: We provide Amazon S3 storage space for each user. It automatically syncs with the AI agent's workspace (/tmp/ws), so files created or edited by the agent are saved in this space. When you select a directory, files in that directory are loaded into the agent's workspace.
   currentPath: Current Path
@@ -539,6 +542,32 @@ defaultAgents:
       conceptArt:
         title: Concept Art
         prompt: "Please visualize the following concept:\n\nConcept: \nIdea to express: \nStyle: (e.g., futuristic, retro, fantasy, etc.)\nKey elements: \nSize: 1024x1024"
+
+  slideshowVideoCreator:
+    name: Slideshow Video Creator
+    description: Create narrated videos from images with Japanese subtitles and voice. Supports PDF to video conversion
+    scenarios:
+      basicVideo:
+        title: Create Basic Video
+        prompt: "Please create a video from the following images:\n\nImage folder/files: \nDisplay time per image: (default: 1 second)\n\nWill create a basic video without subtitles or audio."
+      subtitledVideo:
+        title: Add Subtitles
+        prompt: "Please add Japanese subtitles to the video:\n\nVideo file: \nSubtitle texts (one per image): \n1. \n2. \n3. \n\nSubtitles will be displayed at the bottom center with black background."
+      narratedVideo:
+        title: Add Narration
+        prompt: "Please add narration audio to the video:\n\nVideo file: \nNarration texts (one per image): \n1. \n2. \n3. \n\nWill generate Japanese TTS audio and merge with video."
+      fullPackage:
+        title: Complete Video with Subtitles & Audio
+        prompt: "Please create a complete video with both subtitles and narration:\n\nImage folder/files: \nSubtitle/Narration texts: \n1. \n2. \n3. \n\nWill create a fully narrated video with Japanese subtitles."
+      pdfToVideo:
+        title: PDF to Video
+        prompt: "Please convert a PDF (PowerPoint export) to a narrated video:\n\nPDF file: \nNarration texts for each page: \n1. \n2. \n3. \n\nWill convert PDF pages to images, then create video with subtitles and narration."
+      customSettings:
+        title: Custom Settings
+        prompt: "Please create a video with custom settings:\n\nImage folder/files: \nDisplay time per image: \nSubtitle position: (top/bottom/custom)\nFont size: \nOther settings: \n\nWill create a customized video based on your specifications."
+      presentationVideo:
+        title: Presentation Video
+        prompt: "Please create a presentation-style video:\n\nSlide images/PDF: \nPresentation script: \nBackground music: (optional)\n\nWill create a professional presentation video with narration."
 
   kamishibaiMaster:
     name: Kamishibai Master
