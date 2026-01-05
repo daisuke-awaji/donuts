@@ -391,7 +391,7 @@ export function SessionSidebar() {
           {/* ドロップダウンメニュー */}
           {isUserDropdownOpen && (
             <div
-              className={`absolute bg-white rounded-2xl shadow-lg border border-gray-200 py-2 z-10 ${
+              className={`absolute bg-white rounded-2xl shadow-lg border border-gray-200 py-2 z-50 ${
                 shouldShowExpanded
                   ? 'bottom-full left-0 right-0 mb-2'
                   : 'bottom-full left-0 mb-2 w-48'
