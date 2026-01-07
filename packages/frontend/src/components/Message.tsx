@@ -193,9 +193,7 @@ export const Message: React.FC<MessageProps> = ({ message }) => {
               ? 'w-full'
               : isUser
                 ? 'message-bubble message-user'
-                : message.isError
-                  ? 'message-bubble message-error'
-                  : 'message-bubble message-assistant'
+                : 'message-bubble message-assistant'
           } ${message.isStreaming ? 'bg-opacity-90' : ''}`}
         >
           {/* エラーアイコン表示 */}
