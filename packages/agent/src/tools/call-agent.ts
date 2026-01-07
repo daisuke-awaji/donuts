@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { subAgentTaskManager } from '../services/sub-agent-task-manager.js';
 import { listAgents } from '../services/agent-registry.js';
 import { logger } from '../config/index.js';
+import { getCurrentContext } from '../context/request-context.js';
 
 /**
  * Sleep utility for polling
@@ -51,6 +52,7 @@ async function handleStartTask(
     query?: string;
     modelId?: string;
     storagePath?: string;
+    sessionId?: string;
   },
   context?: ToolContext
 ): Promise<Record<string, unknown>> {
@@ -82,17 +84,27 @@ async function handleStartTask(
     // Get storagePath from input or inherit from parent
     const storagePath = input.storagePath || context?.agent?.state?.get('storagePath');
 
+    // Get userId from request context
+    const currentContext = getCurrentContext();
+    const userId = currentContext?.userId;
+
     // Create task
     const taskId = await subAgentTaskManager.createTask(input.agentId, input.query, {
       modelId: input.modelId,
       parentSessionId,
+      sessionId: input.sessionId,
+      userId,
       currentDepth,
       maxDepth,
       storagePath: storagePath as string | undefined,
     });
 
+    // Get the created task to retrieve the sessionId
+    const task = await subAgentTaskManager.getTask(taskId);
+
     return {
       taskId,
+      sessionId: task?.sessionId,
       status: 'started',
       agentId: input.agentId,
       message: `Sub-agent task started. Use call_agent with action='status' and taskId="${taskId}" to check results.`,
@@ -154,6 +166,7 @@ async function handleStatus(
       if (task.status === 'completed') {
         return {
           taskId: task.taskId,
+          sessionId: task.sessionId,
           status: 'completed',
           agentId: task.agentId,
           result: task.result,
@@ -165,6 +178,7 @@ async function handleStatus(
       if (task.status === 'failed') {
         return {
           taskId: task.taskId,
+          sessionId: task.sessionId,
           status: 'failed',
           agentId: task.agentId,
           error: task.error,
@@ -177,6 +191,7 @@ async function handleStatus(
       if (!waitForCompletion) {
         return {
           taskId: task.taskId,
+          sessionId: task.sessionId,
           status: task.status,
           agentId: task.agentId,
           progress: task.progress,
@@ -265,6 +280,12 @@ Then use those agentIds with action='start_task' to invoke them.
       .optional()
       .describe(
         'S3 storage path for sub-agent (e.g., "/project-a/"). Inherits from parent if not specified.'
+      ),
+    sessionId: z
+      .string()
+      .optional()
+      .describe(
+        'Session ID for sub-agent conversation history. If not specified, auto-generated as "<33-char-alphanumeric>_subagent" (same format as regular user sessions).'
       ),
 
     // status parameters

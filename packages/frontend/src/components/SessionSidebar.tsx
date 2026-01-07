@@ -38,6 +38,9 @@ interface SessionItemProps {
 function SessionItem({ session, isActive, isNew = false }: SessionItemProps) {
   const { t } = useTranslation();
 
+  // Check if this is a sub-agent session
+  const isSubAgent = session.sessionId.endsWith('_subagent');
+
   return (
     <Link
       to={`/chat/${session.sessionId}`}
@@ -54,7 +57,7 @@ function SessionItem({ session, isActive, isNew = false }: SessionItemProps) {
           ${isActive ? 'text-gray-900' : 'text-gray-900 group-hover:text-gray-700'}
         `}
         >
-          {t('chat.sessionNameLabel')}
+          {isSubAgent ? t('chat.subAgentSessionLabel') : t('chat.sessionNameLabel')}
         </span>
         <span
           className={`

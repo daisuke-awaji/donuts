@@ -123,6 +123,7 @@ navigation:
 chat:
   sessionName: Session Name
   sessionNameLabel: Session
+  subAgentSessionLabel: Sub Agent
   noConversations: No conversations yet
   startNewChat: Start a new chat
   loadingSessions: Loading sessions...

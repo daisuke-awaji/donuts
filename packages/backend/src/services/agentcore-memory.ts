@@ -345,7 +345,7 @@ export class AgentCoreMemoryService {
   }
 
   /**
-   * Get session list for specified actor
+   * Get session list for specified actor (with pagination support)
    * @param actorId User ID (JWT sub)
    * @returns Session list
    */
@@ -370,14 +370,13 @@ export class AgentCoreMemoryService {
         .filter((sessionSummary) => sessionSummary.sessionId)
         .map((sessionSummary) => ({
           sessionId: sessionSummary.sessionId!,
-          title: 'Session', // Fixed title
-          lastMessage: 'Select conversation to view history', // Fixed message
-          messageCount: 0, // 0 since no detailed retrieval
+          title: 'Session',
+          lastMessage: 'Select conversation to view history',
+          messageCount: 0,
           createdAt: sessionSummary.createdAt?.toISOString() || new Date().toISOString(),
           updatedAt: sessionSummary.createdAt?.toISOString() || new Date().toISOString(),
         }));
 
-      // Sort by creation date in descending order (latest sessions first)
       sessions.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
       console.log(`[AgentCoreMemoryService] Retrieved ${sessions.length} sessions`);

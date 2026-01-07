@@ -537,6 +537,11 @@ export const BUILTIN_TOOLS: MCPTool[] = [
           description:
             "S3 storage path for the sub-agent workspace. If omitted, inherits the parent agent's storage path. Use this to share files between agents or specify a different workspace.",
         },
+        sessionId: {
+          type: 'string',
+          description:
+            'Session ID for sub-agent conversation history. If not specified, auto-generated as "<33-char-alphanumeric>_subagent" (same format as regular user sessions).',
+        },
       },
       required: ['action'],
     },

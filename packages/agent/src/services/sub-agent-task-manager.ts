@@ -3,12 +3,56 @@
  * Manages asynchronous execution of sub-agent tasks
  */
 
-import { logger } from '../config/index.js';
+import { logger, config } from '../config/index.js';
 import { createAgent } from '../agent.js';
 import { getAgentDefinition } from './agent-registry.js';
 import { getCurrentContext } from '../context/request-context.js';
 import { WorkspaceSync } from './workspace-sync.js';
 import { WorkspaceSyncHook } from '../session/workspace-sync-hook.js';
+import { AgentCoreMemoryStorage } from '../session/agentcore-memory-storage.js';
+import { SessionPersistenceHook } from '../session/session-persistence-hook.js';
+import { customAlphabet } from 'nanoid';
+import type { HookProvider } from '@strands-agents/sdk';
+
+/**
+ * Session ID Generator for Sub-Agents
+ *
+ * Background:
+ * Sub-agent sessions need to be stored in AgentCore Memory and displayed in the UI
+ * alongside regular user sessions. The session ID format must meet several requirements:
+ *
+ * 1. AWS AgentCore Memory Constraints:
+ *    - Format: [a-zA-Z0-9][a-zA-Z0-9-_]*
+ *    - First character must be alphanumeric (no hyphens/underscores)
+ *
+ * 2. Consistency with Frontend:
+ *    - Regular user sessions use customAlphabet with 33-char alphanumeric IDs
+ *    - Sub-agent sessions use the same format for consistency
+ *    - Reference: packages/frontend/src/stores/sessionStore.ts
+ *
+ * 3. Partition Distribution (Critical for Performance):
+ *    - AgentCore Memory partitions data by sessionId prefix
+ *    - Random first characters ensure even distribution across partitions
+ *    - Previous format (task_xxx_subagent) caused clustering:
+ *      * All sub-agent sessions started with 't', creating hotspot
+ *      * listSessions API returns only first 100 sessions without pagination
+ *      * Sub-agent sessions were often not visible in the first 100 results
+ *
+ * 4. Sub-agent Identification:
+ *    - Suffix '_subagent' added to distinguish from regular sessions
+ *    - Enables filtering and special handling in UI
+ *    - Format: <33-char-alphanumeric>_subagent
+ *    - Example: ABCdefGHIjklMNOpqrSTUvwxYZ012345_subagent
+ *
+ * Why 33 characters?
+ * - Matches frontend session ID length for consistency
+ * - Provides sufficient entropy for unique IDs (62^33 possibilities)
+ * - Keeps total length manageable: 33 + 10 ('_subagent') = 43 chars
+ */
+const generateSessionId = customAlphabet(
+  'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789',
+  33
+);
 
 /**
  * Task status
@@ -30,6 +74,8 @@ export interface SubAgentTask {
   createdAt: number;
   updatedAt: number;
   parentSessionId?: string;
+  sessionId?: string;
+  userId?: string;
   maxDepth: number;
   currentDepth: number;
   storagePath?: string;
@@ -60,6 +106,8 @@ class SubAgentTaskManager {
     options: {
       modelId?: string;
       parentSessionId?: string;
+      sessionId?: string;
+      userId?: string;
       currentDepth?: number;
       maxDepth?: number;
       storagePath?: string;
@@ -78,6 +126,9 @@ class SubAgentTaskManager {
     }
 
     const taskId = this.generateTaskId();
+    // Generate sessionId if not provided (format: <33-char-alphanumeric>_subagent)
+    const sessionId = options.sessionId || `${generateSessionId()}_subagent`;
+
     const task: SubAgentTask = {
       taskId,
       agentId,
@@ -87,6 +138,8 @@ class SubAgentTaskManager {
       createdAt: Date.now(),
       updatedAt: Date.now(),
       parentSessionId: options.parentSessionId,
+      sessionId,
+      userId: options.userId,
       maxDepth: options.maxDepth || 2,
       currentDepth: options.currentDepth || 0,
       storagePath: options.storagePath,
@@ -142,12 +195,15 @@ class SubAgentTaskManager {
         });
       }
 
-      // Initialize workspace sync if storagePath is provided and we have auth
+      // Use stored userId or fallback to context
+      const userId = task.userId || context?.userId;
+
+      // Initialize workspace sync if storagePath is provided and we have userId
       let workspaceSync: WorkspaceSync | null = null;
       let workspaceSyncHook: WorkspaceSyncHook | null = null;
 
-      if (task.storagePath && context?.userId) {
-        workspaceSync = new WorkspaceSync(context.userId, task.storagePath);
+      if (task.storagePath && userId) {
+        workspaceSync = new WorkspaceSync(userId, task.storagePath);
         workspaceSync.startInitialSync();
 
         if (context) {
@@ -158,18 +214,46 @@ class SubAgentTaskManager {
 
         logger.info('🔄 Initialized workspace sync for sub-agent:', {
           taskId,
-          userId: context.userId,
+          userId,
           storagePath: task.storagePath,
         });
       }
 
-      // Create sub-agent (independent session, no history)
-      const hooks = workspaceSyncHook ? [workspaceSyncHook] : [];
+      // Initialize session persistence if we have userId and sessionId
+      const hooks: HookProvider[] = workspaceSyncHook ? [workspaceSyncHook] : [];
+      let sessionStorage = undefined;
+      let sessionConfig = undefined;
+
+      if (userId && task.sessionId && config.AGENTCORE_MEMORY_ID) {
+        sessionStorage = new AgentCoreMemoryStorage(
+          config.AGENTCORE_MEMORY_ID,
+          config.BEDROCK_REGION
+        );
+        sessionConfig = {
+          actorId: userId,
+          sessionId: task.sessionId,
+        };
+
+        // Add session persistence hook
+        const sessionPersistenceHook = new SessionPersistenceHook(sessionStorage, sessionConfig);
+        hooks.push(sessionPersistenceHook);
+
+        logger.info('💾 Initialized session persistence for sub-agent:', {
+          taskId,
+          sessionId: task.sessionId,
+          actorId: userId,
+          memoryId: config.AGENTCORE_MEMORY_ID,
+        });
+      }
+
+      // Create sub-agent with session persistence
       const { agent } = await createAgent(hooks, {
         systemPrompt: agentDef.systemPrompt,
         // Filter out call_agent to prevent infinite recursion
         enabledTools: agentDef.enabledTools.filter((t: string) => t !== 'call_agent'),
         modelId: task.modelId || agentDef.modelId,
+        sessionStorage,
+        sessionConfig,
       });
 
       // Set depth and storagePath in agent state

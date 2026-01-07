@@ -39,7 +39,8 @@ export class SessionPersistenceHook implements HookProvider {
       const messages = event.agent.messages;
 
       logger.debug(
-        `🔍 AfterInvocation: Agent messages=${messages.length}, checking for unsaved messages`
+        `🔍 AfterInvocation triggered: Agent messages=${messages.length}, checking for unsaved messages`,
+        { actorId, sessionId }
       );
 
       // Save conversation history to storage (avoid duplicates if already saved)

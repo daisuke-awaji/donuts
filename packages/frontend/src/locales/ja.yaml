@@ -125,6 +125,7 @@ navigation:
 chat:
   sessionName: セッション名
   sessionNameLabel: セッション名
+  subAgentSessionLabel: サブエージェント
   noConversations: まだ会話がありません
   startNewChat: 新しいチャットを開始しましょう
   loadingSessions: セッション一覧を読み込み中...
