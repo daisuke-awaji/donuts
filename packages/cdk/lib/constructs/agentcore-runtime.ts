@@ -285,10 +285,16 @@ export class AgentCoreRuntime extends Construct {
       new iam.PolicyStatement({
         sid: 'BedrockModelInvocation',
         effect: iam.Effect.ALLOW,
-        actions: ['bedrock:InvokeModel', 'bedrock:InvokeModelWithResponseStream'],
+        actions: [
+          'bedrock:InvokeModel',
+          'bedrock:InvokeModelWithResponseStream',
+          'bedrock:GetAsyncInvoke',
+          'bedrock:ListAsyncInvokes',
+        ],
         resources: [
           'arn:aws:bedrock:*::foundation-model/*',
           `arn:aws:bedrock:${region}:${account}:*`,
+          `arn:aws:bedrock:${region}:${account}:async-invoke/*`,
         ],
       })
     );
