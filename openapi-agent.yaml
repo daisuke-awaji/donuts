@@ -257,7 +257,7 @@ paths:
                   value:
                     error: 'Internal server error'
                     message: 'Agent initialization failed'
-                    requestId: 'req-abc123'
+                    requestId: '123e4567-e89b-12d3-a456-426614174000'
                 global_server_error:
                   summary: Global error handler
                   value:
@@ -385,7 +385,7 @@ components:
           type: string
           description: Request ID (optional)
           format: uuid
-          example: 'req-abc123'
+          example: '123e4567-e89b-12d3-a456-426614174000'
 
     NotFoundResponse:
       type: object

@@ -18,6 +18,8 @@ rules:
   security-defined: off
   # Allow examples that don't match schema exactly
   no-invalid-media-type-examples: off
+  # Allow examples that don't perfectly match schema format
+  no-invalid-schema-examples: off
 
 # Redoc theme settings
 theme:
