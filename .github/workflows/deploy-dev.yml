@@ -37,7 +37,7 @@ jobs:
         with:
           role-to-assume: arn:aws:iam::891376971424:role/GitHubActionsRole
           aws-region: ap-northeast-1
-          role-session-name: github-actions-deploy-prd-${{ github.run_id }}
+          role-session-name: github-actions-deploy-dev-${{ github.run_id }}
 
       - name: Install dependencies
         run: npm ci
@@ -50,12 +50,12 @@ jobs:
       - name: Deploy to production
         run: |
           echo "Deploying to production environment..."
-          npx cdk deploy --require-approval never --all -c env=prd
+          npx cdk deploy --require-approval never --all -c env=dev
 
       - name: Get deployment outputs
         id: outputs
         run: |
-          STACK_NAME="AgentCoreAppPrd"
+          STACK_NAME="AgentCoreAppDev"
 
           FRONTEND_URL=$(aws cloudformation describe-stacks \
             --stack-name ${STACK_NAME} \
