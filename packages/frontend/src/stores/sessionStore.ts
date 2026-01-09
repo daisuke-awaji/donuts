@@ -6,8 +6,11 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { customAlphabet } from 'nanoid';
+import toast from 'react-hot-toast';
 import { fetchSessions, fetchSessionEvents } from '../api/sessions';
 import type { SessionSummary, ConversationMessage } from '../api/sessions';
+import { ApiError } from '../api/client/base-client';
+import i18n from '../i18n';
 
 // AWS AgentCore sessionId constraints: [a-zA-Z0-9][a-zA-Z0-9-_]*
 // Custom nanoid with alphanumeric characters only (excluding hyphens and underscores)
@@ -120,6 +123,20 @@ export const useSessionStore = create<SessionStore>()(
 
           console.log(`✅ Session conversation history loaded: ${events.length} items`);
         } catch (error) {
+          // Handle 403 Forbidden - redirect to /chat
+          if (error instanceof ApiError && error.status === 403) {
+            console.warn(`⚠️ Access denied to session: ${sessionId}`);
+            toast.error(i18n.t('error.forbidden'));
+            set({
+              activeSessionId: null,
+              sessionEvents: [],
+              isLoadingEvents: false,
+              eventsError: null,
+            });
+            window.location.href = '/chat';
+            return;
+          }
+
           const errorMessage =
             error instanceof Error ? error.message : 'Failed to load session conversation history';
           console.error('💥 Session conversation history loading error:', error);
