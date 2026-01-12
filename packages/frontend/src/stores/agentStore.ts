@@ -231,14 +231,18 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
   clearError: () => {
     set({ error: null });
   },
-}));
 
-/**
- * アプリ起動時にストアを初期化
- */
-export const initializeAgentStore = () => {
-  useAgentStore.getState().initializeStore();
-};
+  clearStore: () => {
+    console.log('🧹 AgentStoreをクリア...');
+    set({
+      agents: [],
+      selectedAgent: null,
+      isLoading: false,
+      error: null,
+    });
+    localStorage.removeItem(SELECTED_AGENT_KEY);
+  },
+}));
 
 /**
  * 選択されたAgentを取得するヘルパー

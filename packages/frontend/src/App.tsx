@@ -13,32 +13,28 @@ import { AgentsPage } from './pages/AgentsPage';
 import { EventsPage } from './pages/EventsPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { getCurrentUserSession } from './lib/cognito';
-import { initializeAgentStore } from './stores/agentStore';
+import { useAgentStore } from './stores/agentStore';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { initializeErrorHandler } from './utils/errorHandler';
 
 function App() {
-  const { isAuthenticated, setUser, setLoading, setError, logout } = useAuthStore();
+  const { user, isAuthenticated, setUser, setLoading, setError, logout } = useAuthStore();
+  const { initializeStore, clearStore } = useAgentStore();
 
+  // Initialize error handler and check existing session
   useEffect(() => {
-    // Initialize global error handler with auth store
     initializeErrorHandler({ logout });
 
-    // Initialize AgentStore
-    initializeAgentStore();
-
-    // Check existing session
     const checkExistingSession = async () => {
       try {
         setLoading(true);
-        const user = await getCurrentUserSession();
+        const existingUser = await getCurrentUserSession();
 
-        if (user) {
-          setUser(user);
+        if (existingUser) {
+          setUser(existingUser);
         }
       } catch (error) {
         console.error('Session check error:', error);
-        // Do not display session check errors to user (treat as unauthenticated)
       } finally {
         setLoading(false);
       }
@@ -46,6 +42,17 @@ function App() {
 
     checkExistingSession();
   }, [setUser, setLoading, setError, logout]);
+
+  // Initialize AgentStore when user is authenticated
+  useEffect(() => {
+    if (user) {
+      console.log('👤 User authenticated, initializing AgentStore...');
+      initializeStore();
+    } else {
+      console.log('👋 User logged out, clearing AgentStore...');
+      clearStore();
+    }
+  }, [user, initializeStore, clearStore]);
 
   return (
     <ErrorBoundary>
