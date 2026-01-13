@@ -116,17 +116,17 @@ export class CognitoAuth extends Construct {
    * マシンユーザー用 App Client (Client Credentials Flow)
    * enableMachineUser: true の場合のみ作成
    */
-  public readonly machineUserClient?: cognito.UserPoolClient;
+  public machineUserClient?: cognito.UserPoolClient;
 
   /**
    * マシンユーザー用 Client ID
    */
-  public readonly machineUserClientId?: string;
+  public machineUserClientId?: string;
 
   /**
    * Cognito Domain URL (マシンユーザー用トークンエンドポイント)
    */
-  public readonly tokenEndpoint?: string;
+  public tokenEndpoint?: string;
 
   constructor(scope: Construct, id: string, props: CognitoAuthProps) {
     super(scope, id);
@@ -264,7 +264,7 @@ exports.handler = async (event) => {
 
     // マシンユーザー（Client Credentials Flow）の設定
     if (props.enableMachineUser) {
-      this.setupMachineUserAuth(props.domainPrefix, region);
+      this.setupMachineUserAuth(props.domainPrefix, props.userPoolName, region);
     }
 
     // CloudFormation Outputs
@@ -416,7 +416,11 @@ exports.handler = async (event) => {
   /**
    * マシンユーザー（Client Credentials Flow）用の認証設定を作成
    */
-  private setupMachineUserAuth(domainPrefix: string | undefined, region: string): void {
+  private setupMachineUserAuth(
+    domainPrefix: string | undefined,
+    userPoolName: string,
+    region: string
+  ): void {
     if (!domainPrefix) {
       throw new Error('domainPrefix is required when enableMachineUser is true');
     }
@@ -441,7 +445,7 @@ exports.handler = async (event) => {
 
     // マシンユーザー用 App Client（Client Credentials Flow）
     this.machineUserClient = this.userPool.addClient('MachineUserClient', {
-      userPoolClientName: `${this.userPool.userPoolName}-machine-client`,
+      userPoolClientName: `${userPoolName}-machine-client`,
 
       // Client Credentials Flow のみ有効化
       authFlows: {
