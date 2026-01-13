@@ -58,6 +58,20 @@ export interface CognitoAuthProps {
     readonly email: string;
     readonly password: string;
   };
+
+  /**
+   * マシンユーザー（Client Credentials Flow）の有効化
+   * バッチ処理用のサービスアカウント認証に使用
+   * デフォルト: false
+   */
+  readonly enableMachineUser?: boolean;
+
+  /**
+   * Cognito Domain プレフィックス
+   * マシンユーザー有効時に必須
+   * 例: 'my-app-auth' -> 'my-app-auth.auth.{region}.amazoncognito.com'
+   */
+  readonly domainPrefix?: string;
 }
 
 /**
@@ -97,6 +111,22 @@ export class CognitoAuth extends Construct {
    * User Pool ARN
    */
   public readonly userPoolArn: string;
+
+  /**
+   * マシンユーザー用 App Client (Client Credentials Flow)
+   * enableMachineUser: true の場合のみ作成
+   */
+  public readonly machineUserClient?: cognito.UserPoolClient;
+
+  /**
+   * マシンユーザー用 Client ID
+   */
+  public readonly machineUserClientId?: string;
+
+  /**
+   * Cognito Domain URL (マシンユーザー用トークンエンドポイント)
+   */
+  public readonly tokenEndpoint?: string;
 
   constructor(scope: Construct, id: string, props: CognitoAuthProps) {
     super(scope, id);
@@ -231,6 +261,11 @@ exports.handler = async (event) => {
     // OIDC Discovery URL 構築
     const region = cdk.Stack.of(this).region;
     this.discoveryUrl = `https://cognito-idp.${region}.amazonaws.com/${this.userPoolId}/.well-known/openid-configuration`;
+
+    // マシンユーザー（Client Credentials Flow）の設定
+    if (props.enableMachineUser) {
+      this.setupMachineUserAuth(props.domainPrefix, region);
+    }
 
     // CloudFormation Outputs
     new cdk.CfnOutput(this, 'UserPoolId', {
@@ -368,9 +403,93 @@ exports.handler = async (event) => {
     discoveryUrl: string;
     allowedClients: string[];
   } {
+    const allowedClients = [this.clientId];
+    if (this.machineUserClientId) {
+      allowedClients.push(this.machineUserClientId);
+    }
     return {
       discoveryUrl: this.discoveryUrl,
-      allowedClients: [this.clientId],
+      allowedClients,
     };
+  }
+
+  /**
+   * マシンユーザー（Client Credentials Flow）用の認証設定を作成
+   */
+  private setupMachineUserAuth(domainPrefix: string | undefined, region: string): void {
+    if (!domainPrefix) {
+      throw new Error('domainPrefix is required when enableMachineUser is true');
+    }
+
+    // Cognito Domain の作成（OAuth2 トークンエンドポイント用）
+    this.userPool.addDomain('CognitoDomain', {
+      cognitoDomain: {
+        domainPrefix: domainPrefix,
+      },
+    });
+
+    // リソースサーバーの作成（カスタムスコープ定義）
+    const resourceServer = this.userPool.addResourceServer('AgentCoreResourceServer', {
+      identifier: 'agentcore',
+      scopes: [
+        {
+          scopeName: 'batch.execute',
+          scopeDescription: 'Execute agent as batch process with targetUserId',
+        },
+      ],
+    });
+
+    // マシンユーザー用 App Client（Client Credentials Flow）
+    this.machineUserClient = this.userPool.addClient('MachineUserClient', {
+      userPoolClientName: `${this.userPool.userPoolName}-machine-client`,
+
+      // Client Credentials Flow のみ有効化
+      authFlows: {
+        userPassword: false,
+        userSrp: false,
+        adminUserPassword: false,
+        custom: false,
+      },
+
+      // OAuth設定（Client Credentials Flow）
+      oAuth: {
+        flows: {
+          clientCredentials: true,
+        },
+        scopes: [cognito.OAuthScope.custom('agentcore/batch.execute')],
+      },
+
+      // トークン有効期限
+      accessTokenValidity: cdk.Duration.hours(1),
+
+      // Client Secret が必要（Client Credentials Flow では必須）
+      generateSecret: true,
+
+      // セキュリティ設定
+      preventUserExistenceErrors: true,
+    });
+
+    // リソースサーバーへの依存関係を明示
+    this.machineUserClient.node.addDependency(resourceServer);
+
+    // プロパティ設定
+    this.machineUserClientId = this.machineUserClient.userPoolClientId;
+    this.tokenEndpoint = `https://${domainPrefix}.auth.${region}.amazoncognito.com/oauth2/token`;
+
+    // CloudFormation Outputs
+    new cdk.CfnOutput(this, 'MachineUserClientId', {
+      value: this.machineUserClientId,
+      description: 'Machine User App Client ID (for Client Credentials Flow)',
+      exportName: `${cdk.Stack.of(this).stackName}-MachineUserClientId`,
+    });
+
+    new cdk.CfnOutput(this, 'TokenEndpoint', {
+      value: this.tokenEndpoint,
+      description: 'OAuth2 Token Endpoint for Machine User',
+      exportName: `${cdk.Stack.of(this).stackName}-TokenEndpoint`,
+    });
+
+    // Note: Client Secret は Secrets Manager で管理することを推奨
+    // ここでは CloudFormation Output に含めない（セキュリティ上の理由）
   }
 }

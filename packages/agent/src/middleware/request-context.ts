@@ -8,23 +8,66 @@ import { createRequestContext, runWithContext } from '../context/request-context
 import { logger } from '../config/index.js';
 
 /**
- * Extract userId from JWT (simple implementation)
- * For production use, using jwt library is recommended
+ * JWT token parsing result
  */
-function extractUserIdFromJWT(authHeader?: string): string | undefined {
+interface TokenInfo {
+  /** Whether this is a machine user (Client Credentials Flow) */
+  isMachineUser: boolean;
+  /** User ID (for regular users) */
+  userId?: string;
+  /** Client ID (for machine users) */
+  clientId?: string;
+  /** OAuth scopes */
+  scopes?: string[];
+}
+
+/**
+ * Parse JWT token and extract user information
+ * Distinguishes between regular users (Authorization Code Flow) and machine users (Client Credentials Flow)
+ */
+function parseJWTToken(authHeader?: string): TokenInfo {
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return undefined;
+    return { isMachineUser: false };
   }
 
   try {
     const token = authHeader.substring(7); // Remove 'Bearer '
     const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
 
-    // Extract userId from common JWT claims
-    return payload.sub || payload.userId || payload.user_id || payload.username;
+    // Client Credentials Flow detection:
+    // - cognito:username does not exist
+    // - token_use is "access"
+    // - client_id exists
+    const hasUsername = !!(payload['cognito:username'] || payload.username);
+    const isAccessToken = payload['token_use'] === 'access';
+    const hasClientId = !!payload['client_id'];
+
+    const isMachineUser = !hasUsername && isAccessToken && hasClientId;
+
+    if (isMachineUser) {
+      return {
+        isMachineUser: true,
+        clientId: payload['client_id'],
+        scopes: payload['scope']?.split(' '),
+      };
+    }
+
+    // Regular user: extract userId
+    const userId =
+      payload['cognito:username'] ||
+      payload.username ||
+      payload.sub ||
+      payload.userId ||
+      payload.user_id;
+
+    return {
+      isMachineUser: false,
+      userId,
+      scopes: payload['scope']?.split(' '),
+    };
   } catch (error) {
     logger.warn('JWT parsing failed:', { error });
-    return undefined;
+    return { isMachineUser: false };
   }
 }
 
@@ -38,20 +81,27 @@ export function requestContextMiddleware(req: Request, res: Response, next: Next
     req.headers.authorization ||
     (req.headers['x-amzn-bedrock-agentcore-runtime-custom-authorization'] as string);
 
-  // Extract userId from JWT
-  const userId = extractUserIdFromJWT(authHeader);
+  // Parse JWT token
+  const tokenInfo = parseJWTToken(authHeader);
 
   // Create request context
   const requestContext = createRequestContext(authHeader);
-  // Set userId
-  if (userId) {
-    requestContext.userId = userId;
+
+  // Set token info to context
+  requestContext.isMachineUser = tokenInfo.isMachineUser;
+  if (tokenInfo.isMachineUser) {
+    requestContext.clientId = tokenInfo.clientId;
+  } else if (tokenInfo.userId) {
+    requestContext.userId = tokenInfo.userId;
   }
+  requestContext.scopes = tokenInfo.scopes;
 
   // Log request context
   logger.info('📝 Request context middleware activated:', {
     requestId: requestContext.requestId,
     userId: requestContext.userId,
+    isMachineUser: requestContext.isMachineUser,
+    clientId: requestContext.clientId,
     hasAuth: !!authHeader,
     authType: authHeader?.split(' ')[0] || 'None',
     path: req.path,

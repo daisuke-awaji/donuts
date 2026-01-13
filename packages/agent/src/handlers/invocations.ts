@@ -4,7 +4,11 @@
 
 import { Request, Response } from 'express';
 import { createAgent } from '../agent.js';
-import { getContextMetadata, getCurrentContext } from '../context/request-context.js';
+import {
+  getContextMetadata,
+  getCurrentContext,
+  RequestContext,
+} from '../context/request-context.js';
 import { setupSession, getSessionStorage } from '../session/session-helper.js';
 import { initializeWorkspaceSync } from '../services/workspace-sync-helper.js';
 import { logger } from '../config/index.js';
@@ -16,6 +20,51 @@ import {
 } from '../utils/index.js';
 import { validateImageData } from '../validation/index.js';
 import type { InvocationRequest } from './types.js';
+
+/**
+ * Result of resolving effective user ID
+ */
+interface UserIdResult {
+  userId?: string;
+  error?: string;
+  statusCode?: number;
+}
+
+/**
+ * Resolve effective user ID based on request context and targetUserId
+ * - Machine user: must provide targetUserId
+ * - Regular user: cannot provide targetUserId, use JWT userId
+ */
+function resolveEffectiveUserId(
+  context: RequestContext | undefined,
+  targetUserId?: string
+): UserIdResult {
+  const isMachine = context?.isMachineUser ?? false;
+
+  if (isMachine) {
+    // Machine user must provide targetUserId
+    if (!targetUserId) {
+      return {
+        error: 'targetUserId is required for machine user',
+        statusCode: 400,
+      };
+    }
+    logger.info('Machine user executing as target user:', {
+      clientId: context?.clientId,
+      targetUserId,
+    });
+    return { userId: targetUserId };
+  } else {
+    // Regular user cannot provide targetUserId
+    if (targetUserId) {
+      return {
+        error: 'targetUserId is not allowed for regular user',
+        statusCode: 403,
+      };
+    }
+    return { userId: context?.userId || 'anonymous' };
+  }
+}
 
 /**
  * Agent invocation endpoint (with streaming support)
@@ -34,6 +83,7 @@ export async function handleInvocation(req: Request, res: Response): Promise<voi
       memoryTopK,
       mcpConfig,
       images,
+      targetUserId,
     } = req.body as InvocationRequest;
 
     if (!prompt?.trim()) {
@@ -54,8 +104,15 @@ export async function handleInvocation(req: Request, res: Response): Promise<voi
 
     // Get context information (retrieve once)
     const context = getCurrentContext();
-    const actorId = context?.userId || 'anonymous';
     const requestId = context?.requestId || 'unknown';
+
+    // Resolve effective user ID (handle machine user vs regular user)
+    const userIdResult = resolveEffectiveUserId(context, targetUserId);
+    if (userIdResult.error) {
+      res.status(userIdResult.statusCode || 400).json({ error: userIdResult.error });
+      return;
+    }
+    const actorId = userIdResult.userId!;
 
     // Set storagePath in context
     if (context) {
@@ -71,6 +128,8 @@ export async function handleInvocation(req: Request, res: Response): Promise<voi
       requestId,
       prompt,
       actorId,
+      isMachineUser: context?.isMachineUser || false,
+      clientId: context?.clientId,
       sessionId: sessionId || 'none (sessionless mode)',
     });
 
