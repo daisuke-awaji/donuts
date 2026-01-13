@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import toast from 'react-hot-toast';
-import { Plus, Bot, MoreHorizontal, Edit2, Trash2, Share2 } from 'lucide-react';
+import { Plus, Bot, MoreHorizontal, Edit2, Trash2, Share2, Search, X } from 'lucide-react';
 import * as icons from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -41,6 +41,20 @@ export const AgentSelectorModal: React.FC<AgentSelectorModalProps> = ({
   const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
   const [deleteConfirmAgent, setDeleteConfirmAgent] = useState<Agent | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Filter agents by search query
+  const filteredAgents = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return agents;
+    }
+    const query = searchQuery.toLowerCase();
+    return agents.filter((agent) => {
+      const name = translateIfKey(agent.name, t).toLowerCase();
+      const description = translateIfKey(agent.description, t).toLowerCase();
+      return name.includes(query) || description.includes(query);
+    });
+  }, [agents, searchQuery, t]);
 
   // Initialize when modal opens
   useEffect(() => {
@@ -50,6 +64,7 @@ export const AgentSelectorModal: React.FC<AgentSelectorModalProps> = ({
         setEditingAgent(null);
         setDeleteConfirmAgent(null);
         setOpenMenuId(null);
+        setSearchQuery('');
       });
     }
   }, [isOpen]);
@@ -159,7 +174,7 @@ export const AgentSelectorModal: React.FC<AgentSelectorModalProps> = ({
                   setEditingAgent(null);
                 }}
                 disabled={isLoading}
-                className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="px-6 py-3 text-sm md:text-base font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors min-h-[48px]"
               >
                 {t('common.cancel')}
               </button>
@@ -167,7 +182,7 @@ export const AgentSelectorModal: React.FC<AgentSelectorModalProps> = ({
                 type="submit"
                 form="agent-form"
                 disabled={isLoading}
-                className="inline-flex items-center space-x-2 px-4 py-2 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="inline-flex items-center justify-center space-x-2 px-6 py-3 text-sm md:text-base font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors min-h-[48px]"
               >
                 <span>{isLoading ? t('common.saving') : t('common.save')}</span>
               </button>
@@ -189,15 +204,42 @@ export const AgentSelectorModal: React.FC<AgentSelectorModalProps> = ({
                 {/* ローディング表示 */}
                 {isLoading && <LoadingIndicator size="lg" spacing="lg" />}
 
-                {/* 新規作成ボタン - デスクトップのみ */}
-                {!isLoading && !isMobileView && (
-                  <div className="mb-8">
+                {/* 検索バーと新規作成ボタン */}
+                {!isLoading && agents.length > 0 && (
+                  <div className="mb-6 flex items-center gap-4">
+                    {/* 検索バー（左側） */}
+                    <div className="relative flex-1">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder={t('agent.searchPlaceholder')}
+                        className="w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                      />
+                      {searchQuery && (
+                        <button
+                          type="button"
+                          onClick={() => setSearchQuery('')}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+
+                    {/* 新規作成ボタン（右側） - モバイル: アイコンのみ、デスクトップ: フルテキスト */}
                     <button
                       onClick={() => setMode('create')}
-                      className="inline-flex items-center space-x-3 px-6 py-3 text-white bg-blue-600 rounded-xl hover:bg-blue-700 transition-colors shadow-sm"
+                      className={`inline-flex items-center text-white bg-blue-600 rounded-xl hover:bg-blue-700 transition-colors shadow-sm ${
+                        isMobileView ? 'p-2.5' : 'space-x-2 px-6 py-2.5'
+                      }`}
+                      title={isMobileView ? t('agent.createNewAgent') : undefined}
                     >
                       <Plus className="w-5 h-5" />
-                      <span className="font-medium">{t('agent.createNewAgent')}</span>
+                      {!isMobileView && (
+                        <span className="font-medium">{t('agent.createNewAgent')}</span>
+                      )}
                     </button>
                   </div>
                 )}
@@ -217,12 +259,26 @@ export const AgentSelectorModal: React.FC<AgentSelectorModalProps> = ({
                       {t('agent.createAgentButton')}
                     </button>
                   </div>
+                ) : !isLoading && filteredAgents.length === 0 ? (
+                  <div className="text-center py-20">
+                    <Search className="w-16 h-16 text-gray-300 mx-auto mb-6" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">
+                      {t('agent.noSearchResults')}
+                    </h3>
+                    <p className="text-gray-500 mb-6">{t('agent.noSearchResultsDescription')}</p>
+                    <button
+                      onClick={() => setSearchQuery('')}
+                      className="text-blue-600 hover:text-blue-800 font-medium"
+                    >
+                      {t('agent.clearSearch')}
+                    </button>
+                  </div>
                 ) : (
                   !isLoading && (
                     <div
                       className={`grid gap-6 ${isMobileView ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'}`}
                     >
-                      {agents.map((agent) => {
+                      {filteredAgents.map((agent) => {
                         const isSelected = selectedAgent?.agentId === agent.agentId;
                         const AgentIcon =
                           (icons[agent.icon as keyof typeof icons] as LucideIcon) || Bot;

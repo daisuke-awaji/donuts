@@ -176,6 +176,10 @@ agent:
   noAgentsTitle: Agentがありません
   noAgentsDescription: 最初のAgentを作成してください
   createAgentButton: Agentを作成する
+  searchPlaceholder: エージェント名・説明で検索...
+  noSearchResults: 検索結果がありません
+  noSearchResultsDescription: 検索条件を変更してもう一度お試しください
+  clearSearch: 検索をクリア
   storageNotice: エージェント管理機能は現在開発中で、localStorage に保存されています。アプリケーションのバージョンアップに伴い、不整合が生じる可能性があるため定期的に localStorage をクリアしてください。
   agentName: エージェント名
   description: 説明
