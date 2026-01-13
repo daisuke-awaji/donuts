@@ -28,6 +28,8 @@ export interface StorageItem {
 export interface ListStorageResponse {
   items: StorageItem[];
   path: string;
+  totalSize?: number;
+  fileCount?: number;
 }
 
 export interface UploadUrlResponse {
@@ -139,6 +141,55 @@ export async function listStorageItems(
     items,
     path: `/${normalizedPath}`,
   };
+}
+
+/**
+ * ディレクトリ内のすべてのファイルサイズを再帰的に計算
+ */
+export async function getDirectorySize(
+  userId: string,
+  path: string = '/'
+): Promise<{ totalSize: number; fileCount: number }> {
+  const bucketName = config.userStorageBucketName;
+  if (!bucketName) {
+    throw new Error('USER_STORAGE_BUCKET_NAME is not configured');
+  }
+
+  const normalizedPath = normalizePath(path);
+  const prefix = normalizedPath
+    ? `${getUserStoragePrefix(userId)}/${normalizedPath}/`
+    : `${getUserStoragePrefix(userId)}/`;
+
+  console.log(`📊 Calculating directory size for: ${prefix}`);
+
+  let totalSize = 0;
+  let fileCount = 0;
+  let continuationToken: string | undefined;
+
+  do {
+    const command = new ListObjectsV2Command({
+      Bucket: bucketName,
+      Prefix: prefix,
+      ContinuationToken: continuationToken,
+    });
+
+    const response = await s3Client.send(command);
+
+    if (response.Contents) {
+      for (const content of response.Contents) {
+        if (content.Key && !content.Key.endsWith('/')) {
+          totalSize += content.Size || 0;
+          fileCount++;
+        }
+      }
+    }
+
+    continuationToken = response.NextContinuationToken;
+  } while (continuationToken);
+
+  console.log(`✅ Directory size: ${totalSize} bytes, ${fileCount} files`);
+
+  return { totalSize, fileCount };
 }
 
 /**

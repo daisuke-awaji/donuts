@@ -38,6 +38,31 @@ router.get('/list', async (req: AuthenticatedRequest, res: Response) => {
 });
 
 /**
+ * GET /storage/size
+ * ディレクトリ内のすべてのファイルサイズを再帰的に計算
+ */
+router.get('/size', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized', message: 'User ID not found' });
+    }
+
+    const path = (req.query.path as string) || '/';
+
+    const result = await storageService.getDirectorySize(userId, path);
+
+    res.status(200).json(result);
+  } catch (error) {
+    console.error('❌ Storage size calculation error:', error);
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: error instanceof Error ? error.message : 'Failed to calculate directory size',
+    });
+  }
+});
+
+/**
  * POST /storage/upload
  * ファイルアップロード用の署名付きURLを生成
  */

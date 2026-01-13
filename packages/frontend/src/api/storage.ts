@@ -79,6 +79,11 @@ export interface DownloadProgress {
   currentFile: string;
 }
 
+export interface DirectorySizeResponse {
+  totalSize: number;
+  fileCount: number;
+}
+
 /**
  * ディレクトリ一覧を取得
  */
@@ -87,6 +92,16 @@ export async function listStorageItems(path: string = '/'): Promise<ListStorageR
   params.append('path', path);
 
   return backendGet<ListStorageResponse>(`/storage/list?${params.toString()}`);
+}
+
+/**
+ * ディレクトリ内のすべてのファイルサイズを再帰的に取得
+ */
+export async function getDirectorySize(path: string = '/'): Promise<DirectorySizeResponse> {
+  const params = new URLSearchParams();
+  params.append('path', path);
+
+  return backendGet<DirectorySizeResponse>(`/storage/size?${params.toString()}`);
 }
 
 /**

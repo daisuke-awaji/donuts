@@ -14,6 +14,7 @@ import {
   Trash2,
   Loader2,
   AlertCircle,
+  AlertTriangle,
   ChevronRight,
   Home,
   Download,
@@ -24,7 +25,12 @@ import {
 import { useStorageStore } from '../stores/storageStore';
 import type { StorageItem, FolderNode } from '../api/storage';
 import { Modal } from './ui/Modal/Modal';
-import { generateDownloadUrl, downloadFolder, type DownloadProgress } from '../api/storage';
+import {
+  generateDownloadUrl,
+  downloadFolder,
+  getDirectorySize,
+  type DownloadProgress,
+} from '../api/storage';
 import { Tooltip } from './ui/Tooltip/Tooltip';
 import { FolderTree } from './FolderTree';
 import { getFileIcon } from '../utils/fileIcons';
@@ -235,6 +241,22 @@ export function StorageManagementModal({ isOpen, onClose }: StorageManagementMod
   const [downloadError, setDownloadError] = useState<string>('');
   const abortControllerRef = useRef<AbortController | null>(null);
 
+  // Directory size warning state
+  const SIZE_WARNING_THRESHOLD = 100 * 1024 * 1024; // 100MB
+  const [sizeWarning, setSizeWarning] = useState<{
+    show: boolean;
+    totalSize: number;
+    fileCount: number;
+  } | null>(null);
+
+  // Format size for display
+  const formatSizeForWarning = (bytes: number): string => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
+  };
+
   // Get path from URL hash
   const getPathFromHash = (): string => {
     const hash = window.location.hash;
@@ -274,6 +296,32 @@ export function StorageManagementModal({ isOpen, onClose }: StorageManagementMod
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
+
+  // Check directory size when path changes
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const checkDirectorySize = async () => {
+      try {
+        const sizeInfo = await getDirectorySize(currentPath);
+        if (sizeInfo.totalSize >= SIZE_WARNING_THRESHOLD) {
+          setSizeWarning({
+            show: true,
+            totalSize: sizeInfo.totalSize,
+            fileCount: sizeInfo.fileCount,
+          });
+        } else {
+          setSizeWarning(null);
+        }
+      } catch (err) {
+        console.error('Failed to get directory size:', err);
+        setSizeWarning(null);
+      }
+    };
+
+    checkDirectorySize();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, currentPath]);
 
   // Detect browser back/forward
   useEffect(() => {
@@ -768,6 +816,28 @@ export function StorageManagementModal({ isOpen, onClose }: StorageManagementMod
           </div>
         )}
       </div>
+
+      {/* Directory size warning */}
+      {sizeWarning?.show && (
+        <div className="mx-4 md:mx-6 mt-2 mb-0">
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2">
+            <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-amber-800">
+                {t('storage.largeSizeWarningTitle', 'Large Storage Directory')}
+              </p>
+              <p className="text-sm text-amber-700 mt-1">
+                {t('storage.largeSizeWarningMessage', {
+                  defaultValue:
+                    'This directory contains {{size}} of data ({{count}} files). Sync may take some time when starting a session.',
+                  size: formatSizeForWarning(sizeWarning.totalSize),
+                  count: sizeWarning.fileCount,
+                })}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* コンテンツエリア: レスポンシブレイアウト */}
       <div className="flex divide-x divide-gray-200 flex-1 min-h-0">

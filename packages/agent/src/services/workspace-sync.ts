@@ -24,6 +24,11 @@ const s3Client = new S3Client({ region: process.env.AWS_REGION });
 const CONCURRENT_UPLOAD_LIMIT = 10;
 
 /**
+ * 同時ダウンロード数の制限
+ */
+const CONCURRENT_DOWNLOAD_LIMIT = 10;
+
+/**
  * ファイル拡張子からContent-Typeを推測
  * テキストファイルには charset=utf-8 を付与
  */
@@ -190,7 +195,7 @@ export class WorkspaceSync {
   }
 
   /**
-   * S3からローカルへダウンロード（初期同期）
+   * S3からローカルへダウンロード（初期同期）- 並列ダウンロード対応
    */
   private async syncFromS3(): Promise<void> {
     const startTime = Date.now();
@@ -208,7 +213,13 @@ export class WorkspaceSync {
       // ワークスペースディレクトリを作成
       this.ensureDirectoryExists(this.workspaceDir);
 
-      // S3からファイル一覧を取得
+      // Phase 1: S3からファイル一覧を全て取得
+      interface DownloadTask {
+        s3Key: string;
+        relativePath: string;
+        localPath: string;
+      }
+      const downloadTasks: DownloadTask[] = [];
       let continuationToken: string | undefined;
 
       do {
@@ -227,44 +238,78 @@ export class WorkspaceSync {
               continue; // Skip folders
             }
 
-            try {
-              // 相対パスを取得
-              const relativePath = item.Key.replace(s3Prefix, '');
+            // 相対パスを取得
+            const relativePath = item.Key.replace(s3Prefix, '');
 
-              // Check if file should be ignored
-              if (this.ignoreFilter.isIgnored(relativePath)) {
-                logger.debug(`[WORKSPACE_SYNC] Skipping ignored file: ${relativePath}`);
-                continue;
-              }
-
-              // S3に存在するパスを記録
-              s3FilePaths.add(relativePath);
-
-              const localPath = path.join(this.workspaceDir, relativePath);
-
-              // ファイルをダウンロード
-              await this.downloadFile(item.Key, localPath);
-              downloadedFiles++;
-
-              // ファイル情報をスナップショットに保存
-              const stats = fs.statSync(localPath);
-              const hash = await this.calculateFileHash(localPath);
-              this.fileSnapshot.set(relativePath, {
-                path: relativePath,
-                size: stats.size,
-                mtime: stats.mtimeMs,
-                hash,
-              });
-            } catch (error) {
-              const errorMsg = `Failed to download ${item.Key}: ${error}`;
-              logger.error(`[WORKSPACE_SYNC] ${errorMsg}`);
-              errors.push(errorMsg);
+            // Check if file should be ignored
+            if (this.ignoreFilter.isIgnored(relativePath)) {
+              logger.debug(`[WORKSPACE_SYNC] Skipping ignored file: ${relativePath}`);
+              continue;
             }
+
+            // S3に存在するパスを記録
+            s3FilePaths.add(relativePath);
+
+            const localPath = path.join(this.workspaceDir, relativePath);
+
+            downloadTasks.push({
+              s3Key: item.Key,
+              relativePath,
+              localPath,
+            });
           }
         }
 
         continuationToken = listResponse.NextContinuationToken;
       } while (continuationToken);
+
+      logger.info(
+        `[WORKSPACE_SYNC] Found ${downloadTasks.length} files to download (concurrency: ${CONCURRENT_DOWNLOAD_LIMIT})`
+      );
+
+      // Phase 2: 並列ダウンロード
+      for (let i = 0; i < downloadTasks.length; i += CONCURRENT_DOWNLOAD_LIMIT) {
+        const chunk = downloadTasks.slice(i, i + CONCURRENT_DOWNLOAD_LIMIT);
+
+        const downloadPromises = chunk.map(async (task) => {
+          try {
+            // ファイルをダウンロード
+            await this.downloadFile(task.s3Key, task.localPath);
+
+            // ファイル情報をスナップショットに保存
+            const stats = fs.statSync(task.localPath);
+            const hash = await this.calculateFileHash(task.localPath);
+            this.fileSnapshot.set(task.relativePath, {
+              path: task.relativePath,
+              size: stats.size,
+              mtime: stats.mtimeMs,
+              hash,
+            });
+
+            return { success: true, relativePath: task.relativePath };
+          } catch (error) {
+            const errorMsg = `Failed to download ${task.s3Key}: ${error}`;
+            logger.error(`[WORKSPACE_SYNC] ${errorMsg}`);
+            return { success: false, relativePath: task.relativePath, error: errorMsg };
+          }
+        });
+
+        const results = await Promise.all(downloadPromises);
+
+        for (const result of results) {
+          if (result.success) {
+            downloadedFiles++;
+          } else if (result.error) {
+            errors.push(result.error);
+          }
+        }
+
+        // Progress log for large downloads
+        if (downloadTasks.length > CONCURRENT_DOWNLOAD_LIMIT) {
+          const progress = Math.min(i + CONCURRENT_DOWNLOAD_LIMIT, downloadTasks.length);
+          logger.info(`[WORKSPACE_SYNC] Download progress: ${progress}/${downloadTasks.length}`);
+        }
+      }
 
       // ローカルにのみ存在するファイルを削除
       deletedFiles = await this.cleanupLocalOnlyFiles(s3FilePaths);
