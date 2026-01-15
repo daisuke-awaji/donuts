@@ -477,6 +477,106 @@ events:
   eventsDescription: イベント連携機能は今後開発する予定です。
   eventsFeature: 外部カレンダーやイベント管理ツールと連携できるようになります。
 
+# トリガー
+triggers:
+  # ページ
+  pageTitle: トリガー管理
+  pageDescription: スケジュールに基づいてエージェントを自動実行します
+  
+  # アクション
+  create: 新規作成
+  edit: 編集
+  delete: 削除
+  enable: 有効化
+  disable: 無効化
+  viewHistory: 実行履歴を表示
+  
+  # フォーム
+  form:
+    title: トリガー設定
+    createTitle: 新規トリガー作成
+    editTitle: トリガーを編集
+    name: トリガー名
+    namePlaceholder: 例 - 日次レポート生成
+    nameRequired: トリガー名は必須です
+    description: 説明
+    descriptionPlaceholder: このトリガーの目的を記載
+    agent: 実行するエージェント
+    agentPlaceholder: エージェントを選択...
+    agentRequired: エージェントを選択してください
+    type: トリガータイプ
+    typeSchedule: スケジュール
+    typeEvent: イベント（準備中）
+    inputMessage: 入力メッセージ
+    inputMessagePlaceholder: エージェントに送信するメッセージ
+    inputMessageRequired: 入力メッセージは必須です
+    save: 保存
+    saving: 保存中...
+    cancel: キャンセル
+  
+  # Cron Builder
+  cron:
+    title: スケジュール設定
+    preset: プリセット
+    presetEveryMinute: 毎分
+    presetEveryHour: 毎時
+    presetEveryDay: 毎日（0時）
+    presetEveryWeekday: 平日毎日
+    presetEveryMonday: 毎週月曜
+    presetEveryMonth: 毎月1日
+    presetCustom: カスタム
+    minute: 分
+    hour: 時
+    dayOfMonth: 日
+    month: 月
+    dayOfWeek: 曜日
+    year: 年
+    timezone: タイムゾーン
+    preview: 設定プレビュー
+    nextExecutions: 次回実行予定
+    invalidExpression: 無効なCron式です
+  
+  # ステータス
+  status:
+    enabled: 有効
+    disabled: 無効
+  
+  # 実行履歴
+  history:
+    title: 実行履歴
+    noHistory: 実行履歴がありません
+    executedAt: 実行日時
+    duration: 実行時間
+    status: ステータス
+    success: 成功
+    failure: 失敗
+    inProgress: 実行中
+    input: 入力
+    output: 出力
+    error: エラー
+    showDetails: 詳細を表示
+    hideDetails: 詳細を閉じる
+    loadMore: さらに読み込む
+  
+  # メッセージ
+  messages:
+    createSuccess: トリガーを作成しました
+    createError: トリガーの作成に失敗しました
+    updateSuccess: トリガーを更新しました
+    updateError: トリガーの更新に失敗しました
+    deleteConfirm: このトリガーを削除してもよろしいですか？
+    deleteSuccess: トリガーを削除しました
+    deleteError: トリガーの削除に失敗しました
+    enableSuccess: トリガーを有効化しました
+    disableSuccess: トリガーを無効化しました
+    toggleError: トリガーの状態変更に失敗しました
+    fetchError: トリガーの取得に失敗しました
+  
+  # 空状態
+  empty:
+    title: トリガーがありません
+    description: 新規作成ボタンからスケジュールトリガーを作成してください
+
 # ホームページ
 home:
   title: あなただけの AI エージェント

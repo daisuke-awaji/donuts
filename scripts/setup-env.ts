@@ -29,6 +29,9 @@ interface StackOutputs {
   UserStorageBucketName?: string;
   AgentsTableName?: string;
   SessionsTableName?: string;
+  TriggersTableName?: string;
+  TriggerLambdaArn?: string;
+  SchedulerRoleArn?: string;
 }
 
 const STACK_NAME = process.env.STACK_NAME || 'AgentCoreApp';
@@ -145,6 +148,15 @@ AGENTS_TABLE_NAME=${outputs.AgentsTableName || ''}
 
 # Sessions Table
 SESSIONS_TABLE_NAME=${outputs.SessionsTableName || ''}
+
+# AWS Region
+AWS_REGION=${outputs.Region || ''}
+
+# Event-Driven Triggers
+TRIGGERS_TABLE_NAME=${outputs.TriggersTableName || ''}
+TRIGGER_LAMBDA_ARN=${outputs.TriggerLambdaArn || ''}
+SCHEDULER_ROLE_ARN=${outputs.SchedulerRoleArn || ''}
+SCHEDULE_GROUP_NAME=default
 `;
 }
 
@@ -175,6 +187,28 @@ SESSIONS_TABLE_NAME=${outputs.SessionsTableName || ''}
 # Server Configuration
 PORT=8080
 NODE_ENV=development
+`;
+}
+
+function createTriggerEnv(
+  outputs: StackOutputs,
+  machineUserClientSecret?: string
+): string {
+  return `# Trigger Lambda Configuration
+
+# AWS Region
+AWS_REGION=${outputs.Region || ''}
+
+# Cognito Machine User Authentication
+COGNITO_USER_POOL_ID=${outputs.UserPoolId || ''}
+COGNITO_CLIENT_ID=${outputs.MachineUserClientId || ''}
+COGNITO_CLIENT_SECRET=${machineUserClientSecret || 'YOUR_CLIENT_SECRET_HERE'}
+
+# Agent API Configuration
+AGENT_API_URL=${outputs.RuntimeInvocationEndpoint || ''}
+
+# DynamoDB Configuration
+TRIGGERS_TABLE_NAME=${outputs.TriggersTableName || ''}
 `;
 }
 
@@ -265,15 +299,35 @@ async function main() {
       'Agent'
     );
 
-    // Machine User のクレデンシャルを取得してテストスクリプト用 .env を生成
+    // Machine User のクレデンシャルを取得
+    let clientSecret: string | undefined;
     if (outputs.MachineUserClientId && outputs.UserPoolId && outputs.Region) {
       console.log('\n🔐 Machine User 認証情報を取得中...\n');
 
-      const clientSecret = await getMachineUserClientSecret(
+      clientSecret = await getMachineUserClientSecret(
         outputs.UserPoolId,
         outputs.MachineUserClientId,
         outputs.Region
       );
+
+      if (clientSecret) {
+        console.log('✅ Machine User Client Secret を取得しました\n');
+      } else {
+        console.warn('⚠️  Machine User Client Secret の取得に失敗しました\n');
+      }
+    }
+
+    // Trigger パッケージの .env ファイルを生成（トリガー機能が有効な場合）
+    if (outputs.TriggersTableName && outputs.TriggerLambdaArn) {
+      await writeEnvFile(
+        path.join(PROJECT_ROOT, 'packages/trigger/.env'),
+        createTriggerEnv(outputs, clientSecret),
+        'Trigger'
+      );
+    }
+
+    // Machine User テストスクリプト用 .env を生成
+    if (outputs.MachineUserClientId && outputs.UserPoolId && outputs.Region) {
 
       if (clientSecret) {
         await writeEnvFile(

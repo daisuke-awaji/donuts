@@ -475,6 +475,106 @@ events:
   eventsDescription: Event integration functionality is under development.
   eventsFeature: You will be able to integrate with external calendars and event management tools.
 
+# Triggers
+triggers:
+  # Page
+  pageTitle: Trigger Management
+  pageDescription: Automatically execute agents based on schedules
+  
+  # Actions
+  create: Create New
+  edit: Edit
+  delete: Delete
+  enable: Enable
+  disable: Disable
+  viewHistory: View Execution History
+  
+  # Form
+  form:
+    title: Trigger Settings
+    createTitle: Create New Trigger
+    editTitle: Edit Trigger
+    name: Trigger Name
+    namePlaceholder: 'e.g. - Daily Report Generation'
+    nameRequired: Trigger name is required
+    description: Description
+    descriptionPlaceholder: Describe the purpose of this trigger
+    agent: Agent to Execute
+    agentPlaceholder: Select an agent...
+    agentRequired: Please select an agent
+    type: Trigger Type
+    typeSchedule: Schedule
+    typeEvent: Event (Coming Soon)
+    inputMessage: Input Message
+    inputMessagePlaceholder: Message to send to the agent
+    inputMessageRequired: Input message is required
+    save: Save
+    saving: Saving...
+    cancel: Cancel
+  
+  # Cron Builder
+  cron:
+    title: Schedule Settings
+    preset: Preset
+    presetEveryMinute: Every Minute
+    presetEveryHour: Every Hour
+    presetEveryDay: Every Day (00:00)
+    presetEveryWeekday: Every Weekday
+    presetEveryMonday: Every Monday
+    presetEveryMonth: 1st of Every Month
+    presetCustom: Custom
+    minute: Minute
+    hour: Hour
+    dayOfMonth: Day of Month
+    month: Month
+    dayOfWeek: Day of Week
+    year: Year
+    timezone: Timezone
+    preview: Preview
+    nextExecutions: Next Executions
+    invalidExpression: Invalid cron expression
+  
+  # Status
+  status:
+    enabled: Enabled
+    disabled: Disabled
+  
+  # Execution History
+  history:
+    title: Execution History
+    noHistory: No execution history
+    executedAt: Executed At
+    duration: Duration
+    status: Status
+    success: Success
+    failure: Failure
+    inProgress: In Progress
+    input: Input
+    output: Output
+    error: Error
+    showDetails: Show Details
+    hideDetails: Hide Details
+    loadMore: Load More
+  
+  # Messages
+  messages:
+    createSuccess: Trigger created successfully
+    createError: Failed to create trigger
+    updateSuccess: Trigger updated successfully
+    updateError: Failed to update trigger
+    deleteConfirm: Are you sure you want to delete this trigger?
+    deleteSuccess: Trigger deleted successfully
+    deleteError: Failed to delete trigger
+    enableSuccess: Trigger enabled successfully
+    disableSuccess: Trigger disabled successfully
+    toggleError: Failed to change trigger status
+    fetchError: Failed to fetch triggers
+  
+  # Empty State
+  empty:
+    title: No Triggers
+    description: Click the Create New button to create a schedule trigger
+
 # Home Page
 home:
   title: Your Personal AI Agent
