@@ -35,6 +35,24 @@ router.get('/', jwtAuthMiddleware, async (req: AuthenticatedRequest, res: Respon
       username: auth.username,
     });
 
+    // Parse and validate limit parameter
+    const limitParam = req.query.limit as string | undefined;
+    let limit = 50; // デフォルト値
+
+    if (limitParam !== undefined) {
+      const parsed = parseInt(limitParam, 10);
+      if (isNaN(parsed) || parsed < 1 || parsed > 100) {
+        return res.status(400).json({
+          error: 'Invalid parameter',
+          message: 'limit must be an integer between 1 and 100',
+          requestId: auth.requestId,
+        });
+      }
+      limit = parsed;
+    }
+
+    const nextToken = req.query.nextToken as string | undefined;
+
     const sessionsDynamoDBService = getSessionsDynamoDBService();
 
     // Check if DynamoDB Sessions Table is configured
@@ -47,7 +65,7 @@ router.get('/', jwtAuthMiddleware, async (req: AuthenticatedRequest, res: Respon
     }
 
     // Use DynamoDB for session list
-    const result = await sessionsDynamoDBService.listSessions(actorId);
+    const result = await sessionsDynamoDBService.listSessions(actorId, limit, nextToken);
 
     console.log(
       `✅ Session list retrieval completed (${auth.requestId}): ${result.sessions.length} items, hasMore: ${result.hasMore}`
