@@ -32,6 +32,7 @@ interface StackOutputs {
   TriggersTableName?: string;
   TriggerLambdaArn?: string;
   SchedulerRoleArn?: string;
+  EventSourcesConfig?: string;
 }
 
 const STACK_NAME = process.env.STACK_NAME || 'AgentCoreApp';
@@ -157,6 +158,9 @@ TRIGGERS_TABLE_NAME=${outputs.TriggersTableName || ''}
 TRIGGER_LAMBDA_ARN=${outputs.TriggerLambdaArn || ''}
 SCHEDULER_ROLE_ARN=${outputs.SchedulerRoleArn || ''}
 SCHEDULE_GROUP_NAME=default
+
+# Event Sources Configuration (JSON)
+EVENT_SOURCES_CONFIG=${outputs.EventSourcesConfig || '[]'}
 `;
 }
 

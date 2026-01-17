@@ -481,6 +481,11 @@ triggers:
   pageTitle: Trigger Management
   pageDescription: Automatically execute agents based on schedules
   
+  # Tabs
+  tabs:
+    basic: Basic Settings
+    trigger: Trigger Configuration
+  
   # Actions
   create: Create New
   edit: Edit
@@ -608,6 +613,19 @@ triggers:
     loadError: Failed to load event sources
     helpText: Select which event should trigger this agent
     eventSourceRequired: Please select an event source
+  
+  # Card Display
+  card:
+    schedule: Schedule
+    timezone: Timezone
+    eventSource: Event Source
+    triggerCondition: Trigger Condition
+    onEventReceived: On Event Received
+    agent: Agent
+    lastExecution: Last Execution
+    notExecuted: Not Executed
+    enabled: Enabled
+    disabled: Disabled
 
 # Home Page
 home:

@@ -251,8 +251,8 @@ export class SchedulerService {
 
       await this.client.send(command);
       return true;
-    } catch (error: any) {
-      if (error.name === 'ResourceNotFoundException') {
+    } catch (error: unknown) {
+      if (error instanceof Error && error.name === 'ResourceNotFoundException') {
         return false;
       }
       throw error;

@@ -76,7 +76,7 @@ export interface TriggerExecution {
 
 export interface GetExecutionsResult {
   executions: TriggerExecution[];
-  lastEvaluatedKey?: Record<string, any>;
+  lastEvaluatedKey?: Record<string, unknown>;
 }
 
 export interface CreateTriggerInput {
@@ -239,7 +239,7 @@ export class TriggersDynamoDBService {
     // Build update expression
     const updateParts: string[] = ['updatedAt = :updatedAt'];
     const removeParts: string[] = [];
-    const attributeValues: Record<string, any> = {
+    const attributeValues: Record<string, unknown> = {
       ':updatedAt': now,
     };
     const attributeNames: Record<string, string> = {};
@@ -390,7 +390,7 @@ export class TriggersDynamoDBService {
   async getExecutions(
     triggerId: string,
     limit: number = 20,
-    exclusiveStartKey?: Record<string, any>
+    exclusiveStartKey?: Record<string, unknown>
   ): Promise<GetExecutionsResult> {
     const result = await this.client.send(
       new QueryCommand({

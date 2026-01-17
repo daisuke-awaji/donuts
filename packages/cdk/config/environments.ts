@@ -242,6 +242,7 @@ export const environments: Record<Environment, EnvironmentConfig> = {
         id: 's3-upload',
         name: 'S3 File Upload',
         description: 'Triggered when a file is uploaded to my-trigger-bucket',
+        icon: 'cloud-upload', // https://lucide.dev/icons/cloud-upload
         eventPattern: {
           source: ['aws.s3'],
           detailType: ['Object Created'],
@@ -251,7 +252,6 @@ export const environments: Record<Environment, EnvironmentConfig> = {
             },
           },
         },        
-        icon: 'cloud-upload', // https://lucide.dev/icons/cloud-upload
         enabled: true,
       },
     ],

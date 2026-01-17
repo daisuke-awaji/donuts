@@ -366,6 +366,13 @@ export class AgentCoreStack extends cdk.Stack {
         'EVENT_SOURCES_CONFIG',
         triggerEventSources.eventSourcesConfig
       );
+
+      // Add CloudFormation Output for local development
+      new cdk.CfnOutput(this, 'EventSourcesConfig', {
+        value: triggerEventSources.eventSourcesConfig,
+        description: 'Event sources configuration (JSON)',
+        exportName: `${id}-EventSourcesConfig`,
+      });
     }
 
     // 8. Create AgentCore Runtime

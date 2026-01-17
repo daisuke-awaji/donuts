@@ -56,7 +56,7 @@ export function TriggerCard({
 
   // Format last execution time
   const formatLastExecution = (timestamp?: string) => {
-    if (!timestamp) return '未実行';
+    if (!timestamp) return t('triggers.card.notExecuted');
     const date = new Date(timestamp);
     return date.toLocaleString('ja-JP', {
       year: 'numeric',
@@ -88,7 +88,7 @@ export function TriggerCard({
             }`}
             role="switch"
             aria-checked={isEnabled}
-            aria-label={isEnabled ? '有効' : '無効'}
+            aria-label={isEnabled ? t('triggers.card.enabled') : t('triggers.card.disabled')}
           >
             {isToggling ? (
               <span className="inline-block w-full flex items-center justify-center">
@@ -112,13 +112,13 @@ export function TriggerCard({
             {/* Schedule Type */}
             <div className="flex items-center gap-2 text-sm text-gray-700">
               <Clock className="w-4 h-4 text-gray-400 flex-shrink-0" />
-              <span className="font-medium">スケジュール:</span>
+              <span className="font-medium">{t('triggers.card.schedule')}:</span>
               <span className="truncate">{scheduleConfig?.expression || 'N/A'}</span>
             </div>
 
             <div className="flex items-center gap-2 text-sm text-gray-700">
               <Calendar className="w-4 h-4 text-gray-400 flex-shrink-0" />
-              <span className="font-medium">タイムゾーン:</span>
+              <span className="font-medium">{t('triggers.card.timezone')}:</span>
               <span className="truncate">{scheduleConfig?.timezone || 'N/A'}</span>
             </div>
           </>
@@ -127,7 +127,7 @@ export function TriggerCard({
             {/* Event Type */}
             <div className="flex items-center gap-2 text-sm text-gray-700">
               <Zap className="w-4 h-4 text-gray-400 flex-shrink-0" />
-              <span className="font-medium">イベントソース:</span>
+              <span className="font-medium">{t('triggers.card.eventSource')}:</span>
               <span className="truncate">
                 {eventSourceName || eventConfig?.eventSourceId || 'N/A'}
               </span>
@@ -135,8 +135,8 @@ export function TriggerCard({
 
             <div className="flex items-center gap-2 text-sm text-gray-700">
               <Bell className="w-4 h-4 text-gray-400 flex-shrink-0" />
-              <span className="font-medium">トリガー条件:</span>
-              <span className="truncate">イベント受信時</span>
+              <span className="font-medium">{t('triggers.card.triggerCondition')}:</span>
+              <span className="truncate">{t('triggers.card.onEventReceived')}</span>
             </div>
           </>
         )}
@@ -144,7 +144,7 @@ export function TriggerCard({
         {/* Common: Agent */}
         <div className="flex items-center gap-2 text-sm text-gray-700">
           <Bot className="w-4 h-4 text-gray-400 flex-shrink-0" />
-          <span className="font-medium">エージェント:</span>
+          <span className="font-medium">{t('triggers.card.agent')}:</span>
           <span className="truncate">
             {agent ? translateIfKey(agent.name, t) : trigger.agentId}
           </span>
@@ -155,7 +155,7 @@ export function TriggerCard({
       {trigger.lastExecutedAt && (
         <div className="mb-4 p-3 bg-gray-50 rounded-lg">
           <p className="text-xs text-gray-600">
-            最終実行: {formatLastExecution(trigger.lastExecutedAt)}
+            {t('triggers.card.lastExecution')}: {formatLastExecution(trigger.lastExecutedAt)}
           </p>
         </div>
       )}
@@ -166,30 +166,30 @@ export function TriggerCard({
         <button
           onClick={() => onEdit(trigger)}
           className="flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex-1 md:flex-initial"
-          aria-label="編集"
+          aria-label={t('triggers.edit')}
         >
           <Edit className="w-4 h-4" />
-          <span className="hidden md:inline">編集</span>
+          <span className="hidden md:inline">{t('triggers.edit')}</span>
         </button>
 
         {/* History Button */}
         <button
           onClick={() => onViewHistory(trigger.id)}
           className="flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex-1 md:flex-initial"
-          aria-label="履歴"
+          aria-label={t('triggers.viewHistory')}
         >
           <History className="w-4 h-4" />
-          <span className="hidden md:inline">履歴</span>
+          <span className="hidden md:inline">{t('triggers.viewHistory')}</span>
         </button>
 
         {/* Delete Button */}
         <button
           onClick={() => onDelete(trigger.id)}
           className="flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium text-red-600 bg-white border border-red-300 rounded-lg hover:bg-red-50 transition-colors flex-1 md:flex-initial md:ml-auto"
-          aria-label="削除"
+          aria-label={t('triggers.delete')}
         >
           <Trash2 className="w-4 h-4" />
-          <span className="hidden md:inline">削除</span>
+          <span className="hidden md:inline">{t('triggers.delete')}</span>
         </button>
       </div>
     </div>

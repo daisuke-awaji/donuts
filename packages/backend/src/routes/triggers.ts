@@ -882,7 +882,7 @@ router.get(
       }
 
       // Decode nextToken if provided
-      let exclusiveStartKey: Record<string, any> | undefined;
+      let exclusiveStartKey: Record<string, unknown> | undefined;
       if (nextToken) {
         try {
           exclusiveStartKey = JSON.parse(Buffer.from(nextToken, 'base64').toString('utf-8'));

@@ -68,10 +68,8 @@ export function EventTypeSelector({
 
     return (
       <div>
-        <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-base font-semibold text-gray-900">
-            {t('triggers.eventTypes.title')}
-          </h3>
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="text-sm font-medium text-gray-700">{t('triggers.eventTypes.title')}</h3>
           <button
             type="button"
             onClick={() => onSelect(null)}
@@ -82,15 +80,14 @@ export function EventTypeSelector({
           </button>
         </div>
 
-        <div className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        <div className="flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg">
           <div className="flex-shrink-0">
-            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-              <Icon className="w-5 h-5 text-white" />
+            <div className="w-8 h-8 bg-gray-600 rounded-lg flex items-center justify-center">
+              <Icon className="w-4 h-4 text-white" />
             </div>
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-gray-900">{selected.label}</p>
-            <p className="text-xs text-gray-600 mt-0.5">{selected.description}</p>
+            <p className="text-sm font-medium text-gray-900">{selected.label}</p>
           </div>
         </div>
       </div>

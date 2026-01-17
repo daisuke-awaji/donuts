@@ -6,6 +6,7 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Settings, Clock } from 'lucide-react';
 import {
   Modal,
   ModalHeader,
@@ -14,6 +15,7 @@ import {
   ModalTitle,
   ModalCloseButton,
 } from '../../ui/Modal';
+import { SidebarTabsLayout, type TabItem } from '../../ui/SidebarTabs';
 import { TriggerBasicInfo } from './TriggerBasicInfo';
 import { ScheduleConfig } from './ScheduleConfig';
 import { InputMessageConfig } from './InputMessageConfig';
@@ -23,6 +25,8 @@ import { EventSourceSelector } from './EventSourceSelector';
 import { useTriggerStore } from '../../../stores/triggerStore';
 import type { Trigger, CreateTriggerRequest, UpdateTriggerRequest } from '../../../types/trigger';
 import toast from 'react-hot-toast';
+
+type TabType = 'basic' | 'trigger';
 
 export interface TriggerFormModalProps {
   /**
@@ -62,6 +66,7 @@ export function TriggerFormModal({ isOpen, onClose, trigger, onSave }: TriggerFo
   const { t } = useTranslation();
   const { createTrigger, updateTrigger } = useTriggerStore();
   const [isSaving, setIsSaving] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabType>('basic');
   const [selectedEventType, setSelectedEventType] = useState<EventType | null>(
     trigger ? (trigger.type === 'event' ? 'event' : 'schedule') : null
   );
@@ -253,6 +258,12 @@ export function TriggerFormModal({ isOpen, onClose, trigger, onSave }: TriggerFo
     onClose();
   };
 
+  // Tab configuration
+  const tabs: TabItem<TabType>[] = [
+    { id: 'basic', label: t('triggers.tabs.basic'), icon: Settings },
+    { id: 'trigger', label: t('triggers.tabs.trigger'), icon: Clock },
+  ];
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="xl" className="!max-w-[95vw] !w-[95vw]">
       <ModalHeader>
@@ -262,76 +273,89 @@ export function TriggerFormModal({ isOpen, onClose, trigger, onSave }: TriggerFo
         <ModalCloseButton />
       </ModalHeader>
 
-      <ModalContent>
-        <div className="space-y-8">
-          {/* 2-Column Section */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Left Column */}
-            <div className="space-y-8">
-              {/* Basic Info */}
-              <TriggerBasicInfo
-                name={formData.name}
-                description={formData.description}
-                agentId={formData.agentId}
-                onNameChange={(name: string) => setFormData({ ...formData, name })}
-                onDescriptionChange={(description: string) =>
-                  setFormData({ ...formData, description })
-                }
-                onAgentIdChange={(agentId: string) => setFormData({ ...formData, agentId })}
-                disabled={isSaving}
-              />
+      <ModalContent noPadding={true}>
+        <SidebarTabsLayout tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab}>
+          <div className="h-[80vh] overflow-y-auto px-6 py-6">
+            {/* Basic Settings Tab */}
+            {activeTab === 'basic' && (
+              <div className="space-y-6 max-w-5xl mx-auto">
+                <h2 className="text-lg font-semibold text-gray-900 mb-6">
+                  {t('triggers.tabs.basic')}
+                </h2>
 
-              {/* Agent Execution Config */}
-              <AgentExecutionConfig
-                modelId={formData.modelId}
-                workingDirectory={formData.workingDirectory}
-                onModelIdChange={(modelId) => setFormData({ ...formData, modelId })}
-                onWorkingDirectoryChange={(workingDirectory) =>
-                  setFormData({ ...formData, workingDirectory })
-                }
-                disabled={isSaving}
-              />
-            </div>
-
-            {/* Right Column */}
-            <div className="space-y-8">
-              {/* Event Type Selector */}
-              <EventTypeSelector
-                selectedType={selectedEventType}
-                onSelect={setSelectedEventType}
-                disabled={isSaving}
-              />
-
-              {/* Event Type Configuration */}
-              {selectedEventType === 'schedule' && (
-                <ScheduleConfig
-                  cronExpression={formData.cronExpression}
-                  timezone={formData.timezone}
-                  onCronChange={(cronExpression: string) =>
-                    setFormData({ ...formData, cronExpression })
+                {/* Basic Info */}
+                <TriggerBasicInfo
+                  name={formData.name}
+                  description={formData.description}
+                  agentId={formData.agentId}
+                  onNameChange={(name: string) => setFormData({ ...formData, name })}
+                  onDescriptionChange={(description: string) =>
+                    setFormData({ ...formData, description })
                   }
-                  onTimezoneChange={(timezone: string) => setFormData({ ...formData, timezone })}
+                  onAgentIdChange={(agentId: string) => setFormData({ ...formData, agentId })}
                   disabled={isSaving}
                 />
-              )}
 
-              {selectedEventType === 'event' && (
-                <EventSourceSelector
-                  value={formData.eventSourceId}
-                  onChange={(eventSourceId: string) => setFormData({ ...formData, eventSourceId })}
+                {/* Agent Execution Config */}
+                <AgentExecutionConfig
+                  modelId={formData.modelId}
+                  workingDirectory={formData.workingDirectory}
+                  onModelIdChange={(modelId) => setFormData({ ...formData, modelId })}
+                  onWorkingDirectoryChange={(workingDirectory) =>
+                    setFormData({ ...formData, workingDirectory })
+                  }
                   disabled={isSaving}
                 />
-              )}
-            </div>
+
+                {/* Input Message */}
+                <InputMessageConfig
+                  inputMessage={formData.inputMessage}
+                  onChange={(inputMessage: string) => setFormData({ ...formData, inputMessage })}
+                  disabled={isSaving}
+                />
+              </div>
+            )}
+
+            {/* Trigger Configuration Tab */}
+            {activeTab === 'trigger' && (
+              <div className="space-y-6 max-w-5xl mx-auto">
+                <h2 className="text-lg font-semibold text-gray-900 mb-6">
+                  {t('triggers.tabs.trigger')}
+                </h2>
+
+                {/* Event Type Selector */}
+                <EventTypeSelector
+                  selectedType={selectedEventType}
+                  onSelect={setSelectedEventType}
+                  disabled={isSaving}
+                />
+
+                {/* Event Type Configuration */}
+                {selectedEventType === 'schedule' && (
+                  <ScheduleConfig
+                    cronExpression={formData.cronExpression}
+                    timezone={formData.timezone}
+                    onCronChange={(cronExpression: string) =>
+                      setFormData({ ...formData, cronExpression })
+                    }
+                    onTimezoneChange={(timezone: string) => setFormData({ ...formData, timezone })}
+                    disabled={isSaving}
+                  />
+                )}
+
+                {selectedEventType === 'event' && (
+                  <EventSourceSelector
+                    value={formData.eventSourceId}
+                    onChange={(eventSourceId: string) =>
+                      setFormData({ ...formData, eventSourceId })
+                    }
+                    disabled={isSaving}
+                  />
+                )}
+              </div>
+            )}
           </div>
-
-          {/* Input Message - Full Width */}
-          <InputMessageConfig
-            inputMessage={formData.inputMessage}
-            onChange={(inputMessage: string) => setFormData({ ...formData, inputMessage })}
-            disabled={isSaving}
-          />
-        </div>
+        </SidebarTabsLayout>
       </ModalContent>
 
       <ModalFooter>

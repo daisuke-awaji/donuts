@@ -483,6 +483,11 @@ triggers:
   pageTitle: トリガー管理
   pageDescription: スケジュールに基づいてエージェントを自動実行するトリガーを作成・管理できます。定期的なタスクの自動化や、特定の時刻にエージェントを起動してデータ収集やレポート生成などを行うことができます。
   
+  # タブ
+  tabs:
+    basic: 基本設定
+    trigger: トリガー設定
+  
   # アクション
   create: 新規作成
   edit: 編集
@@ -603,12 +608,36 @@ triggers:
     schedule:
       label: スケジュール
       description: 定期的に自動実行
+    event:
+      label: イベント駆動
+      description: 外部イベント（S3など）をトリガーに実行
     slack:
       label: Slack イベント連携
       description: Slack イベントをトリガーに実行
     github:
       label: GitHub 連携
       description: GitHub イベントをトリガーに実行
+  
+  # イベントソース選択
+  eventSource:
+    label: イベントソース
+    loadError: イベントソースの読み込みに失敗しました
+    noSourcesAvailable: イベントソースが設定されていません
+    selectPlaceholder: イベントソースを選択...
+    helpText: トリガーを発火させるイベントソースを選択してください
+  
+  # カード表示
+  card:
+    schedule: スケジュール
+    timezone: タイムゾーン
+    eventSource: イベントソース
+    triggerCondition: トリガー条件
+    onEventReceived: イベント受信時
+    agent: エージェント
+    lastExecution: 最終実行
+    notExecuted: 未実行
+    enabled: 有効
+    disabled: 無効
 
 # ホームページ
 home:
