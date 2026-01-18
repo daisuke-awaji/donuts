@@ -118,6 +118,8 @@ export function useMessageEventsSubscription(sessionId: string | null) {
   const httpHostRef = useRef<string>('');
   const connectRef = useRef<() => void>(() => {});
   const subscribedSessionsRef = useRef<Set<string>>(new Set());
+  const pendingSubscriptionsRef = useRef<Set<string>>(new Set());
+  const connectionAckReceivedRef = useRef(false);
 
   // Get auth state
   const user = useAuthStore((state) => state.user);
@@ -169,24 +171,32 @@ export function useMessageEventsSubscription(sessionId: string | null) {
           break;
         }
 
-        // Check for duplicate (by timestamp + role)
-        const eventTimestamp = new Date(event.message.timestamp).getTime();
+        // Convert content first for comparison
+        const contents: MessageContent[] = event.message.content.map(convertContent);
+
+        // Helper function to extract text content for comparison
+        const getTextContent = (msgContents: MessageContent[]): string => {
+          return msgContents
+            .filter((c): c is MessageContent & { type: 'text'; text: string } => c.type === 'text')
+            .map((c) => c.text)
+            .join('')
+            .substring(0, 200); // Compare first 200 characters
+        };
+
+        // Check for duplicate by message content
+        const eventText = getTextContent(contents);
         const isDuplicate = sessionState.messages.some((msg) => {
-          const msgTimestamp =
-            msg.timestamp instanceof Date
-              ? msg.timestamp.getTime()
-              : new Date(msg.timestamp).getTime();
-          // Consider messages within 2 seconds as potential duplicates
-          return msg.type === event.message!.role && Math.abs(msgTimestamp - eventTimestamp) < 2000;
+          // Must be same role
+          if (msg.type !== event.message!.role) return false;
+          // Compare text content
+          const msgText = getTextContent(msg.contents);
+          return msgText === eventText && eventText.length > 0;
         });
 
         if (isDuplicate) {
-          console.log('⚠️ Duplicate message detected, skipping');
+          console.log('⚠️ Duplicate message detected (by content), skipping');
           break;
         }
-
-        // Convert content
-        const contents: MessageContent[] = event.message.content.map(convertContent);
 
         // Add message to store
         const newMessage: Message = {
@@ -276,9 +286,14 @@ export function useMessageEventsSubscription(sessionId: string | null) {
    * Subscribe to message channel for current session
    */
   const subscribeToSession = useCallback((ws: WebSocket, sessionIdToSubscribe: string) => {
-    // Skip if already subscribed to this session
+    // Skip if already subscribed or pending subscription
     if (subscribedSessionsRef.current.has(sessionIdToSubscribe)) {
       console.log(`⚠️ Already subscribed to session: ${sessionIdToSubscribe}, skipping`);
+      return;
+    }
+
+    if (pendingSubscriptionsRef.current.has(sessionIdToSubscribe)) {
+      console.log(`⚠️ Subscription already pending for session: ${sessionIdToSubscribe}, skipping`);
       return;
     }
 
@@ -288,7 +303,18 @@ export function useMessageEventsSubscription(sessionId: string | null) {
     const currentUserId = userIdRef.current;
     if (!currentUserId) return;
 
+    // Check WebSocket state
+    if (ws.readyState !== WebSocket.OPEN) {
+      console.log(
+        `⚠️ WebSocket not open, skipping subscription for session: ${sessionIdToSubscribe}`
+      );
+      return;
+    }
+
     console.log(`📨 Subscribing to messages for session: ${sessionIdToSubscribe}`);
+
+    // Mark as pending before sending
+    pendingSubscriptionsRef.current.add(sessionIdToSubscribe);
 
     ws.send(
       JSON.stringify({
@@ -301,15 +327,18 @@ export function useMessageEventsSubscription(sessionId: string | null) {
         },
       })
     );
-
-    // Track subscribed session
-    subscribedSessionsRef.current.add(sessionIdToSubscribe);
   }, []);
 
   /**
    * Unsubscribe from message channel
    */
   const unsubscribeFromSession = useCallback((ws: WebSocket, sessionIdToUnsubscribe: string) => {
+    // Only unsubscribe if we have an active subscription
+    if (!subscribedSessionsRef.current.has(sessionIdToUnsubscribe)) {
+      console.log(`⚠️ Not subscribed to session: ${sessionIdToUnsubscribe}, skipping unsubscribe`);
+      return;
+    }
+
     if (ws.readyState === WebSocket.OPEN) {
       ws.send(
         JSON.stringify({
@@ -321,6 +350,7 @@ export function useMessageEventsSubscription(sessionId: string | null) {
     }
     // Remove from tracked sessions
     subscribedSessionsRef.current.delete(sessionIdToUnsubscribe);
+    pendingSubscriptionsRef.current.delete(sessionIdToUnsubscribe);
   }, []);
 
   /**
@@ -348,8 +378,10 @@ export function useMessageEventsSubscription(sessionId: string | null) {
     }
     setIsConnected(false);
     isConnectingRef.current = false;
+    connectionAckReceivedRef.current = false;
     // Clear subscribed sessions on disconnect
     subscribedSessionsRef.current.clear();
+    pendingSubscriptionsRef.current.clear();
   }, []);
 
   /**
@@ -418,20 +450,37 @@ export function useMessageEventsSubscription(sessionId: string | null) {
 
           switch (message.type) {
             case 'connection_ack': {
-              // Subscribe to current session
+              console.log('📨 Connection acknowledged');
+              connectionAckReceivedRef.current = true;
+              // Subscribe to current session after connection is established
               if (currentSessionIdRef.current) {
                 subscribeToSession(ws, currentSessionIdRef.current);
               }
               break;
             }
 
-            case 'subscribe_success':
-              console.log('📨 Message subscription successful');
+            case 'subscribe_success': {
+              console.log('📨 Message subscription successful:', message.id);
+              // Extract sessionId from subscription id: "message-subscription-{sessionId}"
+              const subId = message.id;
+              if (subId && subId.startsWith('message-subscription-')) {
+                const subscribedSessionId = subId.replace('message-subscription-', '');
+                pendingSubscriptionsRef.current.delete(subscribedSessionId);
+                subscribedSessionsRef.current.add(subscribedSessionId);
+              }
               break;
+            }
 
-            case 'subscribe_error':
+            case 'subscribe_error': {
               console.error('📨 Message subscription error:', message);
+              // Extract sessionId and clean up pending state
+              const errorSubId = message.id;
+              if (errorSubId && errorSubId.startsWith('message-subscription-')) {
+                const failedSessionId = errorSubId.replace('message-subscription-', '');
+                pendingSubscriptionsRef.current.delete(failedSessionId);
+              }
               break;
+            }
 
             case 'data': {
               if (message.event) {
@@ -491,18 +540,37 @@ export function useMessageEventsSubscription(sessionId: string | null) {
   }, [connect]);
 
   // Handle session changes - resubscribe when session changes
+  // Use a ref to track the previous session to properly handle switching
+  const prevSessionIdRef = useRef<string | null>(null);
+
   useEffect(() => {
     const ws = wsRef.current;
     if (!ws || ws.readyState !== WebSocket.OPEN || !sessionId) return;
 
-    // Subscribe to new session
+    // Only handle session CHANGES here, not initial subscription
+    // Initial subscription is handled by connection_ack
+    if (!connectionAckReceivedRef.current) {
+      console.log('📨 Connection not yet acknowledged, skipping session change subscription');
+      return;
+    }
+
+    const prevSessionId = prevSessionIdRef.current;
+
+    // Unsubscribe from previous session if different
+    if (prevSessionId && prevSessionId !== sessionId) {
+      unsubscribeFromSession(ws, prevSessionId);
+    }
+
+    // Subscribe to new session (subscribeToSession has built-in duplicate protection)
     subscribeToSession(ws, sessionId);
 
+    // Update previous session ref
+    prevSessionIdRef.current = sessionId;
+
+    // Cleanup on unmount only
     return () => {
-      // Unsubscribe when session changes or component unmounts
-      if (sessionId) {
-        unsubscribeFromSession(ws, sessionId);
-      }
+      // Don't unsubscribe on every effect re-run, only on unmount
+      // This is handled by the disconnect function
     };
   }, [sessionId, isConnected, subscribeToSession, unsubscribeFromSession]);
 
