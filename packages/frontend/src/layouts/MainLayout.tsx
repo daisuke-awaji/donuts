@@ -189,9 +189,9 @@ export function MainLayout() {
             <Link
               to="/chat"
               onClick={handleNewChat}
-              className="p-2 text-gray-600 dark:text-gray-400 dark:text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 dark:text-gray-200 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 dark:bg-gray-700 dark:hover:bg-gray-800 rounded-lg transition-colors flex-shrink-0"
-              aria-label={t('sidebar.newChat')}
-              title={t('sidebar.newChat')}
+              className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors flex-shrink-0"
+              aria-label={t('navigation.newChat')}
+              title={t('navigation.newChat')}
             >
               <SquarePen className="w-5 h-5" />
             </Link>
