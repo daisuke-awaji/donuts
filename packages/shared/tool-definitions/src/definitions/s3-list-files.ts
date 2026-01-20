@@ -30,7 +30,7 @@ export const s3ListFilesSchema = z.object({
     ),
 });
 
-export const s3ListFilesDefinition: ToolDefinition<typeof s3ListFilesSchema> = {
+export const s3ListFilesDefinition: ToolDefinition<typeof s3ListFilesSchema, 's3_list_files'> = {
   name: 's3_list_files',
   description:
     "Retrieve list of files and directories in user's S3 storage. Can explore contents under specified path.",

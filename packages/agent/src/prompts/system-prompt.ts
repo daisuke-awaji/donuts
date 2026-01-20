@@ -1,6 +1,10 @@
 import { MCPToolDefinition } from '../schemas/types.js';
 import { generateDefaultContext } from './default-context.js';
 import { WORKSPACE_DIRECTORY } from '../config/index.js';
+import {
+  s3ListFilesDefinition,
+  codeInterpreterDefinition,
+} from '@fullstack-agentcore/tool-definitions';
 
 export interface SystemPromptOptions {
   customPrompt?: string;
@@ -102,7 +106,7 @@ The frontend automatically detects video file extensions and renders an inline v
 `;
 
     // Check S3 tool availability
-    const hasS3ListFiles = options.tools.some((tool) => tool.name === 's3_list_files');
+    const hasS3ListFiles = options.tools.some((tool) => tool.name === s3ListFilesDefinition.name);
 
     // Add section only if S3 tools are available
     if (hasS3ListFiles) {
@@ -115,7 +119,9 @@ You can still use S3 tools for specific operations:
   }
 
   // Check CodeInterpreter tool availability
-  const hasCodeInterpreter = options.tools.some((tool) => tool.name === 'code_interpreter');
+  const hasCodeInterpreter = options.tools.some(
+    (tool) => tool.name === codeInterpreterDefinition.name
+  );
 
   if (hasCodeInterpreter) {
     basePrompt += `

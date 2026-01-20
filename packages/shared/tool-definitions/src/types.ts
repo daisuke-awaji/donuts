@@ -15,10 +15,21 @@ export interface MCPToolDefinition {
 
 /**
  * Tool definition supporting both Zod and JSON Schema
+ * @template TSchema - Zod schema type for input validation
+ * @template TName - Literal type for tool name (for type safety)
  */
-export interface ToolDefinition<T extends z.ZodObject<z.ZodRawShape> = z.ZodObject<z.ZodRawShape>> {
-  name: string;
+export interface ToolDefinition<
+  TSchema extends z.ZodObject<z.ZodRawShape> = z.ZodObject<z.ZodRawShape>,
+  TName extends string = string,
+> {
+  name: TName;
   description: string;
-  zodSchema: T;
+  zodSchema: TSchema;
   jsonSchema: MCPToolDefinition['inputSchema'];
 }
+
+/**
+ * Extract tool name from a ToolDefinition
+ */
+export type ExtractToolName<T> =
+  T extends ToolDefinition<z.ZodObject<z.ZodRawShape>, infer N> ? N : never;

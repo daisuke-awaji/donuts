@@ -43,7 +43,7 @@ export const novaReelSchema = z.object({
     .describe('Sort order (default: Descending)'),
 });
 
-export const novaReelDefinition: ToolDefinition<typeof novaReelSchema> = {
+export const novaReelDefinition: ToolDefinition<typeof novaReelSchema, 'nova_reel'> = {
   name: 'nova_reel',
   description: `Generate videos using Amazon Nova Reel.
 

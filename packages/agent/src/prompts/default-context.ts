@@ -1,6 +1,14 @@
 import { MCPToolDefinition } from '../schemas/types.js';
+import { s3ListFilesDefinition, type ToolName } from '@fullstack-agentcore/tool-definitions';
 
 const WORKSPACE_DIR = '/tmp/ws';
+
+/**
+ * S3 storage related tool names (type-safe)
+ * Only includes tools that actually exist in the codebase.
+ */
+const S3_TOOL_NAMES: readonly ToolName[] = [s3ListFilesDefinition.name] as const;
+
 /**
  * デフォルトコンテキストを生成
  * @param tools 有効なツール一覧
@@ -25,8 +33,7 @@ export function generateDefaultContext(
     - Image: ![alt](https://xxx.s3.us-east-1.amazonaws.com/<presignedUrl>)`;
 
   // S3関連ツールが有効かどうかをチェック
-  const s3ToolNames = ['s3_list_files', 's3_download_file', 's3_upload_file', 's3_sync_folder'];
-  const enabledS3Tools = tools.filter((tool) => s3ToolNames.includes(tool.name));
+  const enabledS3Tools = tools.filter((tool) => S3_TOOL_NAMES.includes(tool.name as ToolName));
   const hasS3Tools = enabledS3Tools.length > 0;
 
   // S3ストレージツールが有効な場合のみセクションを追加
@@ -38,9 +45,6 @@ export function generateDefaultContext(
   ## About File Output
   - You are running on AWS Bedrock AgentCore. Therefore, when writing files, always write them under ${WORKSPACE_DIR}.
   - Similarly, if you need a workspace, please use the ${WORKSPACE_DIR} directory. Do not ask the user about their current workspace. It's always ${WORKSPACE_DIR}.
-  - Also, users cannot directly access files written under ${WORKSPACE_DIR}. So when submitting these files to users, *always upload them to S3 using the s3_upload_file tool and provide the S3 URL*. The S3 URL must be included in the final output.
-  - If the output file is an image file, the S3 URL output must be in Markdown format.
-  - Note: When uploading files with Japanese or non-ASCII characters, specify contentType with charset (e.g., "text/plain; charset=utf-8") to ensure proper encoding.
 
   <user_storage>
     <description>
@@ -51,13 +55,10 @@ export function generateDefaultContext(
 ${enabledToolsList}
     </enabled_tools>
     <usage_guidelines>
+      - Use s3_list_files to browse and list files in the user's S3 storage
       - All paths are relative to user's root (e.g., "/code/app.py", "/docs/report.md")
-      - The s3_sync_folder tool is the most efficient and effective way to specify an S3 directory and synchronize it with the AgentCore Runtime storage.
-      - When asked to save, store, or keep something, use s3_upload_file
-      - Organize files logically using directories (e.g., /code/, /notes/, /data/)
       - Presigned URLs are valid for 1 hour by default and can be shared externally
       - For large files or binary content, prefer presigned URLs over inline content
-      - Always upload artifacts to S3 and provide users with presigned URLs, as users cannot directly access the file storage of the runtime where the agent is running.
     </usage_guidelines>
   </user_storage>`;
   }

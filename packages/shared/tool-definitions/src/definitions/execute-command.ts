@@ -16,7 +16,10 @@ export const executeCommandSchema = z.object({
     .describe('Timeout in milliseconds (default: 120s, max: 600s)'),
 });
 
-export const executeCommandDefinition: ToolDefinition<typeof executeCommandSchema> = {
+export const executeCommandDefinition: ToolDefinition<
+  typeof executeCommandSchema,
+  'execute_command'
+> = {
   name: 'execute_command',
   description:
     'Execute shell commands and return results. Can be used for file operations, information gathering, and development task automation.',

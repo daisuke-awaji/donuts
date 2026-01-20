@@ -108,7 +108,10 @@ const codeInterpreterSchema = z.object({
     ),
 });
 
-export const codeInterpreterDefinition: ToolDefinition<typeof codeInterpreterSchema> = {
+export const codeInterpreterDefinition: ToolDefinition<
+  typeof codeInterpreterSchema,
+  'code_interpreter'
+> = {
   name: 'code_interpreter',
   description: `Code Interpreter tool for executing code in isolated sandbox environments.
 

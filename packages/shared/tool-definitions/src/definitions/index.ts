@@ -21,6 +21,7 @@ import { novaCanvasDefinition } from './nova-canvas.js';
 import { imageToTextDefinition } from './image-to-text.js';
 import { callAgentDefinition } from './call-agent.js';
 import { novaReelDefinition } from './nova-reel.js';
+import type { ExtractToolName } from '../types.js';
 
 /**
  * All tool definitions array
@@ -37,7 +38,25 @@ export const allToolDefinitions = [
   imageToTextDefinition,
   callAgentDefinition,
   novaReelDefinition,
-];
+] as const;
+
+/**
+ * Valid tool name union type (auto-generated from allToolDefinitions)
+ * This type ensures type safety when referencing tool names throughout the codebase.
+ *
+ * @example
+ * // TypeScript will catch invalid tool names at compile time
+ * const toolName: ToolName = 's3_list_files'; // OK
+ * const invalid: ToolName = 's3_upload_file'; // Error: Type '"s3_upload_file"' is not assignable to type 'ToolName'
+ */
+export type ToolName = ExtractToolName<(typeof allToolDefinitions)[number]>;
+
+/**
+ * Type guard to check if a string is a valid tool name
+ */
+export function isValidToolName(name: string): name is ToolName {
+  return allToolDefinitions.some((def) => def.name === name);
+}
 
 /**
  * MCP format (JSON Schema) tool definitions

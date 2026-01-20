@@ -32,7 +32,7 @@ export const tavilySearchSchema = z.object({
     .describe('Prioritize results from specific country (e.g., japan, united states)'),
 });
 
-export const tavilySearchDefinition: ToolDefinition<typeof tavilySearchSchema> = {
+export const tavilySearchDefinition: ToolDefinition<typeof tavilySearchSchema, 'tavily_search'> = {
   name: 'tavily_search',
   description:
     'Execute high-quality web search using Tavily API. Get comprehensive search results for latest information, news, and general topics.',

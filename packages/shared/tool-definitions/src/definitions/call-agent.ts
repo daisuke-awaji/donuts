@@ -39,7 +39,7 @@ export const callAgentSchema = z.object({
   maxWaitTime: z.number().default(1200).describe('Max wait time in seconds (default: 1200)'),
 });
 
-export const callAgentDefinition: ToolDefinition<typeof callAgentSchema> = {
+export const callAgentDefinition: ToolDefinition<typeof callAgentSchema, 'call_agent'> = {
   name: 'call_agent',
   description: `Invoke specialized sub-agents asynchronously to handle specific tasks that require different expertise.
 

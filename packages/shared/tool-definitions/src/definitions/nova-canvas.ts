@@ -38,7 +38,7 @@ export const novaCanvasSchema = z.object({
     .describe('Custom output filename (default: auto-generated with timestamp)'),
 });
 
-export const novaCanvasDefinition: ToolDefinition<typeof novaCanvasSchema> = {
+export const novaCanvasDefinition: ToolDefinition<typeof novaCanvasSchema, 'nova_canvas'> = {
   name: 'nova_canvas',
   description:
     'Generate images using Amazon Nova Canvas on Bedrock. Convert text prompts into high-quality images with configurable size and seed for reproducibility. Automatically saves generated images to user S3 storage.',

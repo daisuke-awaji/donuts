@@ -35,7 +35,7 @@ export const imageToTextSchema = z.object({
     ),
 });
 
-export const imageToTextDefinition: ToolDefinition<typeof imageToTextSchema> = {
+export const imageToTextDefinition: ToolDefinition<typeof imageToTextSchema, 'image_to_text'> = {
   name: 'image_to_text',
   description:
     'Analyze images and convert them to text descriptions using Bedrock Converse API. Supports S3 URIs and local file paths. Use vision-capable models to extract text, describe content, or analyze images. Useful for OCR, image understanding, and visual content analysis.',

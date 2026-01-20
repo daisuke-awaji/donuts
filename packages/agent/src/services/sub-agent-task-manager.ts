@@ -13,6 +13,7 @@ import { AgentCoreMemoryStorage } from '../session/agentcore-memory-storage.js';
 import { SessionPersistenceHook } from '../session/session-persistence-hook.js';
 import { customAlphabet } from 'nanoid';
 import type { HookProvider } from '@strands-agents/sdk';
+import { callAgentDefinition } from '@fullstack-agentcore/tool-definitions';
 
 /**
  * Session ID Generator for Sub-Agents
@@ -244,7 +245,7 @@ class SubAgentTaskManager {
       const { agent } = await createAgent(hooks, {
         systemPrompt: agentDef.systemPrompt,
         // Filter out call_agent to prevent infinite recursion
-        enabledTools: agentDef.enabledTools.filter((t: string) => t !== 'call_agent'),
+        enabledTools: agentDef.enabledTools.filter((t: string) => t !== callAgentDefinition.name),
         modelId: task.modelId || agentDef.modelId,
         sessionStorage,
         sessionConfig,

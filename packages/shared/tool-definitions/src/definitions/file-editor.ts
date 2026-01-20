@@ -14,7 +14,7 @@ export const fileEditorSchema = z.object({
     .describe('Replacement text. For new file creation, this content will be written to the file.'),
 });
 
-export const fileEditorDefinition: ToolDefinition<typeof fileEditorSchema> = {
+export const fileEditorDefinition: ToolDefinition<typeof fileEditorSchema, 'file_editor'> = {
   name: 'file_editor',
   description:
     'Edit or create new files. For moving or renaming files, use the mv command with the execute_command tool. Before use, confirm file contents with the cat command, and for new files, check the directory with the ls command. Replaces text specified in oldString with newString. oldString must be unique within the file and must match exactly including whitespace and indentation. Can only change one location at a time; for multiple changes, call multiple times.',

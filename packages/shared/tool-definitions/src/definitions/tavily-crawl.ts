@@ -58,7 +58,7 @@ export const tavilyCrawlSchema = z.object({
   timeout: z.number().min(10).max(150).default(150).describe('Timeout in seconds (10-150)'),
 });
 
-export const tavilyCrawlDefinition: ToolDefinition<typeof tavilyCrawlSchema> = {
+export const tavilyCrawlDefinition: ToolDefinition<typeof tavilyCrawlSchema, 'tavily_crawl'> = {
   name: 'tavily_crawl',
   description:
     'Comprehensively crawl websites using Tavily API. Starting from specified root URL, automatically discovers and extracts related pages.',
