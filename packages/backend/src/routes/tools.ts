@@ -54,7 +54,11 @@ router.get('/', jwtAuthMiddleware, async (req: AuthenticatedRequest, res: Respon
     };
 
     console.log(
-      `✅ Tool list retrieval completed (${auth.requestId}): ${tools.length} items (builtin: ${cursor ? 0 : allMCPToolDefinitions.length}, gateway: ${result.tools.length})`,
+      '✅ Tool list retrieval completed (%s): %d items (builtin: %d, gateway: %d)',
+      auth.requestId,
+      tools.length,
+      cursor ? 0 : allMCPToolDefinitions.length,
+      result.tools.length,
       result.nextCursor ? { nextCursor: 'present' } : { nextCursor: 'none' }
     );
 

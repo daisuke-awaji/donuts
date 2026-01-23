@@ -257,7 +257,8 @@ router.delete(
           console.log('✅ Deleted session from AgentCore Memory: %s', sessionId);
         } catch (memoryError) {
           console.error(
-            `⚠️ Failed to delete session from AgentCore Memory: ${sessionId}`,
+            '⚠️ Failed to delete session from AgentCore Memory: %s',
+            sessionId,
             memoryError
           );
           errors.push(
