@@ -7,11 +7,12 @@ RUN apt-get update && apt-get install -y \
     python3 \
     && rm -rf /var/lib/apt/lists/*
 
-# uv をインストール（Python MCP サーバー用）
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+# uv をインストール（Python MCP サーバー用）- 全ユーザーアクセス可能な場所へ
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
+    mv /root/.local/bin/uv /usr/local/bin/ && \
+    mv /root/.local/bin/uvx /usr/local/bin/ 2>/dev/null || true
 
-# uv の PATH とディレクトリ設定（Lambda /tmp 制約対応）
-ENV PATH="/root/.local/bin:$PATH"
+# uv のディレクトリ設定（Lambda /tmp 制約対応）
 ENV UV_TOOL_DIR="/tmp/uv_tools"
 ENV UV_TOOL_BIN_DIR="/tmp/uv_bin"
 
@@ -40,6 +41,12 @@ EXPOSE 3000
 # ヘルスチェック
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:3000/ping || exit 1
+
+# 作業ディレクトリの所有権を node ユーザーに変更
+RUN chown -R node:node /app
+
+# 非 root ユーザーに切り替え（セキュリティ対策）
+USER node
 
 # アプリケーションを開始
 CMD ["npm", "start"]
