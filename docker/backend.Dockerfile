@@ -105,6 +105,11 @@ RUN chmod +x /opt/extensions/lambda-adapter
 # Run as non-root user for security
 USER node
 
+# Health check for container monitoring
+# Checks the /ping endpoint that's configured as AWS_LWA_READINESS_CHECK_PATH
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:8080/ping', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"
+
 # アプリケーションを開始
 # Lambda Web Adapter が Express サーバーを Lambda ハンドラーとしてラップ
 CMD ["node", "dist/index.js"]

@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [main]
 
+# Set minimal default permissions for security
+permissions:
+  contents: read
+
 jobs:
   lint:
     name: Lint

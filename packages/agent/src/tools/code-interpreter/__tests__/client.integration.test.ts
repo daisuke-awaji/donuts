@@ -328,6 +328,7 @@ describe('AgentCoreCodeInterpreterClient - File Operations', () => {
 
   it('should download files to local filesystem', async () => {
     const localFileName = 'downloaded-test.txt';
+    // nosemgrep: path-join-resolve-traversal - test code with controlled test data
     const expectedLocalPath = path.join(downloadDir, localFileName);
 
     // まず、ダウンロード用のファイルを作成
@@ -412,6 +413,7 @@ describe('AgentCoreCodeInterpreterClient - File Operations', () => {
 
     // すべてのファイルがダウンロードされたか確認
     files.forEach((file) => {
+      // nosemgrep: path-join-resolve-traversal - test code with controlled test data
       const localPath = path.join(downloadDir, file);
       expect(fs.existsSync(localPath)).toBe(true);
     });

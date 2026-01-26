@@ -1,0 +1,17 @@
+# Checkov configuration for ASH security scanning
+# https://www.checkov.io/2.Basics/Suppressing%20and%20Skipping%20Policies.html
+
+# Skip OpenAPI security checks - these APIs are internal AWS services
+# protected by API Gateway authentication and authorization
+skip-check:
+  # Skip OpenAPI global security field requirement
+  # Reason: API Gateway handles authentication/authorization
+  - CKV_OPENAPI_4
+  
+  # Skip OpenAPI security operations requirement
+  # Reason: Security is enforced at API Gateway level
+  - CKV_OPENAPI_5
+  
+  # Skip OpenAPI array maxItems requirement
+  # Reason: Internal APIs with controlled usage, not exposed to public
+  - CKV_OPENAPI_21

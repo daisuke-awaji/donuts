@@ -16,6 +16,7 @@ import { pipeline } from 'stream/promises';
 import * as crypto from 'crypto';
 import pLimit from 'p-limit';
 import { SyncIgnoreFilter } from './sync-ignore-filter.js';
+import { validatePathWithinBase } from '@fullstack-agentcore/utils/path-validator';
 
 const s3Client = new S3Client({ region: process.env.AWS_REGION });
 
@@ -267,7 +268,8 @@ export class WorkspaceSync {
             // S3に存在するパスを記録
             s3FilePaths.add(relativePath);
 
-            const localPath = path.join(this.workspaceDir, relativePath);
+            // Validate path to prevent traversal attacks from malicious S3 keys
+            const localPath = validatePathWithinBase(this.workspaceDir, relativePath);
 
             downloadTasks.push({
               s3Key: item.Key,
@@ -391,7 +393,8 @@ export class WorkspaceSync {
         const isModified = previousInfo && currentInfo.hash !== previousInfo.hash;
 
         if (isNew || isModified) {
-          const localPath = path.join(this.workspaceDir, relativePath);
+          // Validate path (relativePath comes from local filesystem scan)
+          const localPath = validatePathWithinBase(this.workspaceDir, relativePath);
           const s3Key = this.getS3Key(relativePath);
 
           uploadTasks.push({
