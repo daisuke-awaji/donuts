@@ -9,6 +9,20 @@ import type { ClientConfig } from '../config/index.js';
 import { getCachedJwtToken } from '../auth/cognito.js';
 import { getCachedMachineUserToken } from '../auth/machine-user.js';
 
+/**
+ * Encode ARN in Agent URL for AgentCore Runtime
+ * @param url - URL to encode
+ * @returns Encoded URL
+ */
+function encodeAgentUrl(url: string): string {
+  if (url.includes('bedrock-agentcore') && url.includes('/runtimes/arn:')) {
+    return url.replace(/\/runtimes\/(arn:[^/]+\/[^/]+)\//, (_match: string, arn: string) => {
+      return `/runtimes/${encodeURIComponent(arn)}/`;
+    });
+  }
+  return url;
+}
+
 // Strands Agents SDK ストリーミングイベント型定義
 export interface AgentStreamEvent {
   type: string;
@@ -170,7 +184,11 @@ export class AgentCoreClient {
     const isAgentCoreRuntime =
       this.config.endpoint.includes('bedrock-agentcore') &&
       this.config.endpoint.includes('/invocations');
-    const url = isAgentCoreRuntime ? this.config.endpoint : `${this.config.endpoint}/invocations`;
+    const rawUrl = isAgentCoreRuntime
+      ? this.config.endpoint
+      : `${this.config.endpoint}/invocations`;
+    // ARN 部分をエンコード
+    const url = encodeAgentUrl(rawUrl);
 
     try {
       const headers: Record<string, string> = {

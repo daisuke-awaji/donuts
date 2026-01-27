@@ -1,12 +1,29 @@
 # AgentCore Client
 
-CLI client for AgentCore Runtime with support for both user and machine-to-machine authentication.
+CLI client for AgentCore Runtime with support for both user and machine-to-machine authentication. Connect to deployed environments, select agents, and interact with them via the command line.
 
 ## Installation
 
 ```bash
 npm install
 npm run build
+```
+
+## Quick Start
+
+```bash
+# 1. Configure environment
+cp .env.example .env
+# Edit .env with your Backend URL and Cognito settings
+
+# 2. Login
+npm run dev login
+
+# 3. List available agents
+npm run dev agents list
+
+# 4. Run an agent
+npm run dev invoke "Hello" --agent <agentId>
 ```
 
 ## Configuration
@@ -17,7 +34,22 @@ Copy the example environment file and configure it:
 cp .env.example .env
 ```
 
-Edit `.env` with your configuration.
+Edit `.env` with your configuration:
+
+```bash
+# Backend API (required for agent management)
+BACKEND_URL=http://localhost:3000
+
+# Agent Endpoint (for invoking agents)
+AGENTCORE_ENDPOINT=http://localhost:8080/invocations
+
+# Cognito Authentication
+COGNITO_USER_POOL_ID=us-east-1_YourPoolId
+COGNITO_CLIENT_ID=your-client-id
+COGNITO_USERNAME=your-username
+COGNITO_PASSWORD=your-password
+COGNITO_REGION=us-east-1
+```
 
 ## Authentication Modes
 
@@ -53,14 +85,50 @@ COGNITO_SCOPE=agentcore/batch.execute  # optional
 
 ## Usage
 
-### Basic Commands
+### Authentication
+
+```bash
+# Interactive login
+npm run dev login
+
+# Login with credentials
+npm run dev login --username user@example.com --password YourPassword
+
+# Show current user info
+npm run dev whoami
+```
+
+### Agent Management
+
+```bash
+# List all agents
+npm run dev agents list
+
+# Show agent details
+npm run dev agents show <agentId>
+
+# Initialize default agents (for first-time setup)
+npm run dev agents init
+```
+
+### Invoking Agents
+
+```bash
+# Invoke with specific agent
+npm run dev invoke "What is 2+2?" --agent <agentId>
+
+# Interactive agent selection
+npm run dev invoke "Hello" --select-agent
+
+# With session ID (for conversation continuity)
+npm run dev invoke "Tell me more" --agent <agentId> --session-id <sessionId>
+```
+
+### Other Commands
 
 ```bash
 # Check Agent health
 npm run dev ping
-
-# Invoke Agent with a prompt
-npm run dev invoke "What is 2+2?"
 
 # Interactive mode
 npm run dev interactive
@@ -117,6 +185,63 @@ npm run dev token --machine
 
 ### Commands
 
+#### `login`
+
+Authenticate with Cognito.
+
+```bash
+npm run dev login [options]
+
+Options:
+  --username <username>  Username
+  --password <password>  Password
+  --json                 JSON output
+```
+
+#### `whoami`
+
+Display current user information.
+
+```bash
+npm run dev whoami [options]
+
+Options:
+  --json    JSON output
+```
+
+#### `agents list`
+
+List available agents.
+
+```bash
+npm run dev agents list [options]
+
+Options:
+  --json    JSON output
+```
+
+#### `agents show <agentId>`
+
+Show agent details.
+
+```bash
+npm run dev agents show <agentId> [options]
+
+Options:
+  --json    JSON output
+```
+
+#### `agents init`
+
+Initialize default agents for the user.
+
+```bash
+npm run dev agents init [options]
+
+Options:
+  --json    JSON output
+```
+
 #### `ping`
 
 Check Agent health status.
@@ -136,7 +261,10 @@ Send a prompt to the Agent.
 npm run dev invoke "Your prompt here" [options]
 
 Options:
-  --json    JSON output
+  --agent <agentId>     Agent ID to use
+  --select-agent        Select agent interactively
+  --session-id <id>     Session ID for conversation continuity
+  --json                JSON output
 ```
 
 #### `interactive`
@@ -180,20 +308,48 @@ npm run dev runtimes
 
 ## Examples
 
-### Example 1: Local Development with User Auth
+### Example 1: Local Development - Full Workflow
 
 ```bash
 # .env
-AGENTCORE_ENDPOINT=http://localhost:8080
+BACKEND_URL=http://localhost:3000
+AGENTCORE_ENDPOINT=http://localhost:8080/invocations
 AUTH_MODE=user
+COGNITO_USER_POOL_ID=us-east-1_ABC123
+COGNITO_CLIENT_ID=abc123client
 COGNITO_USERNAME=testuser
 COGNITO_PASSWORD=TestPassword123!
 
-# Run
-npm run dev invoke "Hello, Agent!"
+# Login and list agents
+npm run dev login
+npm run dev agents list
+
+# Run a specific agent
+npm run dev invoke "Hello, Agent!" --agent agent-001
+
+# Or select interactively
+npm run dev invoke "Hello" --select-agent
 ```
 
-### Example 2: Local Development with Machine User
+### Example 2: AWS Deployed Environment
+
+```bash
+# .env
+BACKEND_URL=https://your-api-id.execute-api.us-east-1.amazonaws.com
+AGENTCORE_RUNTIME_ARN=arn:aws:bedrock-agentcore:us-east-1:123456789012:runtime/abc123
+AUTH_MODE=user
+COGNITO_USER_POOL_ID=us-east-1_ABC123
+COGNITO_CLIENT_ID=abc123client
+COGNITO_USERNAME=user@example.com
+COGNITO_PASSWORD=SecurePassword123!
+
+# Run
+npm run dev login
+npm run dev agents list
+npm run dev invoke "Analyze this data" --agent data-analyst-agent
+```
+
+### Example 3: Local Development with Machine User
 
 ```bash
 # .env

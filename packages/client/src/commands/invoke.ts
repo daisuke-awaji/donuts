@@ -12,7 +12,10 @@ import {
   type ServerCompletionEvent,
   type ServerErrorEvent,
 } from '../api/client.js';
+import { createBackendClient } from '../api/backend-client.js';
+import { selectAgentInteractive } from './agents.js';
 import type { ClientConfig } from '../config/index.js';
+import type { Agent } from '../types/backend.js';
 
 export async function invokeCommand(
   prompt: string,
@@ -20,8 +23,33 @@ export async function invokeCommand(
   options: {
     json?: boolean;
     sessionId?: string;
+    agentId?: string;
+    selectAgent?: boolean;
   }
 ): Promise<void> {
+  let selectedAgent: Agent | null = null;
+
+  // エージェント選択
+  if (options.selectAgent) {
+    selectedAgent = await selectAgentInteractive(config);
+    if (!selectedAgent) {
+      console.log(chalk.red('エージェントが選択されませんでした'));
+      process.exit(1);
+    }
+  } else if (options.agentId) {
+    // 指定されたエージェントを取得
+    const spinner = ora(`エージェント "${options.agentId}" を取得中...`).start();
+    try {
+      const backendClient = createBackendClient(config);
+      selectedAgent = await backendClient.getAgent(options.agentId);
+      spinner.succeed(chalk.green(`エージェント "${selectedAgent.name}" を使用`));
+    } catch (error) {
+      spinner.fail(chalk.red('エージェントの取得に失敗しました'));
+      console.log(chalk.red(`   ${error instanceof Error ? error.message : '不明なエラー'}`));
+      process.exit(1);
+    }
+  }
+
   const client = createClient(config);
 
   if (options.json) {
@@ -58,6 +86,9 @@ export async function invokeCommand(
   console.log(
     chalk.gray(`ランタイム: ${config.isAwsRuntime ? 'AWS AgentCore Runtime' : 'ローカル環境'}`)
   );
+  if (selectedAgent) {
+    console.log(chalk.gray(`エージェント: ${selectedAgent.name} (${selectedAgent.id})`));
+  }
   if (options.sessionId) {
     console.log(chalk.gray(`セッションID: ${options.sessionId}`));
   }

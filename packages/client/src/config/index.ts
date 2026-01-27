@@ -33,6 +33,7 @@ export type AuthMode = 'user' | 'machine';
 
 export interface ClientConfig {
   endpoint: string;
+  backendUrl: string;
   isAwsRuntime: boolean;
   authMode: AuthMode;
   cognito: CognitoConfig;
@@ -44,6 +45,7 @@ export interface ClientConfig {
  */
 export interface ConfigDisplayFormat {
   endpoint: string;
+  backendUrl: string;
   runtime: string;
   authMode: string;
   cognito: {
@@ -117,14 +119,23 @@ function isAwsRuntime(endpoint: string): boolean {
 }
 
 /**
+ * Backend URL を決定
+ */
+function determineBackendUrl(): string {
+  return process.env.BACKEND_URL || 'http://localhost:3000';
+}
+
+/**
  * 環境変数から設定を読み込み
  */
 export function loadConfig(): ClientConfig {
   const endpoint = determineEndpoint();
+  const backendUrl = determineBackendUrl();
   const authMode = determineAuthMode();
 
   const config: ClientConfig = {
     endpoint,
+    backendUrl,
     isAwsRuntime: isAwsRuntime(endpoint),
     authMode,
     cognito: {
@@ -208,6 +219,7 @@ export function validateConfig(config: ClientConfig): string[] {
 export function formatConfigForDisplay(config: ClientConfig): ConfigDisplayFormat {
   const display: ConfigDisplayFormat = {
     endpoint: config.endpoint,
+    backendUrl: config.backendUrl,
     runtime: config.isAwsRuntime ? 'AWS AgentCore Runtime' : 'ローカル環境',
     authMode:
       config.authMode === 'machine' ? 'Machine User (Client Credentials)' : 'User (Password)',

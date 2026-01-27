@@ -11,6 +11,8 @@ import { loadConfig } from './config/index.js';
 import { pingCommand } from './commands/ping.js';
 import { invokeCommand, interactiveMode } from './commands/invoke.js';
 import { configCommand, tokenInfoCommand, listProfilesCommand } from './commands/config.js';
+import { loginCommand, whoamiCommand } from './commands/login.js';
+import { listAgentsCommand, showAgentCommand, initAgentsCommand } from './commands/agents.js';
 
 const program = new Command();
 
@@ -53,6 +55,115 @@ program
     }
   });
 
+// Login コマンド
+program
+  .command('login')
+  .description('ユーザー認証を行う')
+  .option('--json', 'JSON形式で出力')
+  .option('--username <username>', 'ユーザー名')
+  .option('--password <password>', 'パスワード')
+  .action(async (options) => {
+    try {
+      const globalOptions = program.opts();
+      const config = loadConfig();
+
+      await loginCommand(config, {
+        json: options.json || globalOptions.json,
+        username: options.username,
+        password: options.password,
+      });
+    } catch (error) {
+      console.error(
+        chalk.red(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      );
+      process.exit(1);
+    }
+  });
+
+// Whoami コマンド
+program
+  .command('whoami')
+  .description('現在のユーザー情報を表示')
+  .option('--json', 'JSON形式で出力')
+  .action(async (options) => {
+    try {
+      const globalOptions = program.opts();
+      const config = loadConfig();
+
+      await whoamiCommand(config, {
+        json: options.json || globalOptions.json,
+      });
+    } catch (error) {
+      console.error(
+        chalk.red(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      );
+      process.exit(1);
+    }
+  });
+
+// Agents コマンドグループ
+const agentsCommand = program.command('agents').description('エージェント管理');
+
+agentsCommand
+  .command('list')
+  .description('エージェント一覧を表示')
+  .option('--json', 'JSON形式で出力')
+  .action(async (options) => {
+    try {
+      const globalOptions = program.opts();
+      const config = loadConfig();
+
+      await listAgentsCommand(config, {
+        json: options.json || globalOptions.json,
+      });
+    } catch (error) {
+      console.error(
+        chalk.red(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      );
+      process.exit(1);
+    }
+  });
+
+agentsCommand
+  .command('show <agentId>')
+  .description('エージェント詳細を表示')
+  .option('--json', 'JSON形式で出力')
+  .action(async (agentId, options) => {
+    try {
+      const globalOptions = program.opts();
+      const config = loadConfig();
+
+      await showAgentCommand(agentId, config, {
+        json: options.json || globalOptions.json,
+      });
+    } catch (error) {
+      console.error(
+        chalk.red(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      );
+      process.exit(1);
+    }
+  });
+
+agentsCommand
+  .command('init')
+  .description('デフォルトエージェントを初期化')
+  .option('--json', 'JSON形式で出力')
+  .action(async (options) => {
+    try {
+      const globalOptions = program.opts();
+      const config = loadConfig();
+
+      await initAgentsCommand(config, {
+        json: options.json || globalOptions.json,
+      });
+    } catch (error) {
+      console.error(
+        chalk.red(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      );
+      process.exit(1);
+    }
+  });
+
 // Invoke コマンド
 program
   .command('invoke')
@@ -60,6 +171,8 @@ program
   .argument('<prompt>', '送信するプロンプト')
   .option('--json', 'JSON形式で出力')
   .option('--session-id <id>', 'セッションID（会話の継続に使用）')
+  .option('--agent <agentId>', 'エージェントIDを指定')
+  .option('--select-agent', 'エージェントをインタラクティブに選択')
   .option('--no-auth', '認証なしで実行')
   .action(async (prompt, options) => {
     try {
@@ -88,6 +201,8 @@ program
       await invokeCommand(prompt, config, {
         json: options.json || globalOptions.json,
         sessionId,
+        agentId: options.agent,
+        selectAgent: options.selectAgent,
       });
     } catch (error) {
       console.error(
@@ -210,31 +325,39 @@ program.action(() => {
   console.log('使用方法:');
   console.log('  agentcore-client <command> [options]');
   console.log('');
-  console.log('コマンド:');
-  console.log('  ping              Agent のヘルスチェック');
+  console.log(chalk.bold('認証コマンド:'));
+  console.log('  login             ユーザー認証');
+  console.log('  whoami            現在のユーザー情報を表示');
+  console.log('');
+  console.log(chalk.bold('エージェント管理:'));
+  console.log('  agents list       エージェント一覧を表示');
+  console.log('  agents show <id>  エージェント詳細を表示');
+  console.log('  agents init       デフォルトエージェントを初期化');
+  console.log('');
+  console.log(chalk.bold('実行コマンド:'));
   console.log('  invoke <prompt>   Agent にプロンプトを送信');
   console.log('  interactive       インタラクティブモード');
+  console.log('');
+  console.log(chalk.bold('設定コマンド:'));
+  console.log('  ping              Agent のヘルスチェック');
   console.log('  config            設定の表示・管理');
   console.log('  token             JWT トークン情報');
   console.log('  runtimes          ランタイム一覧');
   console.log('');
   console.log('例:');
-  console.log('  agentcore-client invoke "Hello, what is 1+1?"');
-  console.log('  agentcore-client ping --endpoint http://localhost:3000');
-  console.log('  agentcore-client config --validate');
+  console.log('  agentcore-client login');
+  console.log('  agentcore-client agents list');
+  console.log('  agentcore-client invoke "Hello" --agent <agentId>');
+  console.log('  agentcore-client invoke "Hello" --select-agent');
   console.log('');
   console.log('環境変数での設定:');
-  console.log('  AGENTCORE_ENDPOINT       ローカルエンドポイント');
+  console.log('  BACKEND_URL              Backend API URL');
+  console.log('  AGENTCORE_ENDPOINT       Agent エンドポイント');
   console.log('  AGENTCORE_RUNTIME_ARN    AWS Runtime ARN');
-  console.log('  AGENTCORE_REGION         AWS リージョン');
-  console.log('  AUTH_MODE                認証モード (user | machine)');
-  console.log('');
-  console.log('マシンユーザー認証:');
-  console.log('  COGNITO_DOMAIN           Cognito ドメイン');
-  console.log('  MACHINE_CLIENT_ID        マシンクライアント ID');
-  console.log('  MACHINE_CLIENT_SECRET    マシンクライアントシークレット');
-  console.log('  TARGET_USER_ID           対象ユーザー ID');
-  console.log('  COGNITO_SCOPE            OAuth スコープ（オプション）');
+  console.log('  COGNITO_USER_POOL_ID     Cognito User Pool ID');
+  console.log('  COGNITO_CLIENT_ID        Cognito Client ID');
+  console.log('  COGNITO_USERNAME         ユーザー名');
+  console.log('  COGNITO_PASSWORD         パスワード');
   console.log('');
   console.log('詳細なヘルプ:');
   console.log('  agentcore-client --help');
