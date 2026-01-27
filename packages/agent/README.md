@@ -231,9 +231,9 @@ Set authentication credentials using a local environment variable file:
 ```bash
 # Create .env.local file
 cat > .env.local << EOF
-AWS_ACCESS_KEY_ID=your_access_key
-AWS_SECRET_ACCESS_KEY=your_secret_key
-AWS_SESSION_TOKEN=your_session_token
+AWS_ACCESS_KEY_ID=<YOUR_ACCESS_KEY_ID>
+AWS_SECRET_ACCESS_KEY=<YOUR_SECRET_ACCESS_KEY>
+AWS_SESSION_TOKEN=<YOUR_SESSION_TOKEN>
 AWS_REGION=us-west-2
 EOF
 
@@ -267,9 +267,9 @@ npm run docker:dev:aws
 
 ```bash
 # Set credentials directly
-export AWS_ACCESS_KEY_ID="your_access_key"
-export AWS_SECRET_ACCESS_KEY="your_secret_key"
-export AWS_SESSION_TOKEN="your_session_token"  # If needed
+export AWS_ACCESS_KEY_ID="<YOUR_ACCESS_KEY_ID>"
+export AWS_SECRET_ACCESS_KEY="<YOUR_SECRET_ACCESS_KEY>"
+export AWS_SESSION_TOKEN="<YOUR_SESSION_TOKEN>"  # If needed
 export AWS_REGION="us-west-2"
 
 # Start Docker

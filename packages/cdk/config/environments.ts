@@ -95,6 +95,8 @@ export interface EnvironmentConfig {
   /**
    * Tavily API Key Secret Name (Secrets Manager)
    * Set for production/staging environments to retrieve API key from Secrets Manager
+   * NOTE: This is a secret NAME/ID reference, not the actual secret value
+   * pragma: allowlist secret
    */
   tavilyApiKeySecretName?: string;
 
@@ -102,6 +104,8 @@ export interface EnvironmentConfig {
    * GitHub Token Secret Name (Secrets Manager)
    * Set for environments to retrieve GitHub token from Secrets Manager
    * Used for gh CLI authentication
+   * NOTE: This is a secret NAME/ID reference, not the actual secret value
+   * pragma: allowlist secret
    */
   githubTokenSecretName?: string;
 
@@ -275,11 +279,6 @@ export const environments: Record<Environment, EnvironmentConfig> = {
     tavilyApiKeySecretName: 'agentcore/dev/tavily-api-key',
     githubTokenSecretName: 'agentcore/dev/github-token',
     allowedSignUpEmailDomains: ['amazon.com', 'amazon.co.jp'],
-    testUser: {
-      username: 'testuser',
-      email: 'testuser@amazon.com',
-      password: 'TestPassword123!',
-    },
     eventRules: [
       {
         id: 's3-upload',
