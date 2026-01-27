@@ -8,6 +8,7 @@ import type { ImageData } from '../image-validator.js';
 
 describe('validateImageData', () => {
   // Valid 1x1 PNG image (smallest valid PNG)
+  // pragma: allowlist secret - This is a valid test image, not a secret
   const validPngBase64 =
     'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
 

@@ -56,21 +56,21 @@ Create a secret for each environment:
 aws secretsmanager create-secret \
   --name agentcore/dev/github-token \
   --description "GitHub Personal Access Token for gh CLI (dev environment)" \
-  --secret-string "ghp_your_token_here" \
+  --secret-string "<YOUR_GITHUB_TOKEN>" \
   --region ap-northeast-1
 
 # For staging environment
 aws secretsmanager create-secret \
   --name agentcore/stg/github-token \
   --description "GitHub Personal Access Token for gh CLI (staging environment)" \
-  --secret-string "ghp_your_token_here" \
+  --secret-string "<YOUR_GITHUB_TOKEN>" \
   --region ap-northeast-1
 
 # For production environment
 aws secretsmanager create-secret \
   --name agentcore/prd/github-token \
   --description "GitHub Personal Access Token for gh CLI (production environment)" \
-  --secret-string "ghp_your_token_here" \
+  --secret-string "<YOUR_GITHUB_TOKEN>" \
   --region ap-northeast-1
 ```
 
@@ -81,7 +81,7 @@ If you need to rotate the token:
 ```bash
 aws secretsmanager update-secret \
   --secret-id agentcore/dev/github-token \
-  --secret-string "ghp_new_token_here" \
+  --secret-string "<YOUR_NEW_GITHUB_TOKEN>" \
   --region ap-northeast-1
 ```
 

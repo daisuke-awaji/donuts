@@ -275,11 +275,6 @@ export const environments: Record<Environment, EnvironmentConfig> = {
     tavilyApiKeySecretName: 'agentcore/dev/tavily-api-key',
     githubTokenSecretName: 'agentcore/dev/github-token',
     allowedSignUpEmailDomains: ['amazon.com', 'amazon.co.jp'],
-    testUser: {
-      username: 'testuser',
-      email: 'testuser@amazon.com',
-      password: 'TestPassword123!',
-    },
     eventRules: [
       {
         id: 's3-upload',

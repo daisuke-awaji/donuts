@@ -27,6 +27,7 @@ describe('sanitizeErrorMessage', () => {
   });
 
   it('should remove AWS access key IDs', () => {
+    // pragma: allowlist secret - This is AWS documentation example key for testing sanitization
     const error = new Error('AWS error with key AKIAIOSFODNN7EXAMPLE');
     const result = sanitizeErrorMessage(error);
     expect(result).toBe('AWS error with key [AWS_KEY]');

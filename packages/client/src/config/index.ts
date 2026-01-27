@@ -64,12 +64,13 @@ export interface ConfigDisplayFormat {
 
 /**
  * デフォルト設定
+ * Note: password は環境変数から必ず設定する必要があります
  */
 const DEFAULT_COGNITO_CONFIG: CognitoConfig = {
-  userPoolId: 'us-east-1_OZ6KUvSn3',
-  clientId: '19duob1sqr877jesho69aildbn',
-  username: 'testuser',
-  password: 'TestPassword123!',
+  userPoolId: '',
+  clientId: '',
+  username: '',
+  password: '',
   region: 'us-east-1',
 };
 

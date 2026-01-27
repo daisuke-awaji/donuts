@@ -42,6 +42,7 @@ common:
   deleting: Deleting...
 
 # Authentication
+# pragma: allowlist secret - These are UI labels, not actual secrets
 auth:
   signIn: Sign In
   signInAction: Signing in...
