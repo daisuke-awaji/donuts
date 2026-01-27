@@ -280,10 +280,6 @@ export const environments: Record<Environment, EnvironmentConfig> = {
       email: 'testuser@amazon.com',
       password: 'TestPassword123!',
     },
-    customDomain: {
-      hostName: 'agentcore-dev',
-      domainName: 'geeawa.net',
-    },
     eventRules: [
       {
         id: 's3-upload',
