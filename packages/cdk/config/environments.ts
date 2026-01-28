@@ -221,7 +221,7 @@ export interface EventRuleConfig {
 export const environments: Record<Environment, EnvironmentConfig> = {
   default: {
     env: 'default',
-    awsRegion: 'ap-northeast-1',
+    awsRegion: process.env.CDK_DEFAULT_REGION || 'ap-northeast-1',
     resourcePrefix: 'agentcore-app',
     runtimeName: 'agentcore_app',
     deletionProtection: false,
@@ -263,7 +263,7 @@ export const environments: Record<Environment, EnvironmentConfig> = {
 
   dev: {
     env: 'dev',
-    awsRegion: 'ap-northeast-1',
+    awsRegion: process.env.CDK_DEFAULT_REGION || 'ap-northeast-1',
     resourcePrefix: 'agentcore-app-dev',
     runtimeName: 'agentcore_app_dev',
     deletionProtection: false,
@@ -320,7 +320,7 @@ export const environments: Record<Environment, EnvironmentConfig> = {
 
   stg: {
     env: 'stg',
-    awsRegion: 'ap-northeast-1',
+    awsRegion: process.env.CDK_DEFAULT_REGION || 'ap-northeast-1',
     resourcePrefix: 'agentcore-app-stg',
     runtimeName: 'agentcore_app_stg',
     deletionProtection: false,
@@ -339,7 +339,7 @@ export const environments: Record<Environment, EnvironmentConfig> = {
 
   prd: {
     env: 'prd',
-    awsRegion: 'ap-northeast-1',
+    awsRegion: process.env.CDK_DEFAULT_REGION || 'ap-northeast-1',
     resourcePrefix: 'agentcore-app-prd',
     runtimeName: 'agentcore_app_prd',
     deletionProtection: true,

@@ -2,7 +2,7 @@ import { Construct } from 'constructs';
 import * as agentcore from '@aws-cdk/aws-bedrock-agentcore-alpha';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import { Aws } from 'aws-cdk-lib';
-import { CognitoAuth } from './cognito-auth.js';
+import { CognitoAuth } from '../auth';
 
 export interface AgentCoreGatewayProps {
   /**

@@ -1,20 +1,20 @@
 import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
-import { AgentCoreGateway } from './constructs/agentcore-gateway';
-import { AgentCoreLambdaTarget } from './constructs/agentcore-lambda-target';
-import { AgentCoreMemory } from './constructs/agentcore-memory';
-import { AgentCoreRuntime } from './constructs/agentcore-runtime';
-import { AgentsTable } from './constructs/agents-table';
-import { SessionsTable } from './constructs/sessions-table';
-import { TriggersTable } from './constructs/triggers-table';
-import { TriggerLambda } from './constructs/trigger-lambda';
-import { TriggerEventSources } from './constructs/trigger-event-sources';
-import { BackendApi } from './constructs/backend-api';
-import { CognitoAuth } from './constructs/cognito-auth';
-import { Frontend } from './constructs/frontend';
-import { UserStorage } from './constructs/user-storage';
-import { AppSyncEvents } from './constructs/appsync-events';
-import { SessionStreamHandler } from './constructs/session-stream-handler';
+import {
+  AgentCoreGateway,
+  AgentCoreLambdaTarget,
+  AgentCoreMemory,
+  AgentCoreRuntime,
+} from './constructs/agentcore';
+import {
+  AgentsTable,
+  SessionsTable,
+  TriggersTable,
+  UserStorage,
+} from './constructs/storage';
+import { TriggerLambda, TriggerEventSources, SessionStreamHandler } from './constructs/triggers';
+import { BackendApi, Frontend, AppSyncEvents } from './constructs/api';
+import { CognitoAuth } from './constructs/auth';
 import { EnvironmentConfig } from '../config';
 
 export interface AgentCoreStackProps extends cdk.StackProps {

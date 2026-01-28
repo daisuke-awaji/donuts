@@ -6,7 +6,7 @@ import * as iam from 'aws-cdk-lib/aws-iam';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import { Platform } from 'aws-cdk-lib/aws-ecr-assets';
 import { Construct } from 'constructs';
-import { CognitoAuth } from './cognito-auth';
+import { CognitoAuth } from '../auth';
 
 export interface BackendApiProps {
   /**
@@ -143,7 +143,6 @@ export class BackendApi extends Construct {
             'bedrock-agentcore:CreateSession',
             'bedrock-agentcore:UpdateSession',
             'bedrock-agentcore:DeleteSession',
-            // メモリレコード操作権限を追加
             'bedrock-agentcore:ListMemoryRecords',
             'bedrock-agentcore:DeleteMemoryRecord',
             'bedrock-agentcore:RetrieveMemoryRecords',

@@ -9,8 +9,8 @@ import * as agentcore from '@aws-cdk/aws-bedrock-agentcore-alpha';
 import { RuntimeAuthorizerConfiguration } from '@aws-cdk/aws-bedrock-agentcore-alpha';
 import { Platform } from 'aws-cdk-lib/aws-ecr-assets';
 import { Construct } from 'constructs';
-import { CognitoAuth } from './cognito-auth.js';
-import { AgentCoreGateway } from './agentcore-gateway.js';
+import { CognitoAuth } from '../auth';
+import { AgentCoreGateway } from './agentcore-gateway';
 
 export interface AgentCoreRuntimeProps {
   /**
