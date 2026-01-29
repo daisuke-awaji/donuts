@@ -52,7 +52,7 @@ Donutsは、チームが AI エージェントを**自由に作成・カスタ�
 <br>
 
 <div align="center">
-  <img src="./docs/donuts-architecture.drawio.png" alt="アーキテクチャ図" width="80%">
+  <img src="./docs/donuts-architecture.drawio.png" alt="アーキテクチャ図" width="100%">
 </div>
 
 <br>
@@ -65,7 +65,7 @@ Donutsは、チームが AI エージェントを**自由に作成・カスタ�
 | フロントエンド | CloudFront + S3 (React SPA) |
 | 認証 | Amazon Cognito (JWT) |
 | API | Lambda + API Gateway (Express.js) |
-| エージェント | AgentCore Runtime + Gateway + Memory |
+| エージェント | AgentCore Runtime + Gateway + Memory + CodeInterpreter|
 | ストレージ | DynamoDB + S3 |
 | リアルタイム | AppSync Events (WebSocket) |
 | イベント | EventBridge Scheduler |
@@ -135,17 +135,12 @@ npx -w packages/cdk cdk bootstrap
 以下のコマンドでスタックをデプロイします。
 
 ```bash
-# デフォルトリージョンにデプロイ
 npm run deploy
-
-# 開発環境にデプロイ
-npm run deploy:dev
-
-# 本番環境にデプロイ
-npm run deploy:prd
 ```
 
 デプロイが完了すると、CloudFormationスタックの出力からフロントエンドURLを確認できます。
+
+カスタムドメイン、環境別設定、イベントルールなどの詳細な設定オプションについては、[Deployment Options](docs/deployment-options.md) を参照してください。
 
 
 ## ドキュメント
@@ -155,6 +150,7 @@ npm run deploy:prd
 - [User Guide (English)](docs/USER_GUIDE.md) - Feature introduction and end-user guide
 
 ### 技術ドキュメント
+- [Deployment Options](docs/deployment-options.md) - 環境設定とカスタマイズオプション
 - [ローカル開発環境のセットアップ](docs/local-development-setup.md) - 環境セットアップの自動化について説明しています
 - [JWT認証システム](docs/jwt-authentication.md) - 認証の仕組みについて説明しています
 - [アーキテクチャ図](docs/donuts-architecture.drawio.png)

@@ -29,8 +29,8 @@ export const environments: Record<Environment, EnvironmentConfigInput> = {
    * Default environment
    */
   default: {
-    tavilyApiKeySecretName: 'agentcore/dev/tavily-api-key',
-    githubTokenSecretName: 'agentcore/dev/github-token',
+    tavilyApiKeySecretName: 'agentcore/default/tavily-api-key',
+    githubTokenSecretName: 'agentcore/default/github-token',
   },
 
   /**
@@ -39,43 +39,6 @@ export const environments: Record<Environment, EnvironmentConfigInput> = {
   dev: {
     tavilyApiKeySecretName: 'agentcore/dev/tavily-api-key',
     githubTokenSecretName: 'agentcore/dev/github-token',
-    allowedSignUpEmailDomains: ['amazon.com', 'amazon.co.jp'],
-    eventRules: [
-      {
-        id: 's3-upload',
-        name: 'S3 File Upload',
-        description:
-          'Triggered when a file with a key matching "users/{userId}/event-test-*" is uploaded to the user storage S3 bucket.',
-        eventPattern: {
-          source: ['aws.s3'],
-          detailType: ['Object Created'],
-          detail: {
-            bucket: {
-              name: [{ prefix: 'donuts-user-storage-' }],
-            },
-            object: {
-              key: [{ wildcard: 'users/*/event-test-*' }],
-            },
-          },
-        },
-        icon: 'cloud-upload',
-        enabled: true,
-      },
-      {
-        id: 'github-issue-created',
-        name: 'GitHub Issue created',
-        description: 'Triggered when a new issue is opened in the GitHub repository',
-        eventPattern: {
-          source: ['github.com'],
-          detailType: ['issues'],
-          detail: {
-            action: ['opened'],
-          },
-        },
-        icon: 'github',
-        enabled: true,
-      },
-    ],
   },
 
   /**

@@ -6,7 +6,7 @@ An AI agent platform built on Amazon Bedrock AgentCore.
 
 ## Overview
 
-Donuts is a multi-agent platform that enables teams to **freely create and customize** AI agents and share them across your organization. Built on Amazon Bedrock AgentCore, you can easily build agents tailored to your needs.
+Donuts is a multi-agent platform that enables teams to **create and customize** AI agents and share them across your organization. Built on Amazon Bedrock AgentCore, you can easily build agents tailored to your needs.
 
 Preset agents are also available for immediate use, covering various domains including software development, data analysis, and content creation.
 
@@ -52,7 +52,7 @@ This application uses a fully serverless architecture built on Amazon Bedrock Ag
 <br>
 
 <div align="center">
-  <img src="./docs/donuts-architecture.drawio.png" alt="Architecture Diagram" width="80%">
+  <img src="./docs/donuts-architecture.drawio.png" alt="Architecture Diagram" width="100%">
 </div>
 
 <br>
@@ -64,7 +64,7 @@ This application uses a fully serverless architecture built on Amazon Bedrock Ag
 | Frontend | CloudFront + S3 (React SPA) |
 | Auth | Amazon Cognito (JWT) |
 | API | Lambda + API Gateway (Express.js) |
-| Agent | AgentCore Runtime + Gateway + Memory |
+| Agent | AgentCore Runtime + Gateway + Memory + CodeInterpreter|
 | Storage | DynamoDB + S3 |
 | Real-time | AppSync Events (WebSocket) |
 | Events | EventBridge Scheduler |
@@ -134,17 +134,12 @@ npx -w packages/cdk cdk bootstrap
 Deploy the stack with the following commands.
 
 ```bash
-# Deploy to default region
 npm run deploy
-
-# Deploy to dev environment
-npm run deploy:dev
-
-# Deploy to production environment
-npm run deploy:prd
 ```
 
 After deployment, you can find the Frontend URL in the CloudFormation stack outputs.
+
+For advanced configuration options such as custom domains, environment-specific settings, and event rules, see the [Deployment Options](docs/deployment-options.md) documentation.
 
 
 ## Documentation
@@ -154,6 +149,7 @@ After deployment, you can find the Frontend URL in the CloudFormation stack outp
 - [User Guide (Japanese)](docs/USER_GUIDE-ja.md) - Feature introduction and end-user guide
 
 ### Technical Documentation
+- [Deployment Options](docs/deployment-options.md) - Environment configuration and customization
 - [Local Development Setup](docs/local-development-setup.md) - Explains environment setup automation
 - [JWT Authentication System](docs/jwt-authentication.md) - Explains the authentication mechanism
 - [Architecture Diagram](docs/donuts-architecture.drawio.png)
