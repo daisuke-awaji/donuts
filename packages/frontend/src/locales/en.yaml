@@ -1540,3 +1540,26 @@ defaultAgents:
       taskAutomation:
         title: Create Task Automation Agent
         prompt: "I want to create an agent that automates specific tasks.\n\nTask to automate: \nInput format: \nExpected output: \nFrequency: \n\nPlease design an agent optimized for this workflow."
+
+  donutsGuide:
+    name: Donuts Guide
+    description: Learn how to use Donuts - your AI agent platform guide for features, operations, and best practices
+    scenarios:
+      whatIsDonuts:
+        title: What is Donuts?
+        prompt: What is Donuts and what are its main features? Give me an overview of the platform.
+      createAgent:
+        title: How to Create an Agent
+        prompt: How do I create a new custom agent in Donuts? Please walk me through the steps.
+      useTools:
+        title: How to Use Tools
+        prompt: What tools are available in Donuts and how do I configure them for my agents?
+      setupTriggers:
+        title: How to Set Up Triggers
+        prompt: How do I set up scheduled triggers or event-driven automation for my agents?
+      shareAgents:
+        title: How to Share Agents
+        prompt: How can I share my agents with my team or organization?
+      fileStorage:
+        title: How to Use File Storage
+        prompt: How does the file storage feature work in Donuts? How can I upload, organize, and access my files?
