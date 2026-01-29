@@ -1127,3 +1127,26 @@ defaultAgents:
       taskAutomation:
         title: タスク自動化エージェントを作成
         prompt: "特定のタスクを自動化するエージェントを作成したいです。\n\n自動化するタスク: \n入力形式: \n期待される出力: \n頻度: \n\nこのワークフローに最適化されたエージェントを設計してください。"
+
+  donutsGuide:
+    name: Donuts ガイド
+    description: Donutsの使い方を学ぶ - 機能、操作方法、ベストプラクティスをご案内するAIエージェントプラットフォームガイド
+    scenarios:
+      whatIsDonuts:
+        title: Donutsとは？
+        prompt: Donutsとは何ですか？主な機能を教えてください。プラットフォームの概要を説明してください。
+      createAgent:
+        title: エージェントの作成方法
+        prompt: Donutsで新しいカスタムエージェントを作成するにはどうすればいいですか？手順を教えてください。
+      useTools:
+        title: ツールの使い方
+        prompt: Donutsで利用可能なツールは何ですか？エージェントにツールを設定する方法を教えてください。
+      setupTriggers:
+        title: トリガーの設定方法
+        prompt: エージェントのスケジュール実行やイベント駆動の自動化を設定するにはどうすればいいですか？
+      shareAgents:
+        title: エージェントの共有方法
+        prompt: 作成したエージェントをチームや組織と共有するにはどうすればいいですか？
+      fileStorage:
+        title: ファイルストレージの使い方
+        prompt: Donutsのファイルストレージ機能はどのように動作しますか？ファイルのアップロード、整理、アクセス方法を教えてください。
