@@ -13,6 +13,11 @@ export interface BedrockModel {
  */
 export const AVAILABLE_MODELS: readonly BedrockModel[] = [
   {
+    id: 'global.anthropic.claude-opus-4-6-v1',
+    name: 'Claude Opus 4.6',
+    provider: 'Anthropic',
+  },
+  {
     id: 'global.anthropic.claude-sonnet-4-5-20250929-v1:0',
     name: 'Claude Sonnet 4.5',
     provider: 'Anthropic',
