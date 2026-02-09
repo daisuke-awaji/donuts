@@ -9,7 +9,7 @@ import type {
   ToolUse,
   ToolResult,
 } from '../types/index';
-import { agentRequest, getAgentConfig, testAgentConnection } from './client/agent-client';
+import { agentClient } from './client/agent-client';
 
 /**
  * ストリーミングコールバック型
@@ -100,7 +100,7 @@ export const streamAgentResponse = async (
   const body = JSON.stringify(requestBody);
 
   try {
-    const response = await agentRequest({
+    const response = await agentClient.invoke({
       method: 'POST',
       headers,
       body,
@@ -443,5 +443,6 @@ You are an AI assistant that performs multi-stage web searches like DeepSearch t
 `;
 };
 
-// Re-export from agent-client for backward compatibility
-export { getAgentConfig, testAgentConnection };
+// Re-export agent client methods for external usage
+export const getAgentConfig = () => agentClient.getConfig();
+export const testAgentConnection = () => agentClient.testConnection();

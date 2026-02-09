@@ -3,7 +3,7 @@
  * ユーザーファイルストレージAPI
  */
 
-import { backendGet, backendPost, backendRequest } from './client/backend-client';
+import { backendClient } from './client/backend-client';
 
 export interface StorageItem {
   name: string;
@@ -91,7 +91,7 @@ export async function listStorageItems(path: string = '/'): Promise<ListStorageR
   const params = new URLSearchParams();
   params.append('path', path);
 
-  return backendGet<ListStorageResponse>(`/storage/list?${params.toString()}`);
+  return backendClient.get<ListStorageResponse>(`/storage/list?${params.toString()}`);
 }
 
 /**
@@ -101,7 +101,7 @@ export async function getDirectorySize(path: string = '/'): Promise<DirectorySiz
   const params = new URLSearchParams();
   params.append('path', path);
 
-  return backendGet<DirectorySizeResponse>(`/storage/size?${params.toString()}`);
+  return backendClient.get<DirectorySizeResponse>(`/storage/size?${params.toString()}`);
 }
 
 /**
@@ -112,7 +112,7 @@ export async function generateUploadUrl(
   path: string = '/',
   contentType?: string
 ): Promise<UploadUrlResponse> {
-  return backendPost<UploadUrlResponse>('/storage/upload', {
+  return backendClient.post<UploadUrlResponse>('/storage/upload', {
     fileName,
     path,
     contentType,
@@ -141,7 +141,7 @@ export async function uploadFileToS3(uploadUrl: string, file: File): Promise<voi
  * ディレクトリを作成
  */
 export async function createDirectory(directoryName: string, path: string = '/') {
-  return backendPost('/storage/directory', {
+  return backendClient.post('/storage/directory', {
     directoryName,
     path,
   });
@@ -154,7 +154,7 @@ export async function deleteFile(path: string) {
   const params = new URLSearchParams();
   params.append('path', path);
 
-  return backendRequest(`/storage/file?${params.toString()}`, { method: 'DELETE' });
+  return backendClient.request(`/storage/file?${params.toString()}`, { method: 'DELETE' });
 }
 
 /**
@@ -169,7 +169,7 @@ export async function deleteDirectory(path: string, force: boolean = false) {
     params.append('force', 'true');
   }
 
-  return backendRequest(`/storage/directory?${params.toString()}`, { method: 'DELETE' });
+  return backendClient.request(`/storage/directory?${params.toString()}`, { method: 'DELETE' });
 }
 
 /**
@@ -181,7 +181,9 @@ export async function generateDownloadUrl(path: string): Promise<string> {
   const normalizedPath = normalizeStoragePath(path);
   params.append('path', normalizedPath);
 
-  const data = await backendGet<{ downloadUrl: string }>(`/storage/download?${params.toString()}`);
+  const data = await backendClient.get<{ downloadUrl: string }>(
+    `/storage/download?${params.toString()}`
+  );
 
   return data.downloadUrl;
 }
@@ -190,7 +192,7 @@ export async function generateDownloadUrl(path: string): Promise<string> {
  * フォルダツリー構造を取得
  */
 export async function fetchFolderTree(): Promise<FolderTreeResponse> {
-  return backendGet<FolderTreeResponse>('/storage/tree');
+  return backendClient.get<FolderTreeResponse>('/storage/tree');
 }
 
 /**
@@ -200,7 +202,7 @@ export async function getFolderDownloadInfo(path: string): Promise<FolderDownloa
   const params = new URLSearchParams();
   params.append('path', path);
 
-  return backendGet<FolderDownloadInfo>(`/storage/download-folder?${params.toString()}`);
+  return backendClient.get<FolderDownloadInfo>(`/storage/download-folder?${params.toString()}`);
 }
 
 /**

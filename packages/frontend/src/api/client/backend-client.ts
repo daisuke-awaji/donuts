@@ -3,142 +3,77 @@
  * HTTP client for Backend Service (VITE_BACKEND_URL)
  */
 
-import { createAuthHeaders, handleApiError, normalizeBaseUrl, ApiError } from './base-client';
-import { handleGlobalError } from '../../utils/errorHandler';
-
-/**
- * Check if API debugging is enabled
- */
-const isDebugEnabled = (): boolean => {
-  return import.meta.env.DEV || import.meta.env.VITE_API_DEBUG === 'true';
-};
-
-/**
- * Log API request start
- */
-const logRequestStart = (method: string, endpoint: string): void => {
-  if (isDebugEnabled()) {
-    console.log(`🚀 ${method} ${endpoint}`);
-  }
-};
-
-/**
- * Log API request success
- */
-const logRequestSuccess = (method: string, endpoint: string, status: number): void => {
-  if (isDebugEnabled()) {
-    console.log(`✅ ${method} ${endpoint} -> ${status}`);
-  }
-};
-
-/**
- * Log API request error
- */
-const logRequestError = (method: string, endpoint: string, error: unknown): void => {
-  if (isDebugEnabled()) {
-    console.error('💥 %s %s failed:', method, endpoint, error);
-  }
-};
+import { BaseApiClient, normalizeBaseUrl } from './base-client';
 
 /**
  * Get Backend Service base URL
  */
-const getBaseUrl = (): string => {
+function getBaseUrl(): string {
   return normalizeBaseUrl(import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000');
-};
+}
 
 /**
- * Generic backend API request with automatic 401 retry
- * @param endpoint - API endpoint (e.g., '/agents')
- * @param options - Fetch options
- * @param isRetry - Whether this is a retry attempt (internal use)
- * @returns Response data
+ * Backend API Client
+ * Extends BaseApiClient with JSON response parsing and REST helpers
  */
-export async function backendRequest<T>(
-  endpoint: string,
-  options: RequestInit = {},
-  isRetry = false
-): Promise<T> {
-  const method = options.method || 'GET';
+class BackendClient extends BaseApiClient {
+  constructor() {
+    super('Backend');
+  }
 
-  try {
-    logRequestStart(method, endpoint);
-
-    const baseUrl = getBaseUrl();
-    const headers = await createAuthHeaders();
-
-    const response = await fetch(`${baseUrl}${endpoint}`, {
-      ...options,
-      headers: { ...headers, ...(options.headers as Record<string, string>) },
-    });
-
-    // On 401, attempt token refresh and retry once
-    if (response.status === 401 && !isRetry) {
-      console.warn(`⚠️ 401 on ${method} ${endpoint}, attempting token refresh and retry...`);
-      const error = new ApiError('Unauthorized', 401, 'Unauthorized');
-      await handleGlobalError(error); // This triggers token refresh
-
-      // Retry with fresh token
-      return backendRequest<T>(endpoint, options, true);
-    }
+  /**
+   * Generic backend API request
+   * @param endpoint - API endpoint (e.g., '/agents')
+   * @param options - Fetch options
+   * @returns Parsed JSON response
+   */
+  async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+    const response = await this.fetchWithAuth(`${getBaseUrl()}${endpoint}`, options);
 
     if (!response.ok) {
-      await handleApiError(response);
+      await this.handleErrorResponse(response);
     }
 
-    logRequestSuccess(method, endpoint, response.status);
-
     return response.json();
-  } catch (error) {
-    logRequestError(method, endpoint, error);
+  }
 
-    // Handle global errors (skip refresh on retry to avoid infinite loop)
-    await handleGlobalError(error, isRetry);
+  /**
+   * GET request
+   */
+  async get<T>(endpoint: string): Promise<T> {
+    return this.request<T>(endpoint, { method: 'GET' });
+  }
 
-    throw error;
+  /**
+   * POST request
+   */
+  async post<T>(endpoint: string, body?: unknown): Promise<T> {
+    return this.request<T>(endpoint, {
+      method: 'POST',
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  }
+
+  /**
+   * PUT request
+   */
+  async put<T>(endpoint: string, body?: unknown): Promise<T> {
+    return this.request<T>(endpoint, {
+      method: 'PUT',
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  }
+
+  /**
+   * DELETE request
+   */
+  async delete<T>(endpoint: string): Promise<T> {
+    return this.request<T>(endpoint, { method: 'DELETE' });
   }
 }
 
-/**
- * GET request helper
- * @param endpoint - API endpoint
- * @returns Response data
- */
-export async function backendGet<T>(endpoint: string): Promise<T> {
-  return backendRequest<T>(endpoint, { method: 'GET' });
-}
+// Singleton instance
+const backendClient = new BackendClient();
 
-/**
- * POST request helper
- * @param endpoint - API endpoint
- * @param body - Request body
- * @returns Response data
- */
-export async function backendPost<T>(endpoint: string, body?: unknown): Promise<T> {
-  return backendRequest<T>(endpoint, {
-    method: 'POST',
-    body: body ? JSON.stringify(body) : undefined,
-  });
-}
-
-/**
- * PUT request helper
- * @param endpoint - API endpoint
- * @param body - Request body
- * @returns Response data
- */
-export async function backendPut<T>(endpoint: string, body?: unknown): Promise<T> {
-  return backendRequest<T>(endpoint, {
-    method: 'PUT',
-    body: body ? JSON.stringify(body) : undefined,
-  });
-}
-
-/**
- * DELETE request helper
- * @param endpoint - API endpoint
- * @returns Response data
- */
-export async function backendDelete<T>(endpoint: string): Promise<T> {
-  return backendRequest<T>(endpoint, { method: 'DELETE' });
-}
+// Export instance for direct usage
+export { backendClient };

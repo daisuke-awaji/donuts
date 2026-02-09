@@ -1,9 +1,10 @@
 /**
  * Base API Client
- * Common utilities for all API clients
+ * Provides common HTTP functionality with authentication, retry, and logging
  */
 
 import { getValidAccessToken } from '../../lib/cognito';
+import { handleGlobalError } from '../../utils/errorHandler';
 import i18n from '../../i18n';
 
 /**
@@ -34,49 +35,131 @@ export class AuthenticationError extends Error {
 }
 
 /**
- * Create authorization headers with access token
- * @returns Authorization headers
+ * Check if API debugging is enabled
  */
-export async function createAuthHeaders(): Promise<Record<string, string>> {
-  const accessToken = await getValidAccessToken();
-
-  if (!accessToken) {
-    throw new AuthenticationError();
-  }
-
-  return {
-    'Content-Type': 'application/json',
-    Authorization: `Bearer ${accessToken}`,
-  };
+function isDebugEnabled(): boolean {
+  return import.meta.env.DEV || import.meta.env.VITE_API_DEBUG === 'true';
 }
 
 /**
- * Handle API error responses
- * @param response - Failed response
- * @throws ApiError with details
+ * Base API Client class
+ * Handles authenticated HTTP requests with automatic 401 retry and debug logging
  */
-export async function handleApiError(response: Response): Promise<never> {
-  const errorData = await response.json().catch(() => ({}));
+export class BaseApiClient {
+  protected readonly clientName: string;
 
-  const apiError = new ApiError(
-    errorData.message || errorData.error || 'Unknown error',
-    response.status,
-    response.statusText,
-    errorData
-  );
-
-  // Special handling for 401 errors
-  if (response.status === 401) {
-    console.warn('⚠️ 401 Unauthorized detected:', apiError.message);
+  constructor(clientName: string) {
+    this.clientName = clientName;
   }
 
-  throw apiError;
+  /**
+   * Create authorization headers with a fresh access token
+   */
+  protected async createAuthHeaders(): Promise<Record<string, string>> {
+    const accessToken = await getValidAccessToken();
+
+    if (!accessToken) {
+      throw new AuthenticationError();
+    }
+
+    return {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    };
+  }
+
+  /**
+   * Authenticated fetch with automatic 401 retry
+   * @param url - Full URL to fetch
+   * @param options - Fetch options
+   * @param isRetry - Whether this is a retry attempt (internal use)
+   * @returns Raw Response object
+   */
+  protected async fetchWithAuth(
+    url: string,
+    options: RequestInit = {},
+    isRetry = false
+  ): Promise<Response> {
+    const method = options.method || 'GET';
+
+    try {
+      this.logStart(method, url);
+
+      const headers = await this.createAuthHeaders();
+
+      const response = await fetch(url, {
+        ...options,
+        headers: { ...headers, ...(options.headers as Record<string, string>) },
+      });
+
+      // On 401, attempt token refresh and retry once
+      if (response.status === 401 && !isRetry) {
+        console.warn(
+          `⚠️ [${this.clientName}] 401 on ${method} ${url}, attempting token refresh and retry...`
+        );
+        const error = new ApiError('Unauthorized', 401, 'Unauthorized');
+        await handleGlobalError(error); // This triggers token refresh
+        return this.fetchWithAuth(url, options, true);
+      }
+
+      // If still 401 on retry, force logout
+      if (response.status === 401 && isRetry) {
+        const error = new ApiError('Unauthorized', 401, 'Unauthorized');
+        await handleGlobalError(error, true); // skipRefreshAttempt = true
+        throw error;
+      }
+
+      this.logSuccess(method, url, response.status);
+      return response;
+    } catch (error) {
+      this.logError(method, url, error);
+
+      // Avoid double-handling of 401 errors already processed above
+      if (!(error instanceof ApiError && error.status === 401)) {
+        await handleGlobalError(error, isRetry);
+      }
+
+      throw error;
+    }
+  }
+
+  /**
+   * Parse error response into ApiError
+   */
+  protected async handleErrorResponse(response: Response): Promise<never> {
+    const errorData = await response.json().catch(() => ({}));
+
+    throw new ApiError(
+      errorData.message || errorData.error || 'Unknown error',
+      response.status,
+      response.statusText,
+      errorData
+    );
+  }
+
+  // --- Debug Logging ---
+
+  private logStart(method: string, url: string): void {
+    if (isDebugEnabled()) {
+      console.log(`🚀 [${this.clientName}] ${method} ${url}`);
+    }
+  }
+
+  private logSuccess(method: string, url: string, status: number): void {
+    if (isDebugEnabled()) {
+      console.log(`✅ [${this.clientName}] ${method} ${url} -> ${status}`);
+    }
+  }
+
+  private logError(method: string, url: string, error: unknown): void {
+    if (isDebugEnabled()) {
+      console.error(`💥 [${this.clientName}] ${method} ${url} failed:`, error);
+    }
+  }
 }
 
 /**
  * Normalize base URL by removing trailing slashes
- * @param url - URL to normalize
- * @returns Normalized URL
  */
 export function normalizeBaseUrl(url: string): string {
   return url.replace(/\/$/, '');
