@@ -55,8 +55,8 @@ function TreeNode({
   return (
     <div>
       <div
-        className={`flex items-center gap-1 px-2 py-1.5 rounded cursor-pointer hover:bg-gray-100 transition-colors ${
-          isSelected ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
+        className={`flex items-center gap-1 px-2 py-1.5 rounded cursor-pointer hover:bg-surface-secondary transition-colors ${
+          isSelected ? 'bg-feedback-info-bg text-action-primary' : 'text-fg-secondary'
         }`}
         style={{ paddingLeft: `${level * 12 + 8}px` }}
         onClick={handleClick}
@@ -65,7 +65,7 @@ function TreeNode({
         {/* 展開/折りたたみアイコン */}
         <button
           onClick={handleToggle}
-          className={`p-0.5 hover:bg-gray-200 rounded transition-colors ${
+          className={`p-0.5 hover:bg-border rounded transition-colors ${
             !hasChildren ? 'invisible' : ''
           }`}
         >
@@ -133,7 +133,7 @@ export function FolderTree({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <div className="text-sm text-gray-500">{t('common.loading')}</div>
+        <div className="text-sm text-fg-muted">{t('common.loading')}</div>
       </div>
     );
   }
@@ -141,7 +141,7 @@ export function FolderTree({
   if (!tree || tree.length === 0) {
     return (
       <div className="flex items-center justify-center py-8">
-        <div className="text-sm text-gray-500">{t('common.noFolders')}</div>
+        <div className="text-sm text-fg-muted">{t('common.noFolders')}</div>
       </div>
     );
   }

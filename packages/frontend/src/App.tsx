@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { useAuthStore } from './stores/authStore';
+import { useThemeStore } from './stores/themeStore';
 import { AuthContainer } from './features/auth/AuthContainer';
 import { MainLayout } from './layouts/MainLayout';
 import { HomePage } from './pages/HomePage';
@@ -22,6 +23,12 @@ import { CommandPalette, useCommandPalette } from './components/ui/CommandPalett
 function App() {
   const { user, isAuthenticated, setUser, setLoading, setError, logout } = useAuthStore();
   const { initializeStore, clearStore } = useAgentStore();
+
+  // Initialize theme
+  const initializeTheme = useThemeStore((state) => state.initialize);
+  useEffect(() => {
+    initializeTheme();
+  }, [initializeTheme]);
 
   // Initialize error handler and check existing session
   useEffect(() => {

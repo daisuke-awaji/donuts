@@ -8,7 +8,7 @@ export const ModalContent: React.FC<ModalContentProps> = ({
   noPadding = false,
 }) => {
   return (
-    <div className={cn('flex-1 overflow-y-auto bg-white', className)}>
+    <div className={cn('flex-1 overflow-y-auto bg-surface-primary', className)}>
       <div className={cn(!noPadding && 'p-6')}>{children}</div>
     </div>
   );

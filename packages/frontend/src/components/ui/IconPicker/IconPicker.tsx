@@ -99,41 +99,41 @@ export const IconPicker: React.FC<IconPickerProps> = ({
         onClick={() => !disabled && setIsOpen(!isOpen)}
         disabled={disabled}
         className={cn(
-          'w-11 h-11 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors',
-          !disabled && 'hover:bg-gray-200 cursor-pointer',
+          'w-11 h-11 bg-surface-secondary rounded-lg flex items-center justify-center flex-shrink-0 transition-colors',
+          !disabled && 'hover:bg-border cursor-pointer',
           disabled && 'opacity-50 cursor-not-allowed',
           isOpen && 'ring-2 ring-blue-500'
         )}
         title={t('common.clickToSelectIcon')}
       >
-        <SelectedIcon className="w-6 h-6 text-gray-700" />
+        <SelectedIcon className="w-6 h-6 text-fg-secondary" />
       </button>
 
       {/* ポップオーバー */}
       {isOpen && (
-        <div className="absolute top-14 left-0 z-50 w-[520px] bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden">
+        <div className="absolute top-14 left-0 z-50 w-[520px] bg-surface-primary rounded-xl shadow-2xl border border-border overflow-hidden">
           {/* 検索バー */}
-          <div className="p-3 border-b border-gray-200 bg-gray-50">
+          <div className="p-3 border-b border-border bg-surface-secondary">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-fg-disabled" />
               <input
                 ref={searchInputRef}
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={t('common.searchIconsPlaceholder')}
-                className="w-full pl-9 pr-9 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full pl-9 pr-9 py-2 text-sm border border-border-strong rounded-lg bg-surface-primary text-fg-default focus:ring-2 focus:ring-border-focus focus:border-transparent"
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-fg-disabled hover:text-fg-secondary"
                 >
                   <X className="w-4 h-4" />
                 </button>
               )}
             </div>
-            <p className="text-xs text-gray-500 mt-2">
+            <p className="text-xs text-fg-muted mt-2">
               {t('common.iconsCount', { count: filteredIcons.length })}
             </p>
           </div>
@@ -177,15 +177,15 @@ export const IconPicker: React.FC<IconPickerProps> = ({
                             className={cn(
                               'w-14 h-14 flex flex-col items-center justify-center rounded-lg transition-all group',
                               isSelected
-                                ? 'bg-blue-100 text-blue-600 ring-2 ring-blue-500'
-                                : 'hover:bg-gray-100 text-gray-600 hover:text-gray-900'
+                                ? 'bg-blue-100 text-action-primary ring-2 ring-blue-500'
+                                : 'hover:bg-surface-secondary text-fg-secondary hover:text-fg-default'
                             )}
                           >
                             <IconComponent className="w-5 h-5 flex-shrink-0" />
                             <span
                               className={cn(
                                 'text-[8px] mt-0.5 truncate max-w-[48px] leading-tight',
-                                isSelected ? 'text-blue-600' : 'text-gray-500'
+                                isSelected ? 'text-action-primary' : 'text-fg-muted'
                               )}
                               title={iconName}
                             >
@@ -199,7 +199,7 @@ export const IconPicker: React.FC<IconPickerProps> = ({
                 })}
               </div>
             ) : (
-              <div className="text-center py-8 text-gray-400 text-sm">
+              <div className="text-center py-8 text-fg-disabled text-sm">
                 {t('common.noIconsFound', { query: searchQuery })}
               </div>
             )}

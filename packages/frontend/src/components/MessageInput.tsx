@@ -325,7 +325,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
 
   return (
     <div
-      className="sticky bottom-0 left-0 right-0 z-30 bg-white p-4"
+      className="sticky bottom-0 left-0 right-0 z-30 bg-surface-primary p-4"
       style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
     >
       {/* Storage path display */}
@@ -361,7 +361,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
             onKeyDown={handleKeyDown}
             onPaste={handlePaste}
             placeholder={t('chat.messageInputPlaceholder')}
-            className="w-full px-4 py-3 pr-12 pb-12 border border-gray-200 rounded-2xl focus:outline-none focus:ring-1 focus:ring-gray-200 focus:border-transparent resize-none min-h-[72px] max-h-[200px] bg-white"
+            className="w-full px-4 py-3 pr-12 pb-12 border border-border rounded-2xl focus:outline-none focus:ring-1 focus:ring-gray-200 focus:border-transparent resize-none min-h-[72px] max-h-[200px] bg-surface-primary"
             rows={2}
             style={{ height: 'auto' }}
           />
@@ -376,8 +376,8 @@ export const MessageInput: React.FC<MessageInputProps> = ({
               disabled={isLoading || attachedImages.length >= IMAGE_ATTACHMENT_CONFIG.MAX_COUNT}
               className={`p-1.5 rounded-md transition-colors ${
                 isLoading || attachedImages.length >= IMAGE_ATTACHMENT_CONFIG.MAX_COUNT
-                  ? 'text-gray-300 cursor-not-allowed'
-                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                  ? 'text-fg-disabled cursor-not-allowed'
+                  : 'text-fg-muted hover:text-fg-secondary hover:bg-surface-secondary'
               }`}
               title={t('chat.imageAttachment.attach')}
             >
@@ -391,8 +391,8 @@ export const MessageInput: React.FC<MessageInputProps> = ({
             disabled={(!input.trim() && attachedImages.length === 0) || isLoading}
             className={`absolute right-2 bottom-2 w-8 h-8 rounded-md flex items-center justify-center transition-all duration-200 ${
               (!input.trim() && attachedImages.length === 0) || isLoading
-                ? 'text-gray-400 cursor-not-allowed'
-                : 'text-black hover:bg-gray-100'
+                ? 'text-fg-disabled cursor-not-allowed'
+                : 'text-black hover:bg-surface-secondary'
             }`}
           >
             {isLoading ? (
