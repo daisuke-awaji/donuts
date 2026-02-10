@@ -38,6 +38,10 @@ export const environments: Record<Environment, EnvironmentConfigInput> = {
   dev: {
     tavilyApiKeySecretName: 'agentcore/dev/tavily-api-key',
     githubTokenSecretName: 'agentcore/dev/github-token',
+    customDomain: {
+      domainName: 'geeawa.net',
+      hostName: 'donuts-dev',
+    },
     eventRules: [
       {
         id: 's3-upload',
