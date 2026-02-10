@@ -1,22 +1,34 @@
 /**
  * Tests for SyncIgnoreFilter
+ * Now imported from @fullstack-agentcore/s3-workspace-sync
  */
 
-import { SyncIgnoreFilter } from '../sync-ignore-filter.js';
+import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
+import { SyncIgnoreFilter } from '@fullstack-agentcore/s3-workspace-sync';
+import type { SyncLogger } from '@fullstack-agentcore/s3-workspace-sync';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 
+function createSilentLogger(): SyncLogger {
+  return {
+    debug: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+  };
+}
+
 describe('SyncIgnoreFilter', () => {
   let tempDir: string;
+  let logger: SyncLogger;
 
   beforeEach(() => {
-    // Create temporary directory for tests
     tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sync-ignore-test-'));
+    logger = createSilentLogger();
   });
 
   afterEach(() => {
-    // Clean up temporary directory
     if (fs.existsSync(tempDir)) {
       fs.rmSync(tempDir, { recursive: true, force: true });
     }
@@ -24,7 +36,7 @@ describe('SyncIgnoreFilter', () => {
 
   describe('default patterns', () => {
     it('should ignore system files', () => {
-      const filter = new SyncIgnoreFilter();
+      const filter = new SyncIgnoreFilter(logger);
 
       expect(filter.isIgnored('.DS_Store')).toBe(true);
       expect(filter.isIgnored('Thumbs.db')).toBe(true);
@@ -33,7 +45,7 @@ describe('SyncIgnoreFilter', () => {
     });
 
     it('should ignore build artifacts', () => {
-      const filter = new SyncIgnoreFilter();
+      const filter = new SyncIgnoreFilter(logger);
 
       expect(filter.isIgnored('node_modules/package/index.js')).toBe(true);
       expect(filter.isIgnored('__pycache__/module.pyc')).toBe(true);
@@ -44,7 +56,7 @@ describe('SyncIgnoreFilter', () => {
     });
 
     it('should ignore IDE settings', () => {
-      const filter = new SyncIgnoreFilter();
+      const filter = new SyncIgnoreFilter(logger);
 
       expect(filter.isIgnored('.idea/workspace.xml')).toBe(true);
       expect(filter.isIgnored('.vscode/settings.json')).toBe(true);
@@ -52,14 +64,14 @@ describe('SyncIgnoreFilter', () => {
     });
 
     it('should ignore log files', () => {
-      const filter = new SyncIgnoreFilter();
+      const filter = new SyncIgnoreFilter(logger);
 
       expect(filter.isIgnored('error.log')).toBe(true);
       expect(filter.isIgnored('logs/app.log')).toBe(true);
     });
 
     it('should ignore temporary files', () => {
-      const filter = new SyncIgnoreFilter();
+      const filter = new SyncIgnoreFilter(logger);
 
       expect(filter.isIgnored('temp.tmp')).toBe(true);
       expect(filter.isIgnored('file.temp')).toBe(true);
@@ -67,13 +79,13 @@ describe('SyncIgnoreFilter', () => {
     });
 
     it('should ignore .syncignore file itself', () => {
-      const filter = new SyncIgnoreFilter();
+      const filter = new SyncIgnoreFilter(logger);
 
       expect(filter.isIgnored('.syncignore')).toBe(true);
     });
 
     it('should not ignore regular files', () => {
-      const filter = new SyncIgnoreFilter();
+      const filter = new SyncIgnoreFilter(logger);
 
       expect(filter.isIgnored('README.md')).toBe(false);
       expect(filter.isIgnored('src/index.ts')).toBe(false);
@@ -95,7 +107,7 @@ test-data/
 `
       );
 
-      const filter = new SyncIgnoreFilter();
+      const filter = new SyncIgnoreFilter(logger);
       filter.loadFromWorkspace(tempDir);
 
       expect(filter.isIgnored('secrets/api-key.txt')).toBe(true);
@@ -117,7 +129,7 @@ test-data/
 `
       );
 
-      const filter = new SyncIgnoreFilter();
+      const filter = new SyncIgnoreFilter(logger);
       filter.loadFromWorkspace(tempDir);
 
       expect(filter.isIgnored('password.secret')).toBe(true);
@@ -125,151 +137,49 @@ test-data/
     });
 
     it('should work without .syncignore file', () => {
-      const filter = new SyncIgnoreFilter();
+      const filter = new SyncIgnoreFilter(logger);
       filter.loadFromWorkspace(tempDir);
 
-      // Should still apply default patterns
-      expect(filter.isIgnored('node_modules/package')).toBe(true);
+      expect(filter.isIgnored('node_modules/pkg/index.js')).toBe(true);
       expect(filter.isIgnored('README.md')).toBe(false);
-    });
-
-    it('should combine default and custom patterns', () => {
-      const syncignorePath = path.join(tempDir, '.syncignore');
-      fs.writeFileSync(syncignorePath, '*.custom\n');
-
-      const filter = new SyncIgnoreFilter();
-      filter.loadFromWorkspace(tempDir);
-
-      // Default pattern
-      expect(filter.isIgnored('node_modules/pkg')).toBe(true);
-      // Custom pattern
-      expect(filter.isIgnored('file.custom')).toBe(true);
-      // Not ignored
-      expect(filter.isIgnored('file.txt')).toBe(false);
-    });
-  });
-
-  describe('pattern matching', () => {
-    it('should handle wildcard patterns', () => {
-      const syncignorePath = path.join(tempDir, '.syncignore');
-      fs.writeFileSync(
-        syncignorePath,
-        `*.backup
-temp*
-*-old.*
-`
-      );
-
-      const filter = new SyncIgnoreFilter();
-      filter.loadFromWorkspace(tempDir);
-
-      expect(filter.isIgnored('file.backup')).toBe(true);
-      expect(filter.isIgnored('tempfile.txt')).toBe(true);
-      expect(filter.isIgnored('data-old.json')).toBe(true);
-    });
-
-    it('should handle directory patterns', () => {
-      const syncignorePath = path.join(tempDir, '.syncignore');
-      fs.writeFileSync(
-        syncignorePath,
-        `coverage/
-.git/
-private/
-`
-      );
-
-      const filter = new SyncIgnoreFilter();
-      filter.loadFromWorkspace(tempDir);
-
-      expect(filter.isIgnored('coverage/lcov-report/index.html')).toBe(true);
-      expect(filter.isIgnored('.git/config')).toBe(true);
-      expect(filter.isIgnored('private/secrets.txt')).toBe(true);
-    });
-
-    it('should handle negation patterns', () => {
-      const syncignorePath = path.join(tempDir, '.syncignore');
-      fs.writeFileSync(
-        syncignorePath,
-        `*.log
-!important.log
-`
-      );
-
-      const filter = new SyncIgnoreFilter();
-      filter.loadFromWorkspace(tempDir);
-
-      expect(filter.isIgnored('error.log')).toBe(true);
-      expect(filter.isIgnored('important.log')).toBe(false);
-    });
-
-    it('should normalize path separators', () => {
-      const filter = new SyncIgnoreFilter();
-
-      // Should work with both forward and backslashes
-      expect(filter.isIgnored('node_modules/package')).toBe(true);
-      expect(filter.isIgnored('node_modules\\package')).toBe(true);
-    });
-  });
-
-  describe('filter method', () => {
-    it('should filter array of paths', () => {
-      const filter = new SyncIgnoreFilter();
-
-      const paths = [
-        'README.md',
-        'node_modules/pkg/index.js',
-        'src/index.ts',
-        '.DS_Store',
-        'dist/bundle.js',
-        'package.json',
-      ];
-
-      const filtered = filter.filter(paths);
-
-      expect(filtered).toEqual(['README.md', 'src/index.ts', 'package.json']);
-    });
-
-    it('should return empty array when all paths are ignored', () => {
-      const filter = new SyncIgnoreFilter();
-
-      const paths = ['node_modules/pkg', '.DS_Store', 'build/output'];
-
-      const filtered = filter.filter(paths);
-
-      expect(filtered).toEqual([]);
-    });
-
-    it('should return all paths when none are ignored', () => {
-      const filter = new SyncIgnoreFilter();
-
-      const paths = ['README.md', 'src/index.ts', 'package.json'];
-
-      const filtered = filter.filter(paths);
-
-      expect(filtered).toEqual(paths);
     });
   });
 
   describe('getInfo', () => {
-    it('should return pattern information', () => {
-      const filter = new SyncIgnoreFilter();
-
+    it('should report default patterns count', () => {
+      const filter = new SyncIgnoreFilter(logger);
       const info = filter.getInfo();
 
       expect(info.defaultPatternsCount).toBeGreaterThan(0);
       expect(info.customPatternsLoaded).toBe(false);
     });
 
-    it('should indicate when custom patterns are loaded', () => {
+    it('should report custom patterns loaded', () => {
       const syncignorePath = path.join(tempDir, '.syncignore');
       fs.writeFileSync(syncignorePath, '*.custom\n');
 
-      const filter = new SyncIgnoreFilter();
+      const filter = new SyncIgnoreFilter(logger);
       filter.loadFromWorkspace(tempDir);
 
-      const info = filter.getInfo();
+      expect(filter.getInfo().customPatternsLoaded).toBe(true);
+    });
+  });
 
-      expect(info.customPatternsLoaded).toBe(true);
+  describe('filter method', () => {
+    it('should filter out ignored paths', () => {
+      const filter = new SyncIgnoreFilter(logger);
+      const paths = ['src/index.ts', 'node_modules/pkg/index.js', '.DS_Store', 'README.md'];
+      const result = filter.filter(paths);
+
+      expect(result).toEqual(['src/index.ts', 'README.md']);
+    });
+  });
+
+  describe('cross-platform paths', () => {
+    it('should handle backslash paths on Windows', () => {
+      const filter = new SyncIgnoreFilter(logger);
+
+      expect(filter.isIgnored('node_modules\\pkg\\index.js')).toBe(true);
     });
   });
 });

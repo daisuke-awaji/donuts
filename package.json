@@ -8,15 +8,15 @@
   },
   "workspaces": [
     "packages/*",
-    "packages/shared/*"
+    "packages/libs/*"
   ],
   "scripts": {
-    "build": "npm run build --workspace=@fullstack-agentcore/tool-definitions && npm run build --workspaces --if-present",
-    "test": "npm run build --workspace=@fullstack-agentcore/tool-definitions && npm run test --workspaces --if-present",
+    "build": "npm run build --workspace=@fullstack-agentcore/tool-definitions && npm run build --workspace=@fullstack-agentcore/s3-workspace-sync && npm run build --workspaces --if-present",
+    "test": "npm run build --workspace=@fullstack-agentcore/tool-definitions && npm run build --workspace=@fullstack-agentcore/s3-workspace-sync && npm run test --workspaces --if-present",
     "test:integration": "npm run test:integration --workspace=@fullstack-agentcore/backend",
     "setup-env": "tsx scripts/setup-env.ts",
-    "dev": "npm run build --workspace=@fullstack-agentcore/tool-definitions && concurrently -n \"frontend,backend,agent\" -c \"cyan,magenta,yellow\" \"npm:frontend:dev\" \"npm:backend:dev\" \"npm:agent:dev\"",
-    "devw": "npm run setup-env && npm run build --workspace=@fullstack-agentcore/tool-definitions && concurrently -n \"frontend,backend,agent\" -c \"cyan,magenta,yellow\" \"npm:frontend:dev\" \"npm:backend:dev\" \"npm:agent:dev\"",
+    "dev": "npm run build --workspace=@fullstack-agentcore/tool-definitions && npm run build --workspace=@fullstack-agentcore/s3-workspace-sync && concurrently -n \"frontend,backend,agent\" -c \"cyan,magenta,yellow\" \"npm:frontend:dev\" \"npm:backend:dev\" \"npm:agent:dev\"",
+    "devw": "npm run setup-env && npm run build --workspace=@fullstack-agentcore/tool-definitions && npm run build --workspace=@fullstack-agentcore/s3-workspace-sync && concurrently -n \"frontend,backend,agent\" -c \"cyan,magenta,yellow\" \"npm:frontend:dev\" \"npm:backend:dev\" \"npm:agent:dev\"",
     "dev:frontend": "npm run setup-env && npm run frontend:dev",
     "dev:backend": "npm run setup-env && npm run backend:dev",
     "dev:agent": "npm run setup-env && npm run agent:dev",

@@ -42,6 +42,23 @@ export default tseslint.config(
       ],
     },
   },
+  // s3-workspace-sync パッケージ: ESM モードで .js 拡張子を強制
+  {
+    files: ['packages/shared/s3-workspace-sync/**/*.ts'],
+    plugins: {
+      import: importPlugin,
+    },
+    rules: {
+      'import/extensions': [
+        'error',
+        'ignorePackages',
+        {
+          ts: 'never',
+          js: 'always',
+        },
+      ],
+    },
+  },
   // Agent と Backend パッケージ: 日本語文字列を検出
   {
     files: ['packages/agent/**/*.ts', 'packages/backend/**/*.ts'],
