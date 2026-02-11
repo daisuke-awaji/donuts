@@ -12,6 +12,7 @@ packages/cdk/cdk.out/
 # Compiled TypeScript
 *.js
 *.d.ts
+!**/types/*.d.ts
 
 # Logs
 npm-debug.log*
