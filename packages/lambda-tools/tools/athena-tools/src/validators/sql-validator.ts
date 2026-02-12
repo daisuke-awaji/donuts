@@ -5,7 +5,7 @@
  * referenced table names for access control checks.
  */
 
-import { logger } from '../logger.js';
+import { logger } from '@lambda-tools/shared';
 
 /**
  * SQL validation result

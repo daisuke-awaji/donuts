@@ -6,10 +6,15 @@
  */
 
 import { GlueClient, GetTableCommand } from '@aws-sdk/client-glue';
-import { ToolInput, ToolResult } from '../types.js';
-import { Tool, ToolValidationError, AccessDeniedError } from './types.js';
+import {
+  ToolInput,
+  ToolResult,
+  Tool,
+  ToolValidationError,
+  AccessDeniedError,
+  logger,
+} from '@lambda-tools/shared';
 import { loadConfig, isDatabaseAllowed, isTableAllowed } from '../config.js';
-import { logger } from '../logger.js';
 
 const TOOL_NAME = 'athena-describe-table';
 

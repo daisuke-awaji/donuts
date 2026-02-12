@@ -1,11 +1,11 @@
 /**
- * Common tool type definitions
+ * Tool definition types and error classes for AgentCore Gateway Lambda Tools
  */
 
-import { ToolInput, ToolResult } from '../types.js';
+import { ToolInput, ToolResult } from './types.js';
 
 /**
- * Tool handler function type
+ * Tool handler function signature
  */
 export type ToolHandler = (input: ToolInput) => Promise<ToolResult>;
 
@@ -21,8 +21,34 @@ export interface Tool {
   description?: string;
   /** Tool version */
   version?: string;
-  /** Tool tags */
+  /** Tool tags for categorization */
   tags?: string[];
+}
+
+/**
+ * Tool execution context metadata
+ */
+export interface ToolExecutionContext {
+  /** Execution start time (epoch ms) */
+  startTime: number;
+  /** Tool name */
+  toolName: string;
+  /** Input data size in bytes */
+  inputSize: number;
+}
+
+/**
+ * Tool execution result with metadata
+ */
+export interface ToolExecutionResult {
+  /** Execution result */
+  result: ToolResult;
+  /** Execution context */
+  context: ToolExecutionContext;
+  /** Execution duration in milliseconds */
+  executionTimeMs: number;
+  /** Output data size in bytes */
+  outputSize: number;
 }
 
 /**
@@ -54,7 +80,7 @@ export class ToolValidationError extends ToolError {
 }
 
 /**
- * Access denied error (database/table not in allow list)
+ * Access denied error (e.g., resource not in allow list)
  */
 export class AccessDeniedError extends ToolError {
   constructor(

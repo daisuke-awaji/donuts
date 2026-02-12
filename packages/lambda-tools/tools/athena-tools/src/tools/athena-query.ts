@@ -12,11 +12,16 @@ import {
   GetQueryResultsCommand,
   QueryExecutionState,
 } from '@aws-sdk/client-athena';
-import { ToolInput, ToolResult } from '../types.js';
-import { Tool, ToolValidationError, AccessDeniedError } from './types.js';
+import {
+  ToolInput,
+  ToolResult,
+  Tool,
+  ToolValidationError,
+  AccessDeniedError,
+  logger,
+} from '@lambda-tools/shared';
 import { loadConfig, isDatabaseAllowed, isTableAllowed } from '../config.js';
 import { validateSql } from '../validators/sql-validator.js';
-import { logger } from '../logger.js';
 
 const TOOL_NAME = 'athena-query';
 const MAX_ROWS_LIMIT = 1000;

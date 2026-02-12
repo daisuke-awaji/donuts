@@ -9,7 +9,7 @@
  * only those entries are allowed (allowlist mode).
  */
 
-import { logger } from './logger.js';
+import { logger } from '@lambda-tools/shared';
 
 /** Wildcard value that permits all entries */
 const WILDCARD = '*';

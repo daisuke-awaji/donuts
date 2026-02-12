@@ -1,64 +1,31 @@
 /**
- * Tool registry
+ * Athena tools registry
  *
- * Manages available tools and provides lookup by name.
+ * Registers available Athena tools and exports the registry for handler use.
  */
 
-import { Tool, ToolHandler } from './types.js';
+import { ToolRegistry } from '@lambda-tools/shared';
 import { athenaQueryTool } from './athena-query.js';
 import { athenaListTablesTool } from './athena-list-tables.js';
 import { athenaDescribeTableTool } from './athena-describe-table.js';
-import { logger } from '../logger.js';
 
 /**
- * Registry of available tools
+ * Tool registry with all Athena tools registered.
+ * Default tool is `athena-list-tables` (used when tool name is not provided or not found).
  */
-export const toolRegistry = new Map<string, Tool>([
-  ['athena-query', athenaQueryTool],
-  ['athena-list-tables', athenaListTablesTool],
-  ['athena-describe-table', athenaDescribeTableTool],
-]);
+export const registry = new ToolRegistry(
+  [athenaQueryTool, athenaListTablesTool, athenaDescribeTableTool],
+  athenaListTablesTool
+);
 
 /**
- * Default tool (used when tool name is unknown)
- */
-export const defaultTool = athenaListTablesTool;
-
-/**
- * Get a tool handler by name
+ * Get a tool handler by name (convenience wrapper)
  *
- * @param toolName - Tool name (null falls back to default tool)
+ * @param toolName - Tool name (null falls back to default)
  * @returns Tool handler function
  */
-export function getToolHandler(toolName: string | null): ToolHandler {
-  if (!toolName) {
-    logger.info('TOOL_REGISTRY', {
-      action: 'get_default_tool',
-      defaultTool: defaultTool.name,
-      reason: 'no_tool_name_provided',
-    });
-    return defaultTool.handler;
-  }
-
-  const tool = toolRegistry.get(toolName);
-
-  if (!tool) {
-    logger.warn('TOOL_REGISTRY', {
-      action: 'tool_not_found',
-      requestedTool: toolName,
-      availableTools: Array.from(toolRegistry.keys()),
-      fallbackTool: defaultTool.name,
-    });
-    return defaultTool.handler;
-  }
-
-  logger.info('TOOL_REGISTRY', {
-    action: 'tool_found',
-    toolName: tool.name,
-    toolVersion: tool.version,
-  });
-
-  return tool.handler;
+export function getToolHandler(toolName: string | null) {
+  return registry.getHandler(toolName);
 }
 
 /**
@@ -67,19 +34,5 @@ export function getToolHandler(toolName: string | null): ToolHandler {
  * @returns Array of tool names
  */
 export function getToolNames(): string[] {
-  return Array.from(toolRegistry.keys());
+  return registry.getNames();
 }
-
-/**
- * Initialize and validate the registry
- */
-function initializeRegistry(): void {
-  logger.info('TOOL_REGISTRY', {
-    action: 'registry_initialized',
-    totalTools: toolRegistry.size,
-    toolNames: Array.from(toolRegistry.keys()),
-    defaultTool: defaultTool.name,
-  });
-}
-
-initializeRegistry();
