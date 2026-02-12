@@ -1,11 +1,6 @@
 import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
-import {
-  AgentCoreGateway,
-  AgentCoreLambdaTarget,
-  AgentCoreMemory,
-  AgentCoreRuntime,
-} from './constructs/agentcore';
+import { AgentCoreGateway, AgentCoreMemory, AgentCoreRuntime } from './constructs/agentcore';
 import { AgentsTable, SessionsTable, TriggersTable, UserStorage } from './constructs/storage';
 import { TriggerLambda, TriggerEventSources, SessionStreamHandler } from './constructs/triggers';
 import { BackendApi, AppSyncEvents } from './constructs/api';
@@ -100,11 +95,6 @@ export class AgentCoreStack extends cdk.Stack {
   public readonly gateway: AgentCoreGateway;
 
   /**
-   * Created Utility Tools Lambda Target
-   */
-  public readonly echoToolTarget: AgentCoreLambdaTarget;
-
-  /**
    * Created AgentCore Runtime
    */
   public readonly agentRuntime: AgentCoreRuntime;
@@ -179,25 +169,9 @@ export class AgentCoreStack extends cdk.Stack {
       },
     });
 
-    // Create Utility Tools Lambda Target
-    this.echoToolTarget = new AgentCoreLambdaTarget(this, 'EchoToolTarget', {
-      resourcePrefix: resourcePrefix,
-      targetName: 'utility-tools',
-      description: 'Lambda function providing utility tools',
-      lambdaCodePath: 'packages/lambda-tools/tools/utility-tools',
-      toolSchemaPath: 'packages/lambda-tools/tools/utility-tools/tool-schema.json',
-      timeout: 30,
-      memorySize: 256,
-      enableKnowledgeBaseAccess: true, // Enable Retrieve permissions for Knowledge Base
-      environment: {
-        LOG_LEVEL: 'INFO',
-      },
-    });
-
-    // Add Lambda Target to Gateway
-    this.echoToolTarget.addToGateway(this.gateway.gateway, 'EchoToolGatewayTarget');
-
-    // CloudFormation outputs
+    // Gateway attributes are exported for cross-stack reference by AgentCoreGatewayTargetStack.
+    // Targets are managed in a separate stack to split the deployment unit,
+    // allowing each target to be deployed independently without affecting core infrastructure.
     new cdk.CfnOutput(this, 'GatewayArn', {
       value: this.gateway.gatewayArn,
       description: 'AgentCore Gateway ARN',
@@ -208,6 +182,18 @@ export class AgentCoreStack extends cdk.Stack {
       value: this.gateway.gatewayId,
       description: 'AgentCore Gateway ID',
       exportName: `${id}-GatewayId`,
+    });
+
+    new cdk.CfnOutput(this, 'GatewayName', {
+      value: resourcePrefix,
+      description: 'AgentCore Gateway Name',
+      exportName: `${id}-GatewayName`,
+    });
+
+    new cdk.CfnOutput(this, 'GatewayRoleArn', {
+      value: this.gateway.gatewayRole.roleArn,
+      description: 'AgentCore Gateway IAM Role ARN',
+      exportName: `${id}-GatewayRoleArn`,
     });
 
     new cdk.CfnOutput(this, 'Region', {
@@ -224,18 +210,6 @@ export class AgentCoreStack extends cdk.Stack {
     new cdk.CfnOutput(this, 'UserPoolClientId', {
       value: this.cognitoAuth.clientId,
       description: 'Cognito User Pool Client ID',
-    });
-
-    new cdk.CfnOutput(this, 'UtilityToolsLambdaArn', {
-      value: this.echoToolTarget.lambdaFunction.functionArn,
-      description: 'Utility Tools Lambda Function ARN',
-      exportName: `${id}-UtilityToolsLambdaArn`,
-    });
-
-    new cdk.CfnOutput(this, 'UtilityToolsLambdaName', {
-      value: this.echoToolTarget.lambdaFunction.functionName,
-      description: 'Utility Tools Lambda Function Name',
-      exportName: `${id}-UtilityToolsLambdaName`,
     });
 
     // 3. Create AgentCore Memory

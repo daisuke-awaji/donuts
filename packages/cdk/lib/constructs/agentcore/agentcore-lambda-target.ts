@@ -2,7 +2,6 @@ import { Construct } from 'constructs';
 import * as cdk from 'aws-cdk-lib';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as nodejs from 'aws-cdk-lib/aws-lambda-nodejs';
-import * as iam from 'aws-cdk-lib/aws-iam';
 import * as agentcore from '@aws-cdk/aws-bedrock-agentcore-alpha';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -73,12 +72,6 @@ export interface AgentCoreLambdaTargetProps {
    * Environment variables (optional)
    */
   readonly environment?: { [key: string]: string };
-
-  /**
-   * Whether to grant Retrieve permission to Knowledge Base (optional)
-   * @default false
-   */
-  readonly enableKnowledgeBaseAccess?: boolean;
 }
 
 /**
@@ -140,18 +133,6 @@ export class AgentCoreLambdaTarget extends Construct {
 
     // Lambda log output settings
     this.lambdaFunction.addEnvironment('AWS_LAMBDA_LOG_LEVEL', 'INFO');
-
-    // Grant Retrieve permission to Knowledge Base
-    if (props.enableKnowledgeBaseAccess) {
-      this.lambdaFunction.addToRolePolicy(
-        new iam.PolicyStatement({
-          actions: ['bedrock:Retrieve'],
-          resources: [
-            `arn:aws:bedrock:${cdk.Stack.of(this).region}:${cdk.Stack.of(this).account}:knowledge-base/*`,
-          ],
-        })
-      );
-    }
   }
 
   /**
@@ -176,7 +157,7 @@ export class AgentCoreLambdaTarget extends Construct {
   }
 
   /**
-   * Add this Lambda Target to Gateway
+   * Add this Lambda Target to Gateway (L2 Construct - same stack)
    */
   public addToGateway(gateway: agentcore.Gateway, targetId: string): agentcore.GatewayTarget {
     const target = gateway.addLambdaTarget(targetId, {
@@ -191,5 +172,27 @@ export class AgentCoreLambdaTarget extends Construct {
     target.node.addDependency(gateway.role);
 
     return target;
+  }
+
+  /**
+   * Add this Lambda Target to an imported Gateway (cross-stack)
+   *
+   * Uses GatewayTarget.forLambda() with an IGateway obtained from
+   * Gateway.fromGatewayAttributes(), enabling cross-stack deployment.
+   *
+   * @param importedGateway - IGateway instance from Gateway.fromGatewayAttributes()
+   * @param targetId - CloudFormation logical ID for the target resource
+   */
+  public addToImportedGateway(
+    importedGateway: agentcore.IGateway,
+    targetId: string
+  ): agentcore.GatewayTarget {
+    return agentcore.GatewayTarget.forLambda(this, targetId, {
+      gateway: importedGateway,
+      gatewayTargetName: this.targetName,
+      lambdaFunction: this.lambdaFunction,
+      toolSchema: this.toolSchema,
+      description: `Lambda target for ${this.targetName}`,
+    });
   }
 }

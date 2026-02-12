@@ -2,6 +2,7 @@
 import 'source-map-support/register';
 import * as cdk from 'aws-cdk-lib';
 import { AgentCoreStack } from '../lib/agentcore-stack';
+import { AgentCoreGatewayTargetStack } from '../lib/agentcore-gateway-target-stack';
 import { getEnvironmentConfig, Environment } from '../config';
 
 const app = new cdk.App();
@@ -26,8 +27,10 @@ if (!envContext) {
   stackName = `DonutsAgentCoreApp${envName.charAt(0).toUpperCase() + envName.slice(1)}`;
 }
 
-// Create stack
-new AgentCoreStack(app, stackName, {
+// Core Stack: manages foundational resources (Gateway, Cognito, Memory, Storage, Runtime, Frontend).
+// Gateway targets are separated into AgentCoreGatewayTargetStack to split the deployment unit,
+// allowing each target to be deployed independently without affecting core infrastructure.
+const coreStack = new AgentCoreStack(app, stackName, {
   env: {
     account: envConfig.awsAccount || process.env.CDK_DEFAULT_ACCOUNT,
     region: process.env.CDK_DEFAULT_REGION,
@@ -38,8 +41,27 @@ new AgentCoreStack(app, stackName, {
   terminationProtection: envConfig.deletionProtection,
 });
 
+// Gateway Target Stack: manages Gateway targets (Lambda Tools) as a separate deployment unit.
+// By splitting targets into their own stack, additions, changes, and removals of targets
+// can be deployed independently without impacting core resources.
+// Uses Fn::ImportValue (via coreStackName) for cross-stack Gateway reference,
+// or accepts direct Gateway attributes (gatewayArn, etc.) for connecting to externally managed Gateways.
+const targetStackName = `${stackName}Targets`;
+const targetStack = new AgentCoreGatewayTargetStack(app, targetStackName, {
+  env: {
+    account: envConfig.awsAccount || process.env.CDK_DEFAULT_ACCOUNT,
+    region: process.env.CDK_DEFAULT_REGION,
+  },
+  envConfig: envConfig,
+  coreStackName: stackName,
+  description: `Amazon Bedrock AgentCore Gateway Targets - ${envName.toUpperCase()} environment`,
+  terminationProtection: envConfig.deletionProtection,
+});
+targetStack.addDependency(coreStack);
+
 // Output environment information
 console.log(`🚀 Deploying AgentCore Stack for environment: ${envName}`);
-console.log(`📦 Stack Name: ${stackName}`);
+console.log(`📦 Core Stack Name: ${stackName}`);
+console.log(`📦 Target Stack Name: ${targetStackName}`);
 console.log(`🌍 Region: ${process.env.CDK_DEFAULT_REGION || 'not set (will use AWS_REGION)'}`);
 console.log(`🔒 Deletion Protection: ${envConfig.deletionProtection ? 'ENABLED' : 'DISABLED'}`);
