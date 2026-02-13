@@ -15,7 +15,6 @@ import {
   EXTENSION_FORMAT_MAP,
   MAX_FILE_SIZE,
   type DocumentFormat,
-  type DocumentReaderResult,
 } from './types.js';
 
 /**
@@ -145,15 +144,6 @@ export const documentReaderTool = tool({
       // Truncate if necessary
       const truncated = text.length > maxLength;
       const extractedText = truncated ? text.slice(0, maxLength) : text;
-
-      const result: DocumentReaderResult = {
-        success: true,
-        text: extractedText,
-        filePath,
-        format,
-        fileSize: fileStat.size,
-        truncated,
-      };
 
       logger.info(
         `✅ Document read successfully: ${fileName} - ${text.length} chars extracted${truncated ? ` (truncated to ${maxLength})` : ''}`
