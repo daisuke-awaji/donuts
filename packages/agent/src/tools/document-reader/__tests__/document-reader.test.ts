@@ -2,8 +2,8 @@
  * Comprehensive unit tests for document-reader tool
  */
 
-import { describe, it, expect, beforeAll, jest, afterEach } from '@jest/globals';
-import { readFileSync, existsSync, writeFileSync, unlinkSync } from 'fs';
+import { describe, it, expect, jest } from '@jest/globals';
+import { readFileSync, writeFileSync, unlinkSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { parseOffice } from 'officeparser';
@@ -33,7 +33,6 @@ const { documentReaderTool } = await import('../tool.js');
  * Helper to invoke the tool callback directly
  */
 async function invokeTool(input: { filePath: string; maxLength?: number }): Promise<string> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const toolAny = documentReaderTool as any;
   return toolAny._callback(input);
 }
